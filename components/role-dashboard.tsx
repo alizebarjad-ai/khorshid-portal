@@ -85,31 +85,31 @@ function receivedOf(p: Project) {
 }
 
 const ROUTE_BY_LABEL: Record<string, string> = {
-  "پیشنهادها و کارتابل": "/opportunities",
-  "فرصت‌های اقتصادی": "/opportunities",
-  "پروژه‌ها و پرونده‌ها": "/project-rewards",
-  "استخر پاداش": "/project-rewards",
-  "اطلاعات مالی": "/project-rewards",
-  "مطالبات": "/project-rewards",
-  "اعضا و مفاخر": "/members",
-  "باشگاه‌های تخصصی": "/members",
-  "درخواست‌های عضویت": "/members",
-  "پیشنهادهای اعضا": "/members",
-  "هنرمندان": "/artists",
-  "پروژه‌های هنری": "/projects",
-  "مشارکت‌ها": "/participation",
-  "پروژه‌های اجتماعی": "/projects-social",
-  "پیشنهادهای اجتماعی": "/opportunities",
-  "شرکا و حامیان": "/partners",
-  "محتوا": "/media",
-  "اخبار": "/media",
-  "رسانه و ویدیو": "/media",
-  "پروژه‌های رسانه‌ای": "/projects",
-  "تقویم محتوا": "/calendar",
-  "برنامه‌های آموزشی": "/education",
-  "پژوهش‌ها": "/education",
-  "نوآوری": "/education",
-  "تقویم": "/calendar",
+  "پیشنهادها و کارتابل": "/internal/opportunities",
+  "فرصت‌های اقتصادی": "/internal/opportunities",
+  "پروژه‌ها و پرونده‌ها": "/internal/project-rewards",
+  "استخر پاداش": "/internal/project-rewards",
+  "اطلاعات مالی": "/internal/project-rewards",
+  "مطالبات": "/internal/project-rewards",
+  "اعضا و مفاخر": "/internal/roles/members",
+  "باشگاه‌های تخصصی": "/internal/roles/members",
+  "درخواست‌های عضویت": "/internal/roles/members",
+  "پیشنهادهای اعضا": "/internal/roles/members",
+  "هنرمندان": "/internal/roles/artists",
+  "پروژه‌های هنری": "/internal/project-rewards",
+  "مشارکت‌ها": "/internal/submit-proposal",
+  "پروژه‌های اجتماعی": "/internal/opportunities",
+  "پیشنهادهای اجتماعی": "/internal/opportunities",
+  "شرکا و حامیان": "/internal/opportunities",
+  "محتوا": "/internal/media",
+  "اخبار": "/internal/media",
+  "رسانه و ویدیو": "/internal/media",
+  "پروژه‌های رسانه‌ای": "/internal/project-rewards",
+  "تقویم محتوا": "/internal",
+  "برنامه‌های آموزشی": "/internal/education-manager",
+  "پژوهش‌ها": "/internal/education-manager",
+  "نوآوری": "/internal/education-manager",
+  "تقویم": "/internal",
 };
 
 function routeForLabel(label: string, role: Exclude<UserRole, "beneficiary">) {
@@ -182,7 +182,7 @@ export default function RoleDashboard({ role }: { role: Exclude<UserRole, "benef
             })}
             {role !== "members" && (
               <>
-                <button type="button" onClick={() => router.push("/opportunities")} className="rounded-xl border border-[#F2A900]/40 bg-[#F2A900]/10 px-4 py-2 text-sm font-bold text-[#FFD56A]">پیشنهادها و کارتابل</button>
+                <button type="button" onClick={() => router.push("/internal/opportunities")} className="rounded-xl border border-[#F2A900]/40 bg-[#F2A900]/10 px-4 py-2 text-sm font-bold text-[#FFD56A]">پیشنهادها و کارتابل</button>
                 <button type="button" onClick={logout} className="rounded-xl border border-[#F2A900]/40 bg-[#F2A900]/10 px-4 py-2 text-sm font-bold text-[#FFD56A]">خروج</button>
               </>
             )}
