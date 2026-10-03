@@ -58,15 +58,15 @@ export const ROLE_CONFIG: Record<Exclude<UserRole, "beneficiary">, RoleConfig> =
 };
 
 const ROLE_PATHS: Record<Exclude<UserRole, "beneficiary">, string> = {
-  ceo: "/ceo",
-  deputy: "/deputy",
-  finance: "/finance",
-  economic: "/economic",
-  csr: "/csr",
+  ceo: "/internal/roles/ceo",
+  deputy: "/internal/roles/deputy",
+  finance: "/internal/roles/finance",
+  economic: "/internal/roles/economic",
+  csr: "/internal/roles/csr",
   media: "/internal/media-manager",
-  artists: "/artists",
+  artists: "/internal/roles/artists",
   education: "/internal/education-manager",
-  members: "/members",
+  members: "/internal/roles/members",
 };
 
 const money = (n: number) => new Intl.NumberFormat("fa-IR").format(Math.max(0, Math.round(n)));
