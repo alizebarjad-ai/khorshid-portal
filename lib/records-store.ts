@@ -39,6 +39,34 @@ export type ClubRecord = {
 
 type StoredRecord = MemberRecord | ClubRecord;
 
+export type RecordAudit = {
+  id: string;
+  kind: "member" | "club";
+  recordId: string;
+  recordName: string;
+  action: "create" | "update" | "delete";
+  actor: string;
+  occurredAt: string;
+};
+
+async function writeAudit(event: Omit<RecordAudit, "id" | "occurredAt">) {
+  try {
+    await putStored("record-audit", {
+      ...event,
+      id: randomUUID(),
+      occurredAt: new Date().toISOString(),
+    } satisfies RecordAudit);
+  } catch (error) {
+    // Audit storage must not turn a successful primary operation into a reported failure.
+    console.error("Record audit write failed", error);
+  }
+}
+
+export async function readRecordAudit(limit = 200): Promise<RecordAudit[]> {
+  const events = await listStored<RecordAudit>("record-audit");
+  return events.sort((a, b) => b.occurredAt.localeCompare(a.occurredAt)).slice(0, Math.min(500, Math.max(1, limit)));
+}
+
 async function readRecords<T extends StoredRecord>(kind: "member" | "club"): Promise<T[]> {
   const collection = kind === "member" ? "members" : "clubs";
   const records = await listStored<T>(collection);
@@ -68,7 +96,9 @@ export async function createRecord(kind: "member" | "club", data: Record<string,
       notes: String(data.notes || "").trim(),
     };
     if (!item.fullName) throw new Error("نام و نام خانوادگی عضو الزامی است.");
-    return writeRecord(item);
+    const saved = await writeRecord(item);
+    await writeAudit({ kind: "member", recordId: saved.id, recordName: saved.fullName, action: "create", actor: actor.username });
+    return saved;
   }
   const item: ClubRecord = {
     ...base, kind, name: String(data.name || "").trim(),
@@ -79,7 +109,9 @@ export async function createRecord(kind: "member" | "club", data: Record<string,
     notes: String(data.notes || "").trim(),
   };
   if (!item.name) throw new Error("نام باشگاه الزامی است.");
-  return writeRecord(item);
+  const saved = await writeRecord(item);
+  await writeAudit({ kind: "club", recordId: saved.id, recordName: saved.name, action: "create", actor: actor.username });
+  return saved;
 }
 
 export async function updateRecord(kind: "member" | "club", id: string, data: Record<string, unknown>, actor: {username:string}) {
@@ -101,7 +133,9 @@ export async function updateRecord(kind: "member" | "club", id: string, data: Re
       notes: String(data.notes ?? old.notes).trim(), updatedAt: now, updatedBy: actor.username,
     };
     if (!next.fullName) throw new Error("نام و نام خانوادگی عضو الزامی است.");
-    return writeRecord(next);
+    const saved = await writeRecord(next);
+    await writeAudit({ kind: "member", recordId: saved.id, recordName: saved.fullName, action: "update", actor: actor.username });
+    return saved;
   }
   const old = existing as ClubRecord;
   const next: ClubRecord = {
@@ -113,11 +147,14 @@ export async function updateRecord(kind: "member" | "club", id: string, data: Re
     notes: String(data.notes ?? old.notes).trim(), updatedAt: now, updatedBy: actor.username,
   };
   if (!next.name) throw new Error("نام باشگاه الزامی است.");
-  return writeRecord(next);
+  const saved = await writeRecord(next);
+  await writeAudit({ kind: "club", recordId: saved.id, recordName: saved.name, action: "update", actor: actor.username });
+  return saved;
 }
 
 
 export async function deleteRecord(kind: "member" | "club", id: string) {
+  const existing = kind === "member" ? (await readMembers()).find(item => item.id === id) : (await readClubs()).find(item => item.id === id);
   if (kind === "club") {
     const linkedMembers = (await readMembers()).filter((member) => (member.clubIds || []).includes(id));
     if (linkedMembers.length > 0) {
@@ -125,5 +162,6 @@ export async function deleteRecord(kind: "member" | "club", id: string) {
     }
   }
   await deleteStored(kind === "member" ? "members" : "clubs", id);
+  if (existing) await writeAudit({ kind, recordId: id, recordName: kind === "member" ? (existing as MemberRecord).fullName : (existing as ClubRecord).name, action: "delete", actor: "system" });
   return { deleted: true as const, linkedMemberCount: 0 };
 }
