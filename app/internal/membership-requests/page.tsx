@@ -9,7 +9,7 @@ type Application = {
   artField?: string | null; area?: string | null; organization?: string | null; role?: string | null;
   audience?: string | null; message: string; nationalId?: string | null; birthDate?: string | null;
   education?: string | null; educationField?: string | null; address?: string | null; postalCode?: string | null;
-  requestType?: string | null; reviewStatus?: string; membershipTier?: string | null;
+  requestType?: string | null; requestedMembershipType?: string | null; reviewStatus?: string; membershipTier?: string | null;
   supplementalData?: Record<string, string> | null; reviewFeedback?: string | null;
   reviewedBy?: string | null; reviewHistory?: { action: string; actor?: string; at?: string; feedback?: string; membershipTier?: string }[]; createdAt: string; updatedAt: string; documents: Document[];
 };
@@ -60,7 +60,7 @@ export default function MembershipRequestsPage() {
 
   useEffect(() => {
     if (!selected) return;
-    setTier(selected.membershipTier || "affiliate");
+    setTier(selected.membershipTier || selected.requestedMembershipType || "affiliate");
     setExtra((selected.supplementalData || {}) as Record<string, string>);
     setFeedback(selected.reviewFeedback || "");
   }, [selectedId, selected?.updatedAt]);
@@ -122,7 +122,7 @@ export default function MembershipRequestsPage() {
         {selected ? <>
           <section className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-[#D8D0C4] md:p-6">
             <div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="text-2xl font-extrabold">{selected.name}</h2><p className="mt-2 text-sm text-[#5F6D79]">شناسه درخواست: {selected.id}</p></div><span className="rounded-full bg-[#EEECE6] px-3 py-1 text-xs">{statuses[selected.reviewStatus || "new"] || selected.reviewStatus}</span></div>
-            <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{[["تلفن",selected.phone],["ایمیل",selected.email],["شهر",selected.city],["کد ملی",selected.nationalId],["تاریخ تولد",selected.birthDate],["تحصیلات",selected.education],["رشته تحصیلی",selected.educationField],["حوزه فعالیت",selected.artField || selected.area],["سازمان",selected.organization],["سمت",selected.role],["نشانی",selected.address],["کد پستی",selected.postalCode]].map(([label,value]) => <div key={label} className="rounded-xl bg-[#F7F5F0] p-3"><p className="text-xs text-[#65717B]">{label}</p><p className="mt-1 break-words text-sm font-semibold">{value || "ثبت نشده"}</p></div>)}</div>
+            <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{[["تلفن",selected.phone],["ایمیل",selected.email],["شهر",selected.city],["نوع عضویت درخواستی",selected.requestedMembershipType === "professional" ? "عضو حرفه‌ای / تخصصی" : selected.requestedMembershipType === "affiliate" ? "عضو وابسته" : "ثبت نشده"],["نوع عضویت نهایی",selected.membershipTier || "تعیین نشده"],["کد ملی",selected.nationalId],["تاریخ تولد",selected.birthDate],["تحصیلات",selected.education],["رشته تحصیلی",selected.educationField],["حوزه فعالیت",selected.artField || selected.area],["سازمان",selected.organization],["سمت",selected.role],["نشانی",selected.address],["کد پستی",selected.postalCode]].map(([label,value]) => <div key={label} className="rounded-xl bg-[#F7F5F0] p-3"><p className="text-xs text-[#65717B]">{label}</p><p className="mt-1 break-words text-sm font-semibold">{value || "ثبت نشده"}</p></div>)}</div>
             <div className="mt-4 rounded-2xl bg-[#F7F5F0] p-4"><h3 className="font-extrabold">توضیحات متقاضی</h3><p className="mt-2 whitespace-pre-wrap text-sm leading-7">{selected.message || "توضیحی ثبت نشده است."}</p></div>
             <div className="mt-4"><h3 className="font-extrabold">مدارک ارسالی</h3><div className="mt-2 flex flex-wrap gap-2">{selected.documents?.map((doc) => <a key={doc.id} href={"/api/membership-documents?documentId=" + encodeURIComponent(doc.id)} target="_blank" rel="noreferrer" className="rounded-xl border border-[#D8D0C4] px-3 py-2 text-sm font-semibold hover:bg-[#F7F5F0]">{({birthCertificate:"شناسنامه",nationalIdFront:"روی کارت ملی",portrait:"عکس پرسنلی",resume:"رزومه"} as Record<string,string>)[doc.kind] || doc.fileName} · {Math.ceil(doc.size/1024)}KB ↗</a>)}{!selected.documents?.length && <p className="text-sm text-red-700">مدرکی ثبت نشده است.</p>}</div></div>
             {!!selected.reviewHistory?.length && <div className="mt-5 rounded-2xl border border-[#E4DED4] p-4"><h3 className="font-extrabold">سوابق بررسی و اصلاح</h3><div className="mt-3 space-y-3">{selected.reviewHistory.map((event, index) => <div key={index} className="border-r-2 border-[#D8D0C4] pr-3"><p className="text-sm font-bold">{({ "set-type":"تعیین نوع عضویت", "request-revision":"درخواست تکمیل", reject:"رد درخواست", approve:"تأیید درخواست", applicant_resubmitted:"ارسال مجدد توسط متقاضی" } as Record<string,string>)[event.action] || event.action}</p><p className="mt-1 text-xs text-[#65717B]">{event.actor || "متقاضی"}{event.at ? " · " + new Date(event.at).toLocaleString("fa-IR") : ""}{event.membershipTier ? " · " + (tiers.find((tier) => tier.value === event.membershipTier)?.label || event.membershipTier) : ""}</p>{event.feedback && <p className="mt-2 whitespace-pre-wrap text-sm leading-6">{event.feedback}</p>}</div>)}</div></div>}
