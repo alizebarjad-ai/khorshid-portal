@@ -74,7 +74,7 @@ async function patchMembershipRequest(request: NextRequest) {
     const email = String(application.email || "").trim().toLowerCase();
     const phone = normalizeMemberUsername(String(application.phone || ""));
     const sourceId = String(application.id);
-    const linked = members.find((member) => (member.sourceApplicationIds || []).includes(sourceId));
+    const linked = members.find((member) => member.sourceApplicationId === sourceId || (member.sourceApplicationIds || []).includes(sourceId));
     const emailMatch = members.find((member) => email && String(member.email || "").trim().toLowerCase() === email);
     const phoneMatch = members.find((member) => phone && normalizeMemberUsername(String(member.phone || "")) === phone);
     const matches = [linked, emailMatch, phoneMatch].filter(Boolean);
