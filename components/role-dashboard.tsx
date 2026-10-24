@@ -1,216 +1,368 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { UserRole } from "@/lib/auth";
 
-type Project = {
-  id: string; name?: string; code?: string; clientName?: string; status?: string;
-  contractValue?: number; revenue?: number; received?: number;
-  financialTransactions?: { type?: string; amount?: number; status?: string }[];
+type ManagementRole = Exclude<UserRole, "beneficiary">;
+type Opportunity = {
+  id: string;
+  code?: string;
+  title?: string;
+  clientName?: string;
+  type?: string;
+  status?: string;
+  createdAt?: string;
+  assignedToName?: string;
+  creatorName?: string;
+  expectedValue?: number;
+  contractValue?: number;
+  team?: string[];
 };
 
-type RoleConfig = {
-  role: UserRole;
+type Action = { label: string; description: string; href: string; primary?: boolean };
+type DashboardConfig = {
   title: string;
   subtitle: string;
-  primary: string[];
-  secondary: string[];
+  welcome: string;
+  priorities: string[];
+  actions: Action[];
+  attentionStatuses: string[];
+  progressStatuses: string[];
+  completedStatuses: string[];
+  emptyTitle: string;
+  emptyDescription: string;
 };
 
-export const ROLE_CONFIG: Record<Exclude<UserRole, "beneficiary">, RoleConfig> = {
+const CONFIG: Record<ManagementRole, DashboardConfig> = {
   ceo: {
-    role: "ceo", title: "داشبورد مدیرعامل", subtitle: "نمای کلی پرونده‌ها، عملکرد و وضعیت مالی سازمان",
-    primary: ["گزارش مدیریتی", "پرونده‌ها", "مطالبات", "قراردادها"], secondary: ["پیشنهادها و کارتابل", "اعلان‌ها"],
+    title: "داشبورد مدیرعامل",
+    subtitle: "تصمیم‌های کلیدی، تأییدهای نهایی و تصویر کلان عملکرد سازمان",
+    welcome: "تمرکز امروز: تصمیم‌گیری درباره پرونده‌های ارجاع‌شده، تعیین مسیر اجرا و رفع موانع مهم سازمان.",
+    priorities: ["بررسی پیشنهادهای ارسال‌شده برای تصمیم مدیرعامل", "تصمیم درباره طرح‌های نهایی و قراردادها", "بازبینی وضعیت پرونده‌ها و مسئولیت تیم‌ها"],
+    actions: [
+      { label: "کارتابل تصمیم‌گیری", description: "مشاهده پرونده‌ها و اقدامات مدیریتی", href: "/internal/opportunities", primary: true },
+      { label: "ثبت پیشنهاد یا فرصت جدید", description: "ثبت فرصت همکاری، پروژه یا حامی جدید", href: "/internal/submit-proposal" },
+      { label: "سامانه پرونده‌ها و پاداش", description: "مشاهده اطلاعات پروژه و پاداش‌های ثبت‌شده", href: "/internal/project-rewards" },
+    ],
+    attentionStatuses: ["ارسال به مدیرعامل", "ارسال طرح نهایی به مدیرعامل", "تأیید نهایی مدیرعامل", "رد توسط مدیرعامل در مرحله اول"],
+    progressStatuses: ["تشکیل تیم پروژه", "در حال تدوین طرح و پروپوزال", "قیمت‌گذاری و بررسی مالی", "مذاکرات اولیه"],
+    completedStatuses: ["قرارداد تنظیم شد", "ثبت پروژه"],
+    emptyTitle: "پرونده‌ای برای تصمیم‌گیری ثبت نشده است",
+    emptyDescription: "پیشنهادهای جدید پس از ثبت و طی مراحل بررسی در این کارتابل ظاهر می‌شوند.",
   },
   deputy: {
-    role: "deputy", title: "داشبورد قائم‌مقام", subtitle: "مدیریت راهبردی، بررسی پیشنهادها و پیگیری پرونده‌ها",
-    primary: ["گزارش مدیریتی", "پیشنهادها و کارتابل", "پرونده‌های در گردش", "اقدامات موردنیاز"], secondary: ["اعلان‌ها", "تقویم و پیگیری"],
+    title: "داشبورد قائم‌مقام و معاون برنامه‌ریزی و راهبردی",
+    subtitle: "هدایت گردش کار، اولویت‌بندی فرصت‌ها و پیگیری اجرای تصمیم‌ها",
+    welcome: "تمرکز امروز: غربال پیشنهادهای تازه، تکمیل اطلاعات ناقص و ارجاع پرونده‌های آماده به مدیرعامل.",
+    priorities: ["بررسی اولیه پیشنهادهای تازه و تعیین اولویت", "بازگرداندن پرونده‌های ناقص برای تکمیل اطلاعات", "پیگیری پرونده‌های در گردش و هماهنگی واحدها"],
+    actions: [
+      { label: "کارتابل و گردش کار", description: "بررسی، تکمیل و ارجاع پرونده‌ها", href: "/internal/opportunities", primary: true },
+      { label: "ثبت فرصت جدید", description: "ثبت فرصت‌های راهبردی و همکاری", href: "/internal/submit-proposal" },
+    ],
+    attentionStatuses: ["در حال بررسی قائم‌مقام", "نیازمند تکمیل", "بازگشت به قائم‌مقام", "ثبت اولیه"],
+    progressStatuses: ["ارسال به مدیرعامل", "تشکیل تیم پروژه", "در حال تدوین طرح و پروپوزال", "مذاکرات اولیه"],
+    completedStatuses: ["قرارداد تنظیم شد", "ثبت پروژه"],
+    emptyTitle: "کارتابل فعلاً خالی است",
+    emptyDescription: "پیشنهادهای جدید برای بررسی اولیه در این بخش نمایش داده می‌شوند.",
   },
   finance: {
-    role: "finance", title: "داشبورد معاونت مالی و اداری", subtitle: "مدیریت اطلاعات مالی، قراردادها، وصول و پاداش پروژه‌ها",
-    primary: ["پروژه‌ها و پرونده‌ها", "اطلاعات مالی", "قراردادها", "مطالبات", "استخر پاداش"], secondary: ["گزارش مالی", "تراکنش‌ها"],
+    title: "داشبورد معاونت توسعه منابع مالی و اداری",
+    subtitle: "قراردادها، ثبت مالی پروژه‌ها و پیگیری وضعیت وصول و هزینه",
+    welcome: "تمرکز امروز: بررسی پرونده‌های آماده ثبت، کنترل اطلاعات مالی و پیگیری موارد نیازمند اقدام مالی.",
+    priorities: ["بررسی پرونده‌های ارجاع‌شده به مالی", "کنترل مبلغ قرارداد و اطلاعات ثبت پروژه", "پیگیری ثبت‌ها و موارد مالی ناقص"],
+    actions: [
+      { label: "مدیریت پروژه‌ها و پاداش", description: "ورود به پرونده‌های مالی و اطلاعات پروژه", href: "/internal/project-rewards", primary: true },
+      { label: "پرونده‌های ارجاع‌شده", description: "بررسی گردش کار و وضعیت قراردادها", href: "/internal/opportunities" },
+    ],
+    attentionStatuses: ["قرارداد تنظیم شد", "ارجاع به مالی", "تأیید نهایی مدیرعامل"],
+    progressStatuses: ["قیمت‌گذاری و بررسی مالی", "مذاکرات اولیه"],
+    completedStatuses: ["ثبت پروژه", "ثبت‌شده"],
+    emptyTitle: "پرونده مالی نیازمند اقدام پیدا نشد",
+    emptyDescription: "پرونده‌های مرتبط با ثبت پروژه و مرحله مالی، پس از ارجاع در اینجا نمایش داده می‌شوند.",
   },
   economic: {
-    role: "economic", title: "داشبورد توسعه مشارکت‌های اقتصادی", subtitle: "مدیریت حامیان، برندها، شرکای استراتژیک و فرصت‌های اقتصادی",
-    primary: ["فرصت‌های اقتصادی", "شرکا و حامیان", "پرونده‌های مشارکت", "گزارش مشارکت‌ها"], secondary: ["اعلان‌ها", "اقدامات موردنیاز"],
+    title: "داشبورد توسعه مشارکت‌های اقتصادی",
+    subtitle: "فرصت‌های همکاری، برندها، حامیان و مشارکت‌های راهبردی",
+    welcome: "تمرکز امروز: پیگیری فرصت‌های همکاری، ثبت اطلاعات مذاکره و تبدیل ظرفیت شرکا به پروژه‌های قابل اجرا.",
+    priorities: ["پیگیری فرصت‌ها و ارتباط با برندها و حامیان", "تکمیل اطلاعات مذاکره و ارزش پیشنهادی", "هماهنگی با واحدهای تخصصی برای تدوین طرح"],
+    actions: [
+      { label: "فرصت‌ها و پرونده‌های مشارکت", description: "پیگیری فرصت‌های ارجاع‌شده به واحد", href: "/internal/opportunities", primary: true },
+      { label: "ثبت فرصت یا حامی جدید", description: "ثبت اطلاعات اولیه شریک یا فرصت همکاری", href: "/internal/submit-proposal" },
+    ],
+    attentionStatuses: ["تشکیل تیم پروژه", "در حال تدوین طرح و پروپوزال", "مذاکرات اولیه", "نیازمند تکمیل"],
+    progressStatuses: ["قیمت‌گذاری و بررسی مالی", "ارسال طرح نهایی به مدیرعامل"],
+    completedStatuses: ["قرارداد تنظیم شد", "ثبت پروژه"],
+    emptyTitle: "فرصت مشارکتی ارجاع‌شده‌ای وجود ندارد",
+    emptyDescription: "پرونده‌هایی که به واحد توسعه مشارکت‌های اقتصادی ارجاع شوند، اینجا نمایش داده می‌شوند.",
   },
   csr: {
-    role: "csr", title: "داشبورد برنامه‌های حمایتی و اجتماعی", subtitle: "مدیریت پروژه‌های اجتماعی، حمایتی و مسئولیت اجتماعی",
-    primary: ["پروژه‌های اجتماعی", "پیشنهادهای اجتماعی", "شرکا و حامیان", "گزارش پروژه‌ها"], secondary: ["اعلان‌ها", "اقدامات موردنیاز"],
+    title: "داشبورد برنامه‌های اجتماعی و حمایتی",
+    subtitle: "طراحی و پیگیری پروژه‌های اجتماعی، حمایتی و مسئولیت اجتماعی",
+    welcome: "تمرکز امروز: بررسی نیاز اجتماعی، طراحی مداخله قابل سنجش و هماهنگی منابع و شرکای اجرایی.",
+    priorities: ["بررسی پرونده‌های اجتماعی ارجاع‌شده", "تعیین مسئله، گروه هدف و خروجی قابل سنجش", "هماهنگی با شرکا و تیم‌های اجرایی"],
+    actions: [
+      { label: "پرونده‌های اجتماعی", description: "پیگیری پروژه‌های ارجاع‌شده به واحد", href: "/internal/opportunities", primary: true },
+      { label: "ثبت پیشنهاد اجتماعی", description: "ثبت نیاز یا ایده برای پروژه حمایتی", href: "/internal/submit-proposal" },
+    ],
+    attentionStatuses: ["تشکیل تیم پروژه", "در حال تدوین طرح و پروپوزال", "نیازمند تکمیل"],
+    progressStatuses: ["قیمت‌گذاری و بررسی مالی", "مذاکرات اولیه", "ارسال طرح نهایی به مدیرعامل"],
+    completedStatuses: ["قرارداد تنظیم شد", "ثبت پروژه"],
+    emptyTitle: "پرونده اجتماعی ارجاع‌شده‌ای وجود ندارد",
+    emptyDescription: "پروژه‌های اجتماعی و حمایتی پس از ارجاع به واحد در این بخش ظاهر می‌شوند.",
   },
   media: {
-    role: "media", title: "داشبورد رسانه و محتوا", subtitle: "مدیریت اخبار، رسانه، تولید محتوا و پروژه‌های ارتباطی",
-    primary: ["محتوا", "اخبار", "رسانه و ویدیو", "پروژه‌های رسانه‌ای"], secondary: ["تقویم محتوا", "اعلان‌ها"],
+    title: "داشبورد رسانه و محتوا",
+    subtitle: "تولید محتوا، روایت اثر اجتماعی و هماهنگی پروژه‌های رسانه‌ای",
+    welcome: "تمرکز امروز: تبدیل نیازهای سازمان و پروژه‌ها به خروجی رسانه‌ای روشن، دقیق و قابل انتشار.",
+    priorities: ["پیگیری پروژه‌های رسانه‌ای ارجاع‌شده", "تعیین خروجی، قالب، زمان‌بندی و نیازهای تولید", "هماهنگی انتشار و مستندسازی نتایج"],
+    actions: [
+      { label: "پرونده‌های رسانه‌ای", description: "پیگیری پروژه‌های ارجاع‌شده به واحد", href: "/internal/opportunities", primary: true },
+      { label: "ثبت پیشنهاد رسانه‌ای", description: "ثبت ایده تولید محتوا یا همکاری رسانه‌ای", href: "/internal/submit-proposal" },
+    ],
+    attentionStatuses: ["تشکیل تیم پروژه", "در حال تدوین طرح و پروپوزال", "نیازمند تکمیل"],
+    progressStatuses: ["قیمت‌گذاری و بررسی مالی", "مذاکرات اولیه", "ارسال طرح نهایی به مدیرعامل"],
+    completedStatuses: ["قرارداد تنظیم شد", "ثبت پروژه"],
+    emptyTitle: "پرونده رسانه‌ای ارجاع‌شده‌ای وجود ندارد",
+    emptyDescription: "پرونده‌های مرتبط با رسانه و محتوا پس از ارجاع به واحد در اینجا نمایش داده می‌شوند.",
   },
   artists: {
-    role: "artists", title: "داشبورد امور هنرمندان", subtitle: "مدیریت شبکه هنرمندان، مشارکت‌ها و پروژه‌های هنری",
-    primary: ["هنرمندان", "پروژه‌های هنری", "مشارکت‌ها", "گزارش هنرمندان"], secondary: ["اعلان‌ها", "اقدامات موردنیاز"],
+    title: "داشبورد امور هنرمندان",
+    subtitle: "شبکه هنرمندان، ظرفیت‌های تخصصی و مشارکت در پروژه‌های هنری",
+    welcome: "تمرکز امروز: شناسایی ظرفیت هنرمندان، تطبیق تخصص با نیاز پروژه و پیگیری مشارکت‌های حرفه‌ای.",
+    priorities: ["پیگیری پرونده‌های هنری و هنرمندان مرتبط", "تطبیق تخصص و ظرفیت هنرمندان با نیاز پروژه", "هماهنگی مشارکت‌ها و ثبت ملاحظات اجرایی"],
+    actions: [
+      { label: "پرونده‌های هنری", description: "پیگیری پرونده‌های ارجاع‌شده به واحد", href: "/internal/opportunities", primary: true },
+      { label: "ثبت پیشنهاد هنری", description: "ثبت ایده پروژه یا همکاری با هنرمندان", href: "/internal/submit-proposal" },
+    ],
+    attentionStatuses: ["تشکیل تیم پروژه", "در حال تدوین طرح و پروپوزال", "نیازمند تکمیل"],
+    progressStatuses: ["قیمت‌گذاری و بررسی مالی", "مذاکرات اولیه", "ارسال طرح نهایی به مدیرعامل"],
+    completedStatuses: ["قرارداد تنظیم شد", "ثبت پروژه"],
+    emptyTitle: "پرونده هنری ارجاع‌شده‌ای وجود ندارد",
+    emptyDescription: "پروژه‌هایی که به امور هنرمندان ارجاع شوند، در این بخش نمایش داده می‌شوند.",
   },
   education: {
-    role: "education", title: "داشبورد آموزش، پژوهش و نوآوری", subtitle: "مدیریت برنامه‌های آموزشی، پژوهشی و نوآورانه",
-    primary: ["برنامه‌های آموزشی", "پژوهش‌ها", "نوآوری", "گزارش برنامه‌ها"], secondary: ["تقویم", "اعلان‌ها"],
+    title: "داشبورد آموزش، پژوهش و نوآوری",
+    subtitle: "برنامه‌های آموزشی، پژوهش‌های کاربردی و ایده‌های نوآورانه",
+    welcome: "تمرکز امروز: طراحی برنامه‌های آموزشی و پژوهشی متناسب با مأموریت خورشید و تعریف خروجی قابل ارزیابی.",
+    priorities: ["پیگیری برنامه‌های آموزشی و پژوهشی ارجاع‌شده", "تعیین مخاطب، محتوای آموزشی و شاخص نتیجه", "هماهنگی اجرا و مستندسازی آموخته‌ها"],
+    actions: [
+      { label: "پرونده‌های آموزشی و پژوهشی", description: "پیگیری پرونده‌های ارجاع‌شده به واحد", href: "/internal/opportunities", primary: true },
+      { label: "ثبت پیشنهاد آموزشی", description: "ثبت ایده آموزشی، پژوهشی یا نوآورانه", href: "/internal/submit-proposal" },
+    ],
+    attentionStatuses: ["تشکیل تیم پروژه", "در حال تدوین طرح و پروپوزال", "نیازمند تکمیل"],
+    progressStatuses: ["قیمت‌گذاری و بررسی مالی", "مذاکرات اولیه", "ارسال طرح نهایی به مدیرعامل"],
+    completedStatuses: ["قرارداد تنظیم شد", "ثبت پروژه"],
+    emptyTitle: "پرونده آموزشی یا پژوهشی ارجاع‌شده‌ای وجود ندارد",
+    emptyDescription: "پرونده‌های مربوط به آموزش، پژوهش و نوآوری پس از ارجاع در اینجا ظاهر می‌شوند.",
   },
   members: {
-    role: "members", title: "داشبورد مفاخر و امور اعضا", subtitle: "مدیریت اعضا، مفاخر، باشگاه‌ها و مشارکت اعضا",
-    primary: ["اعضا و مفاخر", "باشگاه‌های تخصصی", "درخواست‌های عضویت", "پیشنهادهای اعضا", "گزارش اعضا"], secondary: ["اعلان‌ها", "اقدامات موردنیاز"],
+    title: "داشبورد مفاخر، اعضا و باشگاه‌ها",
+    subtitle: "مدیریت ارتباط با اعضا، مفاخر و باشگاه‌های تخصصی",
+    welcome: "تمرکز امروز: پیگیری مشارکت اعضا، ارتباطات حرفه‌ای و آماده‌سازی فعالیت‌های باشگاه‌های تخصصی.",
+    priorities: ["پیگیری پیشنهادها و پرونده‌های مرتبط با اعضا و مفاخر", "هماهنگی مشارکت اعضا در پروژه‌ها و برنامه‌ها", "آماده‌سازی اطلاعات موردنیاز برای مدیریت باشگاه‌ها"],
+    actions: [
+      { label: "پرونده‌های مرتبط با اعضا", description: "پیگیری پرونده‌های ارجاع‌شده به واحد", href: "/internal/opportunities", primary: true },
+      { label: "ثبت پیشنهاد اعضا یا باشگاه", description: "ثبت ایده یا فرصت همکاری مرتبط با اعضا", href: "/internal/submit-proposal" },
+    ],
+    attentionStatuses: ["تشکیل تیم پروژه", "در حال تدوین طرح و پروپوزال", "نیازمند تکمیل"],
+    progressStatuses: ["قیمت‌گذاری و بررسی مالی", "مذاکرات اولیه", "ارسال طرح نهایی به مدیرعامل"],
+    completedStatuses: ["قرارداد تنظیم شد", "ثبت پروژه"],
+    emptyTitle: "پرونده مرتبط با اعضا یا باشگاه‌ها وجود ندارد",
+    emptyDescription: "پرونده‌های مرتبط با اعضا پس از ارجاع به واحد در اینجا نمایش داده می‌شوند.",
   },
 };
 
-const ROLE_PATHS: Record<Exclude<UserRole, "beneficiary">, string> = {
-  ceo: "/internal/roles/ceo",
-  deputy: "/internal/roles/deputy",
-  finance: "/internal/roles/finance",
-  economic: "/internal/roles/economic",
-  csr: "/internal/roles/csr",
-  media: "/internal/media-manager",
-  artists: "/internal/roles/artists",
-  education: "/internal/education-manager",
-  members: "/internal/roles/members",
-};
+const money = (value: number) => new Intl.NumberFormat("fa-IR").format(Math.max(0, Math.round(value)));
 
-const money = (n: number) => new Intl.NumberFormat("fa-IR").format(Math.max(0, Math.round(n)));
-
-function readProjects(): Project[] {
-  try {
-    const raw = localStorage.getItem("khorshid-project-rewards-v1");
-    return raw ? JSON.parse(raw) : [];
-  } catch { return []; }
+function StatusPill({ status }: { status: string }) {
+  const isDone = ["ثبت پروژه", "ثبت‌شده", "قرارداد تنظیم شد"].includes(status);
+  const isAttention = ["نیازمند تکمیل", "در حال بررسی قائم‌مقام", "ارسال به مدیرعامل", "ارسال طرح نهایی به مدیرعامل", "ارجاع به مالی"].includes(status);
+  return <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${isDone ? "bg-emerald-50 text-emerald-800" : isAttention ? "bg-amber-50 text-amber-800" : "bg-[#EEECE6] text-[#172F48]"}`}>{status || "در جریان"}</span>;
 }
 
-function receivedOf(p: Project) {
-  const tx = p.financialTransactions || [];
-  if (!tx.length) return Number(p.received || 0);
-  return tx.filter(t => t.type === "وصول" && t.status === "تأیید شده").reduce((s,t) => s + Number(t.amount || 0), 0);
-}
-
-const ROUTE_BY_LABEL: Record<string, string> = {
-  "پیشنهادها و کارتابل": "/internal/opportunities",
-  "فرصت‌های اقتصادی": "/internal/opportunities",
-  "پروژه‌ها و پرونده‌ها": "/internal/project-rewards",
-  "استخر پاداش": "/internal/project-rewards",
-  "اطلاعات مالی": "/internal/project-rewards",
-  "مطالبات": "/internal/project-rewards",
-  "اعضا و مفاخر": "/internal/roles/members",
-  "باشگاه‌های تخصصی": "/internal/roles/members",
-  "درخواست‌های عضویت": "/internal/roles/members",
-  "پیشنهادهای اعضا": "/internal/roles/members",
-  "هنرمندان": "/internal/roles/artists",
-  "پروژه‌های هنری": "/internal/project-rewards",
-  "مشارکت‌ها": "/internal/submit-proposal",
-  "پروژه‌های اجتماعی": "/internal/opportunities",
-  "پیشنهادهای اجتماعی": "/internal/opportunities",
-  "شرکا و حامیان": "/internal/opportunities",
-  "محتوا": "/internal/media",
-  "اخبار": "/internal/media",
-  "رسانه و ویدیو": "/internal/media",
-  "پروژه‌های رسانه‌ای": "/internal/project-rewards",
-  "تقویم محتوا": "/internal",
-  "برنامه‌های آموزشی": "/internal/education-manager",
-  "پژوهش‌ها": "/internal/education-manager",
-  "نوآوری": "/internal/education-manager",
-  "تقویم": "/internal",
-};
-
-function routeForLabel(label: string, role: Exclude<UserRole, "beneficiary">) {
-  if (ROUTE_BY_LABEL[label]) return ROUTE_BY_LABEL[label];
-  if (label === "گزارش مدیریتی" || label === "گزارش مالی" || label === "گزارش مشارکت‌ها" || label === "گزارش پروژه‌ها" || label === "گزارش هنرمندان" || label === "گزارش برنامه‌ها" || label === "گزارش اعضا") return ROLE_PATHS[role];
-  return undefined;
-}
-
-export default function RoleDashboard({ role }: { role: Exclude<UserRole, "beneficiary"> }) {
+export default function RoleDashboard({ role }: { role: ManagementRole }) {
   const router = useRouter();
-  const config = ROLE_CONFIG[role];
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [userName, setUserName] = useState(config.title);
+  const config = CONFIG[role];
+  const [items, setItems] = useState<Opportunity[]>([]);
+  const [userName, setUserName] = useState("");
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  useEffect(() => {
-    fetch("/api/auth/me").then(async r => {
-      if (!r.ok) { router.replace("/login"); return; }
-      const data = await r.json();
-      if (data.user?.role !== role) {
-        if (data.user?.role === "beneficiary") router.replace("/my-reward");
-        else router.replace(ROLE_PATHS[data.user?.role as Exclude<UserRole, "beneficiary">] || "/login");
+  const load = useCallback(async () => {
+    setError("");
+    try {
+      const authResponse = await fetch("/api/auth/me", { cache: "no-store" });
+      if (!authResponse.ok) {
+        router.replace("/login");
         return;
       }
-      setUserName(data.user.name || config.title);
-      setProjects(readProjects());
-    }).catch(() => router.replace("/login")).finally(() => setLoading(false));
-  }, [role, router, config.title]);
+      const authData = await authResponse.json();
+      const currentRole = authData.user?.role as UserRole | undefined;
+      if (!currentRole) {
+        router.replace("/login");
+        return;
+      }
+      if (currentRole === "beneficiary") {
+        router.replace("/internal/my-reward");
+        return;
+      }
+      if (currentRole !== role) {
+        const pathByRole: Record<ManagementRole, string> = {
+          ceo: "/internal/roles/ceo",
+          deputy: "/internal/roles/deputy",
+          finance: "/internal/roles/finance",
+          economic: "/internal/roles/economic",
+          csr: "/internal/roles/csr",
+          media: "/internal/media-manager",
+          artists: "/internal/roles/artists",
+          education: "/internal/education-manager",
+          members: "/internal/roles/members",
+        };
+        router.replace(pathByRole[currentRole] || "/login");
+        return;
+      }
+      setUserName(authData.user.name || config.title);
 
-  const stats = useMemo(() => {
-    const total = projects.length;
-    const active = projects.filter(p => p.status === "فعال").length;
-    const contract = projects.reduce((s,p) => s + Number(p.contractValue ?? p.revenue ?? 0),0);
-    const received = projects.reduce((s,p) => s + receivedOf(p),0);
-    return { total, active, contract, received, receivables: Math.max(0,contract-received) };
-  }, [projects]);
+      const response = await fetch("/api/opportunities", { cache: "no-store" });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "دریافت اطلاعات داشبورد انجام نشد.");
+      setItems(Array.isArray(data.items) ? data.items : []);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "ارتباط با سامانه برقرار نشد.");
+    } finally {
+      setLoading(false);
+    }
+  }, [config.title, role, router]);
+
+  useEffect(() => { void load(); }, [load]);
+
+  const metrics = useMemo(() => {
+    const count = (statuses: string[]) => items.filter((item) => statuses.includes(item.status || "")).length;
+    return {
+      total: items.length,
+      attention: count(config.attentionStatuses),
+      progress: count(config.progressStatuses),
+      completed: count(config.completedStatuses),
+    };
+  }, [config, items]);
+
+  const attentionItems = useMemo(
+    () => items.filter((item) => config.attentionStatuses.includes(item.status || "")),
+    [config.attentionStatuses, items],
+  );
+
+  const recentItems = useMemo(
+    () => [...items].sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || "")).slice(0, 6),
+    [items],
+  );
 
   async function logout() {
-    await fetch("/api/auth/logout", { method:"POST" });
+    await fetch("/api/auth/logout", { method: "POST" });
     router.replace("/login");
     router.refresh();
   }
 
-  if (loading) return <main dir="rtl" className="min-h-screen bg-[#F7F5F0] pt-8 p-10 text-center text-[#172F48]">در حال بارگذاری داشبورد...</main>;
+  if (loading) {
+    return <main dir="rtl" className="min-h-screen bg-[#F7F5F0] p-10 text-center text-[#172F48]">در حال آماده‌سازی داشبورد اختصاصی...</main>;
+  }
 
-  const actionButton = (label: string, compact = false) => {
-    const href = routeForLabel(label, role);
-    return (
-      <button
-        key={label}
-        type="button"
-        onClick={() => href && router.push(href)}
-        disabled={!href}
-        className={`w-full rounded-xl px-4 py-3 text-right text-sm font-semibold transition ${href ? "bg-[#FFFEFA] hover:bg-[#EEECE6]" : "cursor-default bg-[#FFFEFA] opacity-70"} ${compact ? "" : ""}`}
-      >
-        {label}
-      </button>
-    );
-  };
-
-  return <main dir="rtl" className="min-h-screen bg-[#F7F5F0] pt-0 text-[#172F48]">
-    <div className="min-h-screen bg-[#F7F5F0]">
+  return (
+    <main dir="rtl" className="min-h-screen bg-[#F7F5F0] text-[#172F48]">
       <header className="sticky top-0 z-20 border-b border-[#E3E0D8] bg-[#F7F5F0]/95 backdrop-blur-xl">
         <div className="mx-auto flex max-w-[1500px] flex-wrap items-center justify-between gap-4 px-5 py-4 lg:px-8">
-          <div><div className="text-xs font-bold text-[#B99450]">سامانه داخلی خورشید</div><h1 className="mt-1 text-xl font-extrabold md:text-2xl">{config.title}</h1><p className="mt-1 text-xs text-[#687783]">{userName}</p></div>
-          <nav className="flex flex-wrap gap-2">
-            {config.primary.slice(0,2).map(item => {
-              const href = routeForLabel(item, role);
-              return <button key={item} type="button" disabled={!href} onClick={() => href && router.push(href)} className="rounded-xl border border-[#E3E0D8] bg-[#FFFEFA] px-4 py-2 text-sm font-bold hover:bg-[#EEECE6] disabled:cursor-default disabled:opacity-70">{item}</button>;
-            })}
-            {role !== "members" && (
-              <>
-                <button type="button" onClick={() => router.push("/internal/opportunities")} className="rounded-xl border border-[#B99450]/50 bg-[#F0DFB8] px-4 py-2 text-sm font-bold text-[#172F48]">پیشنهادها و کارتابل</button>
-                <button type="button" onClick={logout} className="rounded-xl border border-[#B99450]/50 bg-[#F0DFB8] px-4 py-2 text-sm font-bold text-[#172F48]">خروج</button>
-              </>
-            )}
-          </nav>
+          <div>
+            <div className="text-xs font-bold text-[#B99450]">سامانه داخلی خورشید</div>
+            <h1 className="mt-1 text-xl font-extrabold md:text-2xl">{config.title}</h1>
+            <p className="mt-1 text-xs text-[#687783]">{userName}</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <a href="/" className="rounded-xl border border-[#E3E0D8] bg-[#FFFEFA] px-4 py-2 text-sm font-bold hover:bg-[#EEECE6]">سایت اصلی خورشید</a>
+            <button type="button" onClick={() => void load()} className="rounded-xl border border-[#E3E0D8] bg-[#FFFEFA] px-4 py-2 text-sm font-bold hover:bg-[#EEECE6]">به‌روزرسانی</button>
+            <button type="button" onClick={logout} className="rounded-xl border border-[#B99450]/50 bg-[#F0DFB8] px-4 py-2 text-sm font-bold">خروج از حساب</button>
+          </div>
         </div>
       </header>
+
       <div className="mx-auto max-w-[1500px] px-5 py-7 lg:px-8">
-        <section className="mb-7">
-          <p className="text-sm font-bold text-[#B99450]">نمای اختصاصی {config.title}</p>
-          <h2 className="mt-1 text-2xl font-extrabold">{config.subtitle}</h2>
-          <div className="mt-5 grid grid-cols-2 gap-3 md:grid-cols-4">
+        <section className="rounded-3xl bg-[#172F48] p-6 text-white shadow-sm md:p-8">
+          <p className="text-sm font-bold text-[#D8B56E]">نمای اختصاصی شما</p>
+          <h2 className="mt-2 text-2xl font-extrabold md:text-3xl">{config.subtitle}</h2>
+          <p className="mt-3 max-w-4xl text-sm leading-7 text-[#E6EAF0]">{config.welcome}</p>
+          <div className="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
             {[
-              ["کل پرونده‌ها", money(stats.total)], ["پرونده‌های فعال", money(stats.active)],
-              ["ارزش قراردادها", money(stats.contract)], ["مطالبات", money(stats.receivables)],
-            ].map(([label,value]) => <div key={label} className="rounded-2xl border border-[#E3E0D8] bg-[#FFFEFA] p-4"><div className="text-xs text-[#687783]">{label}</div><div className="mt-2 text-xl font-extrabold">{value}</div>{(label==="ارزش قراردادها"||label==="مطالبات")&&<div className="mt-1 text-[10px] text-[#687783]">ریال</div>}</div>)}
+              { label: "پرونده‌های در دسترس", value: metrics.total, hint: "بر اساس سطح دسترسی شما" },
+              { label: "نیازمند اقدام", value: metrics.attention, hint: "طبق مرحله گردش کار" },
+              { label: "در حال پیگیری", value: metrics.progress, hint: "پرونده‌های فعال در مسیر اجرا" },
+              { label: "قرارداد / ثبت نهایی", value: metrics.completed, hint: "پرونده‌های نهایی‌شده" },
+            ].map((metric) => (
+              <div key={metric.label} className="rounded-2xl border border-white/10 bg-white/10 p-4">
+                <div className="text-xs text-white/75">{metric.label}</div>
+                <div className="mt-2 text-2xl font-extrabold">{money(metric.value)}</div>
+                <div className="mt-1 text-[11px] leading-5 text-white/65">{metric.hint}</div>
+              </div>
+            ))}
           </div>
         </section>
-        <section className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_330px]">
-          <div className="overflow-hidden rounded-3xl border border-[#E3E0D8] bg-[#FFFEFA]">
-            <div className="border-b border-[#E3E0D8] px-5 py-4"><h2 className="text-lg font-extrabold">پرونده‌ها و اطلاعات مرتبط</h2><p className="mt-1 text-xs text-[#687783]">نمایش اطلاعات متناسب با سطح دسترسی این معاونت</p></div>
-            {projects.length ? <div className="divide-y divide-[#E3E0D8]">{projects.map(p => <div key={p.id} className="px-5 py-4"><div className="flex flex-wrap items-center justify-between gap-3"><div><h3 className="font-bold">{p.name || "بدون عنوان"}</h3><p className="mt-1 text-xs text-[#687783]">{p.clientName || "کارفرما ثبت نشده"} · {p.code || "بدون کد"}</p></div><span className="rounded-full bg-[#EEECE6] px-3 py-1 text-xs text-[#172F48]">{p.status || "در جریان"}</span></div></div>)}</div> : <div className="p-12 text-center text-sm text-[#687783]">هنوز پرونده‌ای برای نمایش ثبت نشده است.</div>}
+
+        {error && <div role="alert" className="mt-5 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">{error} <button type="button" className="mr-3 font-bold underline" onClick={() => void load()}>تلاش مجدد</button></div>}
+
+        <section className="mt-6 grid gap-5 xl:grid-cols-[minmax(0,1.3fr)_minmax(320px,0.7fr)]">
+          <div className="space-y-5">
+            <div className="rounded-3xl border border-[#E3E0D8] bg-[#FFFEFA] p-5 md:p-6">
+              <div className="flex flex-wrap items-end justify-between gap-3">
+                <div><h3 className="text-lg font-extrabold">کارتابل نیازمند اقدام</h3><p className="mt-1 text-sm text-[#687783]">پرونده‌هایی که طبق نقش شما به توجه بیشتری نیاز دارند.</p></div>
+                <button type="button" onClick={() => router.push("/internal/opportunities")} className="rounded-xl bg-[#172F48] px-4 py-2.5 text-sm font-bold text-white">بازکردن کارتابل</button>
+              </div>
+              {attentionItems.length ? (
+                <div className="mt-4 space-y-3">
+                  {attentionItems.slice(0, 5).map((item) => (
+                    <button type="button" key={item.id} onClick={() => router.push("/internal/opportunities")} className="flex w-full flex-col gap-2 rounded-2xl border border-[#E3E0D8] p-4 text-right transition hover:bg-[#F7F5F0] sm:flex-row sm:items-center sm:justify-between">
+                      <span><span className="block font-bold">{item.title || "بدون عنوان"}</span><span className="mt-1 block text-xs text-[#687783]">{item.code || "بدون کد"}{item.clientName ? ` · ${item.clientName}` : ""}</span></span>
+                      <StatusPill status={item.status || "در جریان"} />
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div className="mt-4 rounded-2xl bg-[#F7F5F0] p-6 text-center"><p className="font-bold">{config.emptyTitle}</p><p className="mt-2 text-sm leading-6 text-[#687783]">{config.emptyDescription}</p></div>
+              )}
+            </div>
+
+            <div className="rounded-3xl border border-[#E3E0D8] bg-[#FFFEFA] p-5 md:p-6">
+              <h3 className="text-lg font-extrabold">آخرین پرونده‌های مرتبط</h3>
+              <p className="mt-1 text-sm text-[#687783]">فقط پرونده‌هایی که API بر اساس نقش فعلی در اختیار این حساب قرار داده است.</p>
+              {recentItems.length ? <div className="mt-4 divide-y divide-[#E3E0D8]">
+                {recentItems.map((item) => <div key={item.id} className="flex flex-col gap-2 py-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div><p className="font-bold">{item.title || "بدون عنوان"}</p><p className="mt-1 text-xs text-[#687783]">{item.clientName || "طرف همکاری مشخص نشده"} · {item.code || "بدون کد"}</p></div>
+                  <StatusPill status={item.status || "در جریان"} />
+                </div>)}
+              </div> : <p className="mt-4 rounded-2xl bg-[#F7F5F0] p-6 text-center text-sm text-[#687783]">هنوز پرونده‌ای برای نمایش وجود ندارد.</p>}
+            </div>
           </div>
-          <aside className="space-y-4">
-            <div className="rounded-3xl border border-[#E3E0D8] bg-[#FFFEFA] p-5"><h2 className="font-extrabold">بخش‌های اختصاصی</h2><div className="mt-4 space-y-2">{config.primary.map(x => actionButton(x))}<button type="button" onClick={logout} className="w-full rounded-xl bg-red-500/10 px-4 py-3 text-right text-sm font-semibold text-red-700 transition hover:bg-red-500/20">خروج</button></div></div>
-            <div className="rounded-3xl border border-[#E3E0D8] bg-[#FFFEFA] p-5"><h2 className="font-extrabold">اقدامات سریع</h2><div className="mt-4 space-y-2">{config.secondary.map(x => actionButton(x))}</div></div>
+
+          <aside className="space-y-5">
+            <div className="rounded-3xl border border-[#E3E0D8] bg-[#FFFEFA] p-5 md:p-6">
+              <h3 className="text-lg font-extrabold">اقدامات و ابزارهای نقش شما</h3>
+              <p className="mt-1 text-sm text-[#687783]">دسترسی مستقیم به ابزارهای عملیاتی موجود.</p>
+              <div className="mt-4 space-y-3">
+                {config.actions.map((action) => <button type="button" key={action.label} onClick={() => router.push(action.href)} className={`w-full rounded-2xl border px-4 py-4 text-right transition hover:-translate-y-0.5 ${action.primary ? "border-[#172F48] bg-[#172F48] text-white hover:bg-[#244662]" : "border-[#E3E0D8] bg-white text-[#172F48] hover:bg-[#F7F5F0]"}`}>
+                  <span className="block font-bold">{action.label}</span><span className={`mt-1 block text-xs leading-6 ${action.primary ? "text-white/75" : "text-[#687783]"}`}>{action.description}</span>
+                </button>)}
+              </div>
+            </div>
+
+            <div className="rounded-3xl border border-[#E3E0D8] bg-[#FFFEFA] p-5 md:p-6">
+              <h3 className="text-lg font-extrabold">اولویت‌های کاری این نقش</h3>
+              <ol className="mt-4 space-y-3">
+                {config.priorities.map((priority, index) => <li key={priority} className="flex gap-3 text-sm leading-6"><span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#F0DFB8] text-xs font-extrabold text-[#172F48]">{money(index + 1)}</span><span>{priority}</span></li>)}
+              </ol>
+            </div>
+            <div className="rounded-2xl border border-[#E3E0D8] bg-white p-4 text-xs leading-6 text-[#687783]">
+              این داشبورد فقط نمای کاری نقش فعلی است. دسترسی نهایی به اطلاعات و عملیات در سمت سرور کنترل می‌شود؛ برای بخش‌های اعضا، باشگاه‌ها، محتوا و آموزش که هنوز ابزار مستقل ندارند، ماژول عملیاتی جداگانه باید در مرحله بعد ساخته شود.
+            </div>
           </aside>
         </section>
       </div>
-    </div>
-  </main>;
+    </main>
+  );
 }
