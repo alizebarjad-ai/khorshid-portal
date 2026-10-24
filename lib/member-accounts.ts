@@ -1,5 +1,5 @@
 import { createHash, randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
-import { getStored, listStored, putStored } from "@/lib/persistent-store";
+import { listStored, putStored } from "@/lib/persistent-store";
 import { randomUUID } from "node:crypto";
 
 export type MemberAccount = {
