@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import type { UserRole } from "@/lib/auth";
 import { dashboardPathForRole } from "@/lib/dashboard-path";
 
-type ManagementRole = Exclude<UserRole, "beneficiary" | "member">;
+type ManagementRole = Exclude<UserRole, "beneficiary" | "member" | "owner">;
 type Opportunity = {
   id: string;
   code?: string;
