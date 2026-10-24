@@ -229,7 +229,7 @@ export async function PATCH(request: Request) {
     if (existing.status === "ثبت پروژه") {
       return NextResponse.json({ error: "پس از ثبت نهایی پرونده، تغییر اعضای تیم مجاز نیست." }, { status: 403 });
     }
-    const updated = updateOpportunity(id, {
+    const updated = await updateOpportunity(id, {
       team: patch.team,
       assignedTo: patch.assignedTo,
       assignedToName: patch.assignedToName,
