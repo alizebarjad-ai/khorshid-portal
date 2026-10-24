@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { COOKIE_NAME, decodeSession } from "@/lib/auth";
 import { createRecord, readMembers, updateRecord } from "@/lib/records-store";
+import { prepareMemberActivation } from "@/lib/member-accounts";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -106,10 +107,32 @@ export async function PATCH(request: NextRequest) {
       notes: "پرونده از درخواست عضویت سایت ایجاد/به‌روزرسانی شده است. شناسه درخواست: " + sourceId
         + (application.supplementalData ? "؛ اطلاعات تکمیلی: " + JSON.stringify(application.supplementalData) : ""),
     };
-    if (existing) {
-      await updateRecord("member", existing.id, profileData, { username: checked.user.username });
-    } else {
-      await createRecord("member", profileData, { username: checked.user.username });
+    const memberProfile = existing
+      ? await updateRecord("member", existing.id, profileData, { username: checked.user.username })
+      : await createRecord("member", profileData, { username: checked.user.username });
+    if (!memberProfile) throw new Error("تأیید درخواست انجام شد، اما همگام‌سازی پرونده عضو کامل نشد.");
+
+    const activation = await prepareMemberActivation({
+      memberId: memberProfile.id,
+      phone: application.phone,
+      fullName: application.name,
+      email: application.email,
+    });
+    if (activation.activationToken) {
+      const apiBase = process.env.WEBSITE_MEMBERSHIP_API_URL;
+      const apiKey = process.env.PORTAL_MEMBERSHIP_API_KEY;
+      if (!apiBase || !apiKey) throw new Error("پرونده عضو ساخته شد، اما تنظیمات ارسال پیوند فعال‌سازی ناقص است.");
+      const portalUrl = (process.env.NEXT_PUBLIC_PORTAL_URL || "https://khorshid-portal.vercel.app").replace(/\/$/, "");
+      const activationUrl = portalUrl + "/activate?token=" + encodeURIComponent(activation.activationToken);
+      const emailResponse = await fetch(new URL("/api/portal/member-activation-email", apiBase).toString(), {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-portal-membership-key": apiKey },
+        body: JSON.stringify({ name: application.name, email: application.email, activationUrl }),
+      });
+      if (!emailResponse.ok) {
+        const details = await emailResponse.json().catch(() => ({}));
+        throw new Error(details.error || "پرونده عضو ساخته شد، اما ارسال پیوند فعال‌سازی انجام نشد؛ اقدام تأیید را دوباره اجرا کنید.");
+      }
     }
 
     return approval;
