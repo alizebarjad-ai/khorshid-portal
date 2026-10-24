@@ -71,11 +71,11 @@ export async function PATCH(request: NextRequest) {
     // the source application ID is checked before creating another member profile.
     const members = await readMembers();
     const email = String(application.email || "").trim().toLowerCase();
-    const phone = String(application.phone || "").replace(/[\\s()-]/g, "");
+    const phone = normalizeMemberUsername(String(application.phone || ""));
     const sourceId = String(application.id);
     const linked = members.find((member) => (member.sourceApplicationIds || []).includes(sourceId));
     const emailMatch = members.find((member) => email && String(member.email || "").trim().toLowerCase() === email);
-    const phoneMatch = members.find((member) => phone && String(member.phone || "").replace(/[\\s()-]/g, "") === phone);
+    const phoneMatch = members.find((member) => phone && normalizeMemberUsername(String(member.phone || "")) === phone);
     const matches = [linked, emailMatch, phoneMatch].filter(Boolean);
     const uniqueMatches = new Set(matches.map((member) => member!.id));
     if (uniqueMatches.size > 1) {
