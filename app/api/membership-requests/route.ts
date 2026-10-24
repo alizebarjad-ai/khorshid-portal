@@ -56,11 +56,17 @@ export async function PATCH(request: NextRequest) {
       if (emailMatch && phoneMatch && emailMatch.id !== phoneMatch.id) return NextResponse.json({ error: "ایمیل و تلفن این درخواست به دو پرونده متفاوت متصل است. برای جلوگیری از ایجاد سابقه تکراری، ابتدا پرونده‌ها را بررسی کنید." }, { status: 409 });
       const existing = emailMatch || phoneMatch;
       const inferredMemberType = application.audience === "artist" ? "artist" : ((application.audience === "company" || application.audience === "government" || application.type === "organization") ? "organization" : (application.type === "sponsor" ? "supporter" : "expert"));
-      const profileData = { fullName: application.name, memberType: existing ? existing.memberType : inferredMemberType, membershipTier: application.membershipTier, supplementalData: application.supplementalData || {}, status: "active", phone: application.phone, email: application.email, city: application.city || "", expertise: application.artField || application.area || "", biography: application.message || "", sourceApplicationId: application.id, notes: "پرونده از درخواست عضویت سایت ایجاد/به‌روزرسانی شده است. شناسه درخواست: " + application.id + (application.supplementalData ? "؛ اطلاعات تکمیلی: " + JSON.stringify(application.supplementalData) : "") };
+      const profileData = { fullName: application.name, memberType: existing ? existing.memberType : inferredMemberType, membershipTier: application.membershipTier, supplementalData: application.supplementalData || {}, status: existing ? existing.status : "pending", phone: application.phone, email: application.email, city: application.city || "", expertise: application.artField || application.area || "", biography: application.message || "", sourceApplicationId: application.id, notes: "پرونده از درخواست عضویت سایت ایجاد/به‌روزرسانی شده است. شناسه درخواست: " + application.id + (application.supplementalData ? "؛ اطلاعات تکمیلی: " + JSON.stringify(application.supplementalData) : "") };
       if (existing) await updateRecord("member", existing.id, profileData, { username: checked.user.username });
       else await createRecord("member", profileData, { username: checked.user.username });
     }
-    return await upstream("", { method: "PATCH", body: JSON.stringify({ ...body, actor: checked.user.name }) });
+    const result = await upstream("", { method: "PATCH", body: JSON.stringify({ ...body, actor: checked.user.name }) });
+    if (body.action === "approve" && result.ok) {
+      const latestMembers = await readMembers();
+      const profile = latestMembers.find((member) => (member.sourceApplicationIds || []).includes(String(body.id)));
+      if (profile && profile.status !== "active") await updateRecord("member", profile.id, { status: "active" }, { username: checked.user.username });
+    }
+    return result;
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : "ثبت تصمیم انجام نشد." }, { status: 503 });
   }
