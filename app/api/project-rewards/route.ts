@@ -74,7 +74,7 @@ export async function PUT(request: NextRequest) {
           return fail("مدیرعامل فقط می‌تواند ترکیب تیم و وضعیت تأیید پروژه را تغییر دهد.", 403);
         }
       }
-      return NextResponse.json({ item: await putStored(collection, item) });
+      return NextResponse.json({ item: await putStored(collection, item as Record<string, unknown> & { id: string }) });
     }
 
     if (!existing) {
@@ -89,7 +89,7 @@ export async function PUT(request: NextRequest) {
         newItem.assignedTo = "deputy";
         newItem.assignedToName = "قائم‌مقام";
       }
-      return NextResponse.json({ item: await putStored(collection, newItem) }, { status: 201 });
+      return NextResponse.json({ item: await putStored(collection, newItem as Record<string, unknown> & { id: string }) }, { status: 201 });
     }
 
     if (user.role === "beneficiary") return fail("پس از ثبت، ویرایش پیشنهاد باید از مسیر گردش کار انجام شود.", 403);
