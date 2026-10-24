@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { COOKIE_NAME, decodeSession } from "@/lib/auth";
-import { createRecord, readClubs, readMembers, updateRecord } from "@/lib/records-store";
+import { createRecord, deleteRecord, readClubs, readMembers, updateRecord } from "@/lib/records-store";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -56,5 +56,28 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ item });
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : "ذخیره تغییرات انجام نشد." }, { status: 400 });
+  }
+}
+
+
+export async function DELETE(request: NextRequest) {
+  const auth = await actor(request);
+  if (!auth.user) return auth.response!;
+  try {
+    const body = await request.json();
+    if (!["member", "club"].includes(body.kind) || typeof body.id !== "string" || !body.id.trim()) {
+      return NextResponse.json({ error: "درخواست حذف معتبر نیست." }, { status: 400 });
+    }
+    const result = await deleteRecord(body.kind, body.id);
+    if (!result.deleted) {
+      return NextResponse.json({
+        error: `این باشگاه به ${result.linkedMemberCount} عضو متصل است. ابتدا ارتباط اعضا با این باشگاه را از پرونده آن‌ها بردارید.`,
+        linkedMemberCount: result.linkedMemberCount,
+      }, { status: 409 });
+    }
+    return NextResponse.json({ deleted: true, kind: body.kind, id: body.id });
+  } catch (error) {
+    console.error("Records DELETE failed", error);
+    return NextResponse.json({ error: error instanceof Error ? error.message : "حذف پرونده انجام نشد." }, { status: 400 });
   }
 }
