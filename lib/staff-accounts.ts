@@ -6,9 +6,11 @@ export type StaffAccount = {
   id: string;
   kind: "staff-account";
   username: string;
+  name?: string;
   role: Exclude<UserRole, "member" | "beneficiary">;
   passwordHash: string;
   mustChangePassword: boolean;
+  status?: "active" | "disabled";
   createdAt: string;
   updatedAt: string;
   lastLoginAt?: string;
@@ -31,6 +33,10 @@ export function verifyStaffPassword(password: string, encoded: string) {
   }
 }
 
+export function createPasswordHash(password: string) {
+  return hashPassword(password);
+}
+
 export async function findStaffAccount(username: string) {
   const account = await getStored<StaffAccount>("staff-accounts", username);
   return account?.kind === "staff-account" ? account : null;
@@ -38,12 +44,12 @@ export async function findStaffAccount(username: string) {
 
 /** First successful env-based login creates a persistent credential and requires a password change. */
 export async function authenticateStaff(
-  configured: { username: string; password: string; role: StaffAccount["role"] },
+  configured: { username: string; password: string; name?: string; role: StaffAccount["role"] },
   suppliedPassword: string,
 ) {
   const existing = await findStaffAccount(configured.username);
   if (existing) {
-    if (existing.role !== configured.role || !verifyStaffPassword(suppliedPassword, existing.passwordHash)) return null;
+    if (existing.status === "disabled" || existing.role !== configured.role || !verifyStaffPassword(suppliedPassword, existing.passwordHash)) return null;
     return existing;
   }
   if (!configured.password || configured.password !== suppliedPassword) return null;
@@ -52,9 +58,11 @@ export async function authenticateStaff(
     id: configured.username,
     kind: "staff-account",
     username: configured.username,
+    name: configured.name,
     role: configured.role,
     passwordHash: hashPassword(suppliedPassword),
     mustChangePassword: true,
+    status: "active",
     createdAt: now,
     updatedAt: now,
   };
@@ -62,11 +70,11 @@ export async function authenticateStaff(
   return account;
 }
 
-export async function updateStaffPassword(account: StaffAccount, password: string) {
+export async function updateStaffPassword(account: StaffAccount, password: string, mustChangePassword = false) {
   const updated: StaffAccount = {
     ...account,
     passwordHash: hashPassword(password),
-    mustChangePassword: false,
+    mustChangePassword,
     updatedAt: new Date().toISOString(),
   };
   await putStored("staff-accounts", updated);
