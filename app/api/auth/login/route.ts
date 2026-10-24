@@ -8,7 +8,7 @@ export async function GET(request: Request) {
   const match = cookieHeader.match(new RegExp(`(?:^|;\\s*)${COOKIE_NAME}=([^;]+)`));
   const user = decodeSession(match?.[1] || null);
   if (!user) return NextResponse.json({ user: null }, { status: 401 });
-  return NextResponse.json({ user: { username: user.username, name: user.name, role: user.role } });
+  return NextResponse.json({ user: { username: user.username, name: user.name, role: user.role, ...(user.mustChangePassword ? { mustChangePassword: true } : {}) } });
 }
 
 
