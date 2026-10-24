@@ -54,6 +54,11 @@ export default function LoginPage() {
       }
 
       const role = data.user?.role;
+      if (data.user?.mustChangePassword) {
+        router.push("/internal/change-password?required=1");
+        router.refresh();
+        return;
+      }
       const destination =
         role === "member" ? "/internal/member-home" :
         role === "beneficiary" ? "/internal/my-reward" :
