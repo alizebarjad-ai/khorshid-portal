@@ -290,7 +290,7 @@ export async function PATCH(request: Request) {
   ];
 
   try {
-    const updated = updateOpportunity(id, {
+    const updated = await updateOpportunity(id, {
       ...patch,
       history,
     });
