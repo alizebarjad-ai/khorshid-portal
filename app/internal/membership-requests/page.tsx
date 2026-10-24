@@ -18,7 +18,7 @@ const tiers = [
   { value: "professional", label: "عضو حرفه‌ای / تخصصی", description: "پرونده تخصص، آثار، سوابق و فرصت‌های همکاری حرفه‌ای" },
   { value: "supporter_partner", label: "حامی مالی / شریک سازمانی", description: "ثبت ظرفیت حمایت، همکاری سازمانی و مسئولیت اجتماعی" },
 ];
-const statuses: Record<string, string> = { new: "تازه‌وارد", in_review: "در حال بررسی", needs_revision: "نیازمند تکمیل", rejected: "ردشده", approved: "تأییدشده" };
+const statuses: Record<string, string> = { new: "تازه‌وارد", resubmitted: "ارسال مجدد", in_review: "در حال بررسی", needs_revision: "نیازمند تکمیل", rejected: "ردشده", approved: "تأییدشده" };
 const fieldClass = "mt-1 w-full rounded-xl border border-[#D8D0C4] bg-white px-3 py-2.5 text-sm text-[#18304A]";
 
 export default function MembershipRequestsPage() {
@@ -82,6 +82,11 @@ export default function MembershipRequestsPage() {
         const saveData = await save.json();
         if (!save.ok) throw new Error(saveData.error || "ذخیره فرم تکمیلی ناموفق بود.");
       } else {
+        if (action === "approve") {
+          const typeResponse = await fetch("/api/membership-requests", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: selected.id, action: "set-type", membershipTier: tier, supplementalData: extra }) });
+          const typeData = await typeResponse.json();
+          if (!typeResponse.ok) throw new Error(typeData.error || "ذخیره نوع عضویت پیش از تأیید ناموفق بود.");
+        }
         const response = await fetch("/api/membership-requests", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: selected.id, action, feedback, membershipTier: tier, supplementalData: extra, ...more }) });
         const data = await response.json();
         if (!response.ok) throw new Error(data.error || "ثبت تصمیم ناموفق بود.");
