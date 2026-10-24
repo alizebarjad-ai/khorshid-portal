@@ -43,6 +43,7 @@ const CONFIG: Record<ManagementRole, DashboardConfig> = {
     actions: [
       { label: "کارتابل تصمیم‌گیری", description: "مشاهده پرونده‌ها و اقدامات مدیریتی", href: "/internal/opportunities", primary: true },
       { label: "ثبت پیشنهاد یا فرصت جدید", description: "ثبت فرصت همکاری، پروژه یا حامی جدید", href: "/internal/submit-proposal" },
+      { label: "پرونده اعضا و باشگاه‌ها", description: "مدیریت اطلاعات اعضا، مفاخر و باشگاه‌های تخصصی", href: "/internal/members" },
       { label: "سامانه پرونده‌ها و پاداش", description: "مشاهده اطلاعات پروژه و پاداش‌های ثبت‌شده", href: "/internal/project-rewards" },
     ],
     attentionStatuses: ["ارسال به مدیرعامل", "ارسال طرح نهایی به مدیرعامل", "تأیید نهایی مدیرعامل", "رد توسط مدیرعامل در مرحله اول"],
@@ -58,6 +59,7 @@ const CONFIG: Record<ManagementRole, DashboardConfig> = {
     priorities: ["بررسی اولیه پیشنهادهای تازه و تعیین اولویت", "بازگرداندن پرونده‌های ناقص برای تکمیل اطلاعات", "پیگیری پرونده‌های در گردش و هماهنگی واحدها"],
     actions: [
       { label: "کارتابل و گردش کار", description: "بررسی، تکمیل و ارجاع پرونده‌ها", href: "/internal/opportunities", primary: true },
+      { label: "مدیریت اعضا و باشگاه‌ها", description: "دسترسی مدیریتی به پرونده اعضا و باشگاه‌های تخصصی", href: "/internal/members" },
       { label: "ثبت فرصت جدید", description: "ثبت فرصت‌های راهبردی و همکاری", href: "/internal/submit-proposal" },
     ],
     attentionStatuses: ["در حال بررسی قائم‌مقام", "نیازمند تکمیل", "بازگشت به قائم‌مقام", "ثبت اولیه"],
@@ -162,7 +164,9 @@ const CONFIG: Record<ManagementRole, DashboardConfig> = {
     welcome: "تمرکز امروز: پیگیری مشارکت اعضا، ارتباطات حرفه‌ای و آماده‌سازی فعالیت‌های باشگاه‌های تخصصی.",
     priorities: ["پیگیری پیشنهادها و پرونده‌های مرتبط با اعضا و مفاخر", "هماهنگی مشارکت اعضا در پروژه‌ها و برنامه‌ها", "آماده‌سازی اطلاعات موردنیاز برای مدیریت باشگاه‌ها"],
     actions: [
-      { label: "پرونده‌های مرتبط با اعضا", description: "پیگیری پرونده‌های ارجاع‌شده به واحد", href: "/internal/opportunities", primary: true },
+      { label: "مدیریت پرونده اعضا", description: "ثبت، جست‌وجو و به‌روزرسانی اطلاعات اعضا و مفاخر", href: "/internal/members", primary: true },
+      { label: "مدیریت باشگاه‌ها", description: "تعریف باشگاه‌ها و مشاهده اعضای مرتبط", href: "/internal/clubs" },
+      { label: "پرونده‌های مرتبط با اعضا", description: "پیگیری پرونده‌های ارجاع‌شده به واحد", href: "/internal/opportunities" },
       { label: "ثبت پیشنهاد اعضا یا باشگاه", description: "ثبت ایده یا فرصت همکاری مرتبط با اعضا", href: "/internal/submit-proposal" },
     ],
     attentionStatuses: ["تشکیل تیم پروژه", "در حال تدوین طرح و پروپوزال", "نیازمند تکمیل"],
