@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { COOKIE_NAME, decodeSession } from "@/lib/auth";
 import { createRecord, readMembers, updateRecord } from "@/lib/records-store";
 import { normalizeMemberUsername, prepareMemberActivation } from "@/lib/member-accounts";
+import { withPersistentAdvisoryLock } from "@/lib/persistent-store";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -36,7 +37,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-export async function PATCH(request: NextRequest) {
+async function patchMembershipRequest(request: NextRequest) {
   const checked = auth(request);
   if (!checked.user) return checked.response!;
   try {
@@ -143,4 +144,17 @@ export async function PATCH(request: NextRequest) {
       hint: "اگر درخواست تأیید شده باشد، می‌توان اقدام تأیید را دوباره اجرا کرد تا همگام‌سازی پرونده تکرار شود.",
     }, { status: 503 });
   }
+}
+
+export async function PATCH(request: NextRequest) {
+  let body: { id?: unknown; action?: unknown };
+  try {
+    body = await request.clone().json();
+  } catch {
+    return NextResponse.json({ error: "بدنه درخواست نامعتبر است." }, { status: 400 });
+  }
+  if (body.action === "approve" && typeof body.id === "string" && body.id) {
+    return withPersistentAdvisoryLock("membership-approval:" + body.id, () => patchMembershipRequest(request));
+  }
+  return patchMembershipRequest(request);
 }
