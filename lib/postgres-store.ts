@@ -111,3 +111,18 @@ export async function consumeMemberActivationToken<T extends Item>(
   );
   return (result.rowCount || 0) === 1;
 }
+
+/** Serialize cross-instance workflows by a stable advisory-lock key. */
+export async function withPostgresAdvisoryLock<T>(key: string, action: () => Promise<T>): Promise<T> {
+  const client = await db().connect();
+  const lockKey = "khorshid-workflow:" + key;
+  let locked = false;
+  try {
+    await client.query("SELECT pg_advisory_lock(hashtext($1))", [lockKey]);
+    locked = true;
+    return await action();
+  } finally {
+    if (locked) await client.query("SELECT pg_advisory_unlock(hashtext($1))", [lockKey]).catch(() => undefined);
+    client.release();
+  }
+}
