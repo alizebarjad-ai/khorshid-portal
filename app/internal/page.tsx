@@ -87,7 +87,7 @@ export default function InternalHomePage() {
 
         <section className="mt-6 grid gap-5 md:grid-cols-2">
           <a href="/internal/opportunities" className="group rounded-3xl bg-white p-7 shadow-sm ring-1 ring-[#E3E0D8] transition hover:-translate-y-1">
-            <p className="text-sm font-bold text-[#B07800]">گردش کار</p>
+            <p className="text-sm font-bold text-[#96763D]">گردش کار</p>
             <h2 className="mt-2 text-2xl font-extrabold text-[#18304A]">فرصت‌ها و پروژه‌ها</h2>
             <p className="mt-3 text-sm leading-7 text-[#687783]">
               مشاهده و پیگیری پیشنهادها، پرونده‌ها و مراحل گردش کار مرتبط با نقش شما.
@@ -105,6 +105,23 @@ export default function InternalHomePage() {
             </p>
           </div>
         </section>
+
+        {(user.role === "ceo" || user.role === "deputy" || user.role === "members") && (
+          <section className="mt-6 grid gap-5 md:grid-cols-2">
+            <a href="/internal/members" className="group rounded-3xl bg-white p-6 shadow-sm ring-1 ring-[#E3E0D8] transition hover:-translate-y-1 hover:ring-[#B99450]">
+              <p className="text-sm font-bold text-[#96763D]">پرونده‌های سازمانی</p>
+              <h2 className="mt-2 text-xl font-extrabold text-[#172F48]">مدیریت اعضا و مفاخر</h2>
+              <p className="mt-2 text-sm leading-7 text-[#687783]">ثبت، جست‌وجو و به‌روزرسانی پرونده اعضا، تخصص‌ها و وضعیت عضویت.</p>
+              <span className="mt-4 inline-flex rounded-xl bg-[#F0DFB8] px-4 py-2 text-sm font-extrabold text-[#172F48]">ورود به پرونده اعضا ←</span>
+            </a>
+            <a href="/internal/clubs" className="group rounded-3xl bg-white p-6 shadow-sm ring-1 ring-[#E3E0D8] transition hover:-translate-y-1 hover:ring-[#B99450]">
+              <p className="text-sm font-bold text-[#96763D]">شبکه‌سازی و مشارکت</p>
+              <h2 className="mt-2 text-xl font-extrabold text-[#172F48]">مدیریت باشگاه‌ها</h2>
+              <p className="mt-2 text-sm leading-7 text-[#687783]">تعریف باشگاه‌های تخصصی، تعیین هماهنگ‌کننده و پیگیری اعضای مرتبط.</p>
+              <span className="mt-4 inline-flex rounded-xl bg-[#F0DFB8] px-4 py-2 text-sm font-extrabold text-[#172F48]">ورود به باشگاه‌ها ←</span>
+            </a>
+          </section>
+        )}
       </div>
     </main>
   );
