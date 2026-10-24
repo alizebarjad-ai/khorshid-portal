@@ -295,56 +295,6 @@ button:disabled { cursor: not-allowed; }
   color:var(--internal-navy)!important;
   transform:translateY(-1px);
 }
-.text-gold-effect {
-  background: linear-gradient(
-    180deg,
-    #fff4b0 0%,
-    #f8d76a 28%,
-    #d9a928 55%,
-    #a87508 100%
-  );
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  color: transparent;
-  text-shadow: 0 0 22px rgba(231, 190, 61, 0.18);
-  font-weight: 800;
-  letter-spacing: -0.02em;
-}
-.what-is-khorshid > *:first-child {
-  position: relative;
-  display: inline-block;
-  font-size: 1.42em;
-  font-weight: 900;
-  letter-spacing: -0.025em;
-  background:
-    linear-gradient(
-      180deg,
-      #fffde2 0%,
-      #fff2a6 12%,
-      #f7d76a 28%,
-      #dcae32 48%,
-      #b9780b 68%,
-      #7a4803 88%,
-      #d9a52a 100%
-    );
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  color: transparent;
-  -webkit-text-stroke: 1px rgba(255, 225, 120, 0.55);
-  text-shadow:
-    0 1px 0 rgba(255, 248, 190, 0.95),
-    0 2px 0 rgba(221, 168, 48, 0.95),
-    0 3px 0 rgba(164, 105, 8, 0.95),
-    0 4px 0 rgba(112, 66, 2, 0.9),
-    0 7px 10px rgba(0, 0, 0, 0.65),
-    0 10px 18px rgba(0, 0, 0, 0.35),
-    0 0 22px rgba(247, 207, 91, 0.25);
-  filter:
-    drop-shadow(0 2px 1px rgba(255, 239, 150, 0.35))
-    drop-shadow(0 6px 5px rgba(0, 0, 0, 0.45));
-}
 /* Final portal-wide form and action normalization. */
 .internal-app input, .internal-app textarea, .internal-app select,
 .internal-form-page input, .internal-form-page textarea, .internal-form-page select,
