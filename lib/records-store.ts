@@ -1,4 +1,4 @@
-import { listStored, putStored } from "@/lib/persistent-store";
+import { deleteStored, listStored, putStored } from "@/lib/persistent-store";
 import { randomUUID } from "node:crypto";
 
 export type MemberRecord = {
@@ -114,4 +114,16 @@ export async function updateRecord(kind: "member" | "club", id: string, data: Re
   };
   if (!next.name) throw new Error("نام باشگاه الزامی است.");
   return writeRecord(next);
+}
+
+
+export async function deleteRecord(kind: "member" | "club", id: string) {
+  if (kind === "club") {
+    const linkedMembers = (await readMembers()).filter((member) => (member.clubIds || []).includes(id));
+    if (linkedMembers.length > 0) {
+      return { deleted: false as const, linkedMemberCount: linkedMembers.length };
+    }
+  }
+  await deleteStored(kind === "member" ? "members" : "clubs", id);
+  return { deleted: true as const, linkedMemberCount: 0 };
 }
