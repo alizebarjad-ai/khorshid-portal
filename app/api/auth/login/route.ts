@@ -26,15 +26,15 @@ export async function POST(request: Request) {
 
     const configuredUser = getConfiguredUsers().find((item) => item.username === username);
     const staffAccount = configuredUser && configuredUser.role !== "beneficiary"
-      ? await authenticateStaff({ username: configuredUser.username, password: configuredUser.password, role: configuredUser.role }, password)
+      ? await authenticateStaff({ username: configuredUser.username, password: configuredUser.password, name: configuredUser.name, role: configuredUser.role }, password)
       : null;
 
-    let sessionUser: { username: string; name: string; role: "finance" | "ceo" | "deputy" | "beneficiary" | "economic" | "csr" | "media" | "artists" | "education" | "members" | "member"; memberId?: string; mustChangePassword?: boolean };
+    let sessionUser: { username: string; name: string; role: "finance" | "ceo" | "deputy" | "beneficiary" | "economic" | "csr" | "media" | "artists" | "education" | "members" | "member" | "owner"; memberId?: string; mustChangePassword?: boolean };
     if (configuredUser?.role === "beneficiary" && configuredUser.password === password) {
       sessionUser = { username: configuredUser.username, name: configuredUser.name, role: configuredUser.role };
     } else if (configuredUser && staffAccount) {
       await recordStaffLogin(staffAccount);
-      sessionUser = { username: configuredUser.username, name: configuredUser.name, role: configuredUser.role, mustChangePassword: staffAccount.mustChangePassword };
+      sessionUser = { username: configuredUser.username, name: staffAccount.name || configuredUser.name, role: configuredUser.role, mustChangePassword: staffAccount.mustChangePassword };
     } else {
       const account = await findMemberAccountByUsername(username);
       if (!account) {
