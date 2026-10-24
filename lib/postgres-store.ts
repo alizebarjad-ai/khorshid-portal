@@ -116,7 +116,7 @@ export async function consumeMemberActivationToken<T extends Item>(
 /** Serialize cross-instance workflows by a stable advisory-lock key. */
 export async function withPostgresAdvisoryLock<T>(key: string, action: () => Promise<T>): Promise<T> {
   if (!url) throw new Error("اتصال پایگاه داده PostgreSQL تنظیم نشده است.");
-  if (!lockPool) lockPool = new Pool({ connectionString: normalizeSslMode(url), max: 1, idleTimeoutMillis: 10000, connectionTimeoutMillis: 10000, application_name: "khorshid-portal-locks" });
+  if (!lockPool) lockPool = new Pool({ connectionString: normalizeSslMode(url), max: 5, idleTimeoutMillis: 10000, connectionTimeoutMillis: 10000, application_name: "khorshid-portal-locks" });
   const client = await lockPool.connect();
   const lockKey = "khorshid-workflow:" + key;
   let locked = false;
