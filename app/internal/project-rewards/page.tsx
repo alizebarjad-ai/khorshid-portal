@@ -1342,7 +1342,7 @@ export default function ProjectRewardsPage() {
       `}</style>
 
       <div className="container-site">
-        <div className="mb-5 flex flex-col gap-3 rounded-3xl bg-[#14213D] p-5 text-white md:flex-row md:items-center md:justify-between md:p-7">
+        <div className="mb-5 flex flex-col gap-3 rounded-3xl bg-[#10283D] p-5 text-white md:flex-row md:items-center md:justify-between md:p-7">
           <div>
             <p className="text-sm font-bold text-[#F2A900]">سامانه داخلی خورشید</p>
             <div className="mt-1 flex flex-wrap items-center gap-3">
@@ -1355,6 +1355,8 @@ export default function ProjectRewardsPage() {
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
+            <a href={sessionUser?.role === "beneficiary" ? "/internal/my-reward" : "/internal"} className="rounded-xl border border-white/20 bg-white px-4 py-2 text-sm font-bold text-[#172F48] hover:bg-[#EEECE6]">صفحه اصلی سامانه</a>
+            <a href="https://www.khorshid-mafakher.ir/" target="_blank" rel="noreferrer" className="rounded-xl border border-white/20 bg-white/10 px-4 py-2 text-sm font-bold text-white hover:bg-white/15">وب‌سایت خورشید ↗</a>
             {sessionUser?.role !== "beneficiary" && <button onClick={() => setView("dashboard")} className={`rounded-xl px-4 py-2 text-sm font-bold ${view === "dashboard" ? "bg-[#F2A900] text-[#14213D]" : "bg-white/10 text-white"}`}>داشبورد و گزارش</button>}
             {sessionUser?.role !== "beneficiary" && <button onClick={() => { window.location.href = "/internal/opportunities"; }} className="rounded-xl bg-white/10 px-4 py-2 text-sm font-bold text-white">پیشنهادها و کارتابل</button>}
             <button type="button" onClick={async () => { await fetch("/api/auth/logout", { method: "POST" }); window.location.href = "/login"; }} className="rounded-xl bg-white/10 px-3 py-2 text-xs font-bold text-white">خروج</button>
@@ -1363,7 +1365,7 @@ export default function ProjectRewardsPage() {
         {view === "dashboard" && (
           <>
             <div className="mb-4 flex justify-start">
-              <button onClick={() => setView("projects")} className="rounded-xl border border-[#D8D0C4] bg-[#FFFDF8] px-4 py-2 text-sm font-bold text-[#18304A] shadow-sm hover:bg-[#FFF4D6]">بازگشت به صفحه اصلی</button>
+              <button onClick={() => setView("projects")} className="rounded-xl border border-[#D8D0C4] bg-[#FFFDF8] px-4 py-2 text-sm font-bold text-[#18304A] shadow-sm hover:bg-[#FFF4D6]">بازگشت به پرونده پروژه‌ها</button>
             </div>
             <Dashboard projects={projects} dashboard={dashboard} />
           </>
@@ -1494,7 +1496,7 @@ export default function ProjectRewardsPage() {
 
         <div className={view !== "projects" ? "hidden" : ""}>
 
-        <div className="mb-8 rounded-3xl bg-[#14213D] p-7 text-white md:p-10">
+        <div className="mb-8 rounded-3xl bg-[#10283D] p-7 text-white md:p-10">
           <p className="text-sm font-bold text-[#F2A900]">سامانه داخلی خورشید</p>
           <h1 className="mt-2 text-3xl font-extrabold md:text-4xl">پرونده و پاداش پروژه</h1>
           <p className="mt-3 max-w-4xl text-sm leading-8 text-[#E6EAF0]">
