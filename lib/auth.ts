@@ -10,13 +10,15 @@ export type UserRole =
   | "media"
   | "artists"
   | "education"
-  | "members";
+  | "members"
+  | "member";
 
 export type SessionUser = {
   username: string;
   name: string;
   role: UserRole;
   beneficiaryName?: string;
+  memberId?: string;
 };
 
 export const ROLE_LABELS: Record<UserRole, string> = {
@@ -30,6 +32,7 @@ export const ROLE_LABELS: Record<UserRole, string> = {
   artists: "معاونت امور هنرمندان",
   education: "معاونت آموزش، پژوهش و نوآوری",
   members: "معاونت مفاخر و امور اعضا",
+  member: "عضو خورشید مفاخر",
 };
 
 const COOKIE_NAME = "khorshid_session";
