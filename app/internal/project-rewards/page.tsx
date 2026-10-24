@@ -398,6 +398,11 @@ export default function ProjectRewardsPage() {
         setStorageError("");
         setStorageReady(true);
 
+        const authResponse = await fetch("/api/auth/me", { cache: "no-store" });
+        if (!authResponse.ok || cancelled) return;
+        const authData = await authResponse.json();
+        if (authData.user?.role !== "finance") return;
+
         const opportunitiesResponse = await fetch("/api/opportunities", { cache: "no-store" });
         if (!opportunitiesResponse.ok || cancelled) return;
         const opportunitiesData = await opportunitiesResponse.json();
