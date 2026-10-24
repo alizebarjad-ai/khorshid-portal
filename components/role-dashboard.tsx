@@ -170,9 +170,9 @@ export default function RoleDashboard({ role }: { role: Exclude<UserRole, "benef
     );
   };
 
-  return <main dir="rtl" className="min-h-screen bg-[#F7F5F0] pt-8 text-[#172F48]">
+  return <main dir="rtl" className="min-h-screen bg-[#F7F5F0] pt-0 text-[#172F48]">
     <div className="min-h-screen bg-[#F7F5F0]">
-      <header className="sticky top-[72px] z-20 border-b border-[#E3E0D8] bg-[#F7F5F0]/95 backdrop-blur-xl">
+      <header className="sticky top-0 z-20 border-b border-[#E3E0D8] bg-[#F7F5F0]/95 backdrop-blur-xl">
         <div className="mx-auto flex max-w-[1500px] flex-wrap items-center justify-between gap-4 px-5 py-4 lg:px-8">
           <div><div className="text-xs font-bold text-[#B99450]">سامانه داخلی خورشید</div><h1 className="mt-1 text-xl font-extrabold md:text-2xl">{config.title}</h1><p className="mt-1 text-xs text-[#687783]">{userName}</p></div>
           <nav className="flex flex-wrap gap-2">
