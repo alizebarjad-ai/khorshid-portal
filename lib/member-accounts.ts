@@ -1,5 +1,5 @@
 import { createHash, randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
-import { listStored, putStored } from "@/lib/persistent-store";
+import { consumeMemberActivationToken, listStored, putStored } from "@/lib/persistent-store";
 import { randomUUID } from "node:crypto";
 
 export type MemberAccount = {
@@ -96,7 +96,7 @@ export async function findMemberAccountByActivationToken(token: string) {
   return account;
 }
 
-export async function activateMemberAccount(account: MemberAccount, password: string) {
+export async function activateMemberAccount(account: MemberAccount, password: string, presentedToken: string) {
   const updated: MemberAccount = {
     ...account,
     passwordHash: passwordHash(password),
@@ -105,8 +105,8 @@ export async function activateMemberAccount(account: MemberAccount, password: st
     activationExpiresAt: undefined,
     updatedAt: new Date().toISOString(),
   };
-  await putStored("member-accounts", updated);
-  return updated;
+  const consumed = await consumeMemberActivationToken(updated, tokenHash(presentedToken), new Date().toISOString());
+  return consumed ? updated : null;
 }
 
 export async function changeMemberPassword(account: MemberAccount, password: string) {
