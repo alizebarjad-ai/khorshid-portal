@@ -56,9 +56,14 @@ export async function prepareMemberActivation(input: { memberId: string; phone: 
   const username = normalizeMemberUsername(input.phone);
   if (username.length < 8) throw new Error("شماره تماس عضو برای ساخت نام کاربری معتبر نیست.");
   const accounts = await listStored<MemberAccount>("member-accounts");
-  const existing = accounts.find((account) => account.memberId === input.memberId || account.username === username) || null;
+  const linkedAccount = accounts.find((account) => account.memberId === input.memberId) || null;
+  const usernameAccount = accounts.find((account) => account.username === username) || null;
+  if (usernameAccount && usernameAccount.memberId !== input.memberId) {
+    throw new Error("این شماره تماس به حساب عضو دیگری متصل است؛ پرونده‌ها باید پیش از فعال‌سازی بررسی شوند.");
+  }
+  const existing = linkedAccount || usernameAccount;
   if (existing?.status === "active") {
-    const updated = { ...existing, memberId: input.memberId, fullName: input.fullName, email: input.email.trim().toLowerCase(), updatedAt: new Date().toISOString() };
+    const updated = { ...existing, memberId: input.memberId, username, fullName: input.fullName, email: input.email.trim().toLowerCase(), updatedAt: new Date().toISOString() };
     await putStored("member-accounts", updated);
     return { account: updated, activationToken: null as string | null };
   }
