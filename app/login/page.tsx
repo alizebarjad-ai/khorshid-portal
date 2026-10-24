@@ -55,6 +55,7 @@ export default function LoginPage() {
 
       const role = data.user?.role;
       const destination =
+        role === "member" ? "/internal/member-home" :
         role === "beneficiary" ? "/internal/my-reward" :
         role === "ceo" ? "/internal/roles/ceo" :
         role === "deputy" ? "/internal/roles/deputy" :
