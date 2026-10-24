@@ -14,8 +14,30 @@ export async function GET(request: NextRequest) {
     const member = members.find((item) => item.id === user.memberId);
     if (!member || member.status !== "active") return NextResponse.json({ error: "پرونده عضو فعال پیدا نشد." }, { status: 404 });
     const clubs = await readClubs();
-    const linkedClubs = clubs.filter((club) => (member.clubIds || []).includes(club.id));
-    return NextResponse.json({ member, clubs: linkedClubs });
+    const linkedClubs = clubs
+      .filter((club) => (member.clubIds || []).includes(club.id))
+      .map((club) => ({
+        id: club.id,
+        name: club.name,
+        clubType: club.clubType,
+        city: club.city,
+        description: club.description,
+        status: club.status,
+      }));
+    const safeMember = {
+      id: member.id,
+      fullName: member.fullName,
+      memberType: member.memberType,
+      membershipTier: member.membershipTier,
+      status: member.status,
+      phone: member.phone,
+      email: member.email,
+      city: member.city,
+      expertise: member.expertise,
+      biography: member.biography,
+      clubIds: member.clubIds || [],
+    };
+    return NextResponse.json({ member: safeMember, clubs: linkedClubs });
   } catch (error) {
     console.error("Member profile GET failed", error);
     return NextResponse.json({ error: "دریافت پرونده عضو ناموفق بود." }, { status: 503 });
