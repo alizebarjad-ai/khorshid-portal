@@ -68,7 +68,7 @@ export async function DELETE(request: NextRequest) {
     if (!["member", "club"].includes(body.kind) || typeof body.id !== "string" || !body.id.trim()) {
       return NextResponse.json({ error: "درخواست حذف معتبر نیست." }, { status: 400 });
     }
-    const result = await deleteRecord(body.kind, body.id);
+    const result = await deleteRecord(body.kind as "member" | "club", body.id, { username: auth.user.username });
     if (!result.deleted) {
       return NextResponse.json({
         error: `این باشگاه به ${result.linkedMemberCount} عضو متصل است. ابتدا ارتباط اعضا با این باشگاه را از پرونده آن‌ها بردارید.`,
