@@ -11,7 +11,8 @@ export type UserRole =
   | "artists"
   | "education"
   | "members"
-  | "member";
+  | "member"
+  | "owner";
 
 export type SessionUser = {
   username: string;
@@ -34,6 +35,7 @@ export const ROLE_LABELS: Record<UserRole, string> = {
   education: "معاونت آموزش، پژوهش و نوآوری",
   members: "معاونت مفاخر و امور اعضا",
   member: "عضو خورشید مفاخر",
+  owner: "مالک سامانه",
 };
 
 const COOKIE_NAME = "khorshid_session";
@@ -84,6 +86,12 @@ type ConfiguredUser = { username: string; password: string; name: string; role: 
 
 export function getConfiguredUsers() {
   const managementUsers: ConfiguredUser[] = [
+    {
+      username: process.env.AUTH_OWNER_USERNAME || "owner",
+      password: process.env.AUTH_OWNER_PASSWORD || "",
+      name: process.env.AUTH_OWNER_NAME || "مالک سامانه",
+      role: "owner",
+    },
     {
       username: process.env.AUTH_FINANCE_USERNAME || "finance",
       password: process.env.AUTH_FINANCE_PASSWORD || "1234",
