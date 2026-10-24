@@ -52,7 +52,7 @@ export async function GET() {
 
   const all = await readOpportunities();
 
-  if (user.role === "beneficiary") {
+  if (user.role === "beneficiary" || user.role === "member") {
     return NextResponse.json({
       items: all.filter((item) => item.creator === user.username),
     });
@@ -75,7 +75,7 @@ export async function GET() {
 
 export async function POST(request: Request) {
   const user = await currentUser();
-  const proposalRoles = ["beneficiary","finance","ceo","deputy","economic","csr","media","artists","education","members"] as const;
+  const proposalRoles = ["beneficiary","member","finance","ceo","deputy","economic","csr","media","artists","education","members"] as const;
   if (!user || !proposalRoles.includes(user.role as (typeof proposalRoles)[number])) {
     return NextResponse.json({ error: "این نقش امکان ثبت پیشنهاد اولیه ندارد." }, { status: 403 });
   }
