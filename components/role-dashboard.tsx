@@ -153,7 +153,7 @@ export default function RoleDashboard({ role }: { role: Exclude<UserRole, "benef
     router.refresh();
   }
 
-  if (loading) return <main dir="rtl" className="min-h-screen bg-[#071326] pt-24 p-10 text-center text-white">در حال بارگذاری داشبورد...</main>;
+  if (loading) return <main dir="rtl" className="min-h-screen bg-[#F7F5F0] pt-8 p-10 text-center text-[#172F48]">در حال بارگذاری داشبورد...</main>;
 
   const actionButton = (label: string, compact = false) => {
     const href = routeForLabel(label, role);
@@ -163,27 +163,27 @@ export default function RoleDashboard({ role }: { role: Exclude<UserRole, "benef
         type="button"
         onClick={() => href && router.push(href)}
         disabled={!href}
-        className={`w-full rounded-xl px-4 py-3 text-right text-sm font-semibold transition ${href ? "bg-white/5 hover:bg-white/10" : "cursor-default bg-white/5 opacity-70"} ${compact ? "" : ""}`}
+        className={`w-full rounded-xl px-4 py-3 text-right text-sm font-semibold transition ${href ? "bg-[#FFFEFA] hover:bg-[#EEECE6]" : "cursor-default bg-[#FFFEFA] opacity-70"} ${compact ? "" : ""}`}
       >
         {label}
       </button>
     );
   };
 
-  return <main dir="rtl" className="min-h-screen bg-[#071326] pt-24 text-white">
-    <div className="min-h-screen bg-[radial-gradient(circle_at_85%_0%,rgba(216,149,0,.12),transparent_32%)]">
-      <header className="sticky top-[72px] z-20 border-b border-white/10 bg-[#071326]/95 backdrop-blur-xl">
+  return <main dir="rtl" className="min-h-screen bg-[#F7F5F0] pt-8 text-[#172F48]">
+    <div className="min-h-screen bg-[#F7F5F0]">
+      <header className="sticky top-[72px] z-20 border-b border-[#E3E0D8] bg-[#F7F5F0]/95 backdrop-blur-xl">
         <div className="mx-auto flex max-w-[1500px] flex-wrap items-center justify-between gap-4 px-5 py-4 lg:px-8">
-          <div><div className="text-xs font-bold text-[#F2A900]">سامانه داخلی خورشید</div><h1 className="mt-1 text-xl font-extrabold md:text-2xl">{config.title}</h1><p className="mt-1 text-xs text-[#B8C6D9]">{userName}</p></div>
+          <div><div className="text-xs font-bold text-[#B99450]">سامانه داخلی خورشید</div><h1 className="mt-1 text-xl font-extrabold md:text-2xl">{config.title}</h1><p className="mt-1 text-xs text-[#687783]">{userName}</p></div>
           <nav className="flex flex-wrap gap-2">
             {config.primary.slice(0,2).map(item => {
               const href = routeForLabel(item, role);
-              return <button key={item} type="button" disabled={!href} onClick={() => href && router.push(href)} className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-bold hover:bg-white/10 disabled:cursor-default disabled:opacity-70">{item}</button>;
+              return <button key={item} type="button" disabled={!href} onClick={() => href && router.push(href)} className="rounded-xl border border-[#E3E0D8] bg-[#FFFEFA] px-4 py-2 text-sm font-bold hover:bg-[#EEECE6] disabled:cursor-default disabled:opacity-70">{item}</button>;
             })}
             {role !== "members" && (
               <>
-                <button type="button" onClick={() => router.push("/internal/opportunities")} className="rounded-xl border border-[#F2A900]/40 bg-[#F2A900]/10 px-4 py-2 text-sm font-bold text-[#FFD56A]">پیشنهادها و کارتابل</button>
-                <button type="button" onClick={logout} className="rounded-xl border border-[#F2A900]/40 bg-[#F2A900]/10 px-4 py-2 text-sm font-bold text-[#FFD56A]">خروج</button>
+                <button type="button" onClick={() => router.push("/internal/opportunities")} className="rounded-xl border border-[#B99450]/50 bg-[#F0DFB8] px-4 py-2 text-sm font-bold text-[#172F48]">پیشنهادها و کارتابل</button>
+                <button type="button" onClick={logout} className="rounded-xl border border-[#B99450]/50 bg-[#F0DFB8] px-4 py-2 text-sm font-bold text-[#172F48]">خروج</button>
               </>
             )}
           </nav>
@@ -191,23 +191,23 @@ export default function RoleDashboard({ role }: { role: Exclude<UserRole, "benef
       </header>
       <div className="mx-auto max-w-[1500px] px-5 py-7 lg:px-8">
         <section className="mb-7">
-          <p className="text-sm font-bold text-[#F2A900]">نمای اختصاصی {config.title}</p>
+          <p className="text-sm font-bold text-[#B99450]">نمای اختصاصی {config.title}</p>
           <h2 className="mt-1 text-2xl font-extrabold">{config.subtitle}</h2>
           <div className="mt-5 grid grid-cols-2 gap-3 md:grid-cols-4">
             {[
               ["کل پرونده‌ها", money(stats.total)], ["پرونده‌های فعال", money(stats.active)],
               ["ارزش قراردادها", money(stats.contract)], ["مطالبات", money(stats.receivables)],
-            ].map(([label,value]) => <div key={label} className="rounded-2xl border border-white/10 bg-[#101F37]/90 p-4"><div className="text-xs text-[#B8C6D9]">{label}</div><div className="mt-2 text-xl font-extrabold">{value}</div>{(label==="ارزش قراردادها"||label==="مطالبات")&&<div className="mt-1 text-[10px] text-[#93A6BF]">ریال</div>}</div>)}
+            ].map(([label,value]) => <div key={label} className="rounded-2xl border border-[#E3E0D8] bg-[#FFFEFA] p-4"><div className="text-xs text-[#687783]">{label}</div><div className="mt-2 text-xl font-extrabold">{value}</div>{(label==="ارزش قراردادها"||label==="مطالبات")&&<div className="mt-1 text-[10px] text-[#687783]">ریال</div>}</div>)}
           </div>
         </section>
         <section className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_330px]">
-          <div className="overflow-hidden rounded-3xl border border-white/10 bg-[#101F37]/90">
-            <div className="border-b border-white/10 px-5 py-4"><h2 className="text-lg font-extrabold">پرونده‌ها و اطلاعات مرتبط</h2><p className="mt-1 text-xs text-[#B8C6D9]">نمایش اطلاعات متناسب با سطح دسترسی این معاونت</p></div>
-            {projects.length ? <div className="divide-y divide-white/10">{projects.map(p => <div key={p.id} className="px-5 py-4"><div className="flex flex-wrap items-center justify-between gap-3"><div><h3 className="font-bold">{p.name || "بدون عنوان"}</h3><p className="mt-1 text-xs text-[#B8C6D9]">{p.clientName || "کارفرما ثبت نشده"} · {p.code || "بدون کد"}</p></div><span className="rounded-full bg-white/10 px-3 py-1 text-xs">{p.status || "در جریان"}</span></div></div>)}</div> : <div className="p-12 text-center text-sm text-[#B8C6D9]">هنوز پرونده‌ای برای نمایش ثبت نشده است.</div>}
+          <div className="overflow-hidden rounded-3xl border border-[#E3E0D8] bg-[#FFFEFA]">
+            <div className="border-b border-[#E3E0D8] px-5 py-4"><h2 className="text-lg font-extrabold">پرونده‌ها و اطلاعات مرتبط</h2><p className="mt-1 text-xs text-[#687783]">نمایش اطلاعات متناسب با سطح دسترسی این معاونت</p></div>
+            {projects.length ? <div className="divide-y divide-[#E3E0D8]">{projects.map(p => <div key={p.id} className="px-5 py-4"><div className="flex flex-wrap items-center justify-between gap-3"><div><h3 className="font-bold">{p.name || "بدون عنوان"}</h3><p className="mt-1 text-xs text-[#687783]">{p.clientName || "کارفرما ثبت نشده"} · {p.code || "بدون کد"}</p></div><span className="rounded-full bg-[#EEECE6] px-3 py-1 text-xs text-[#172F48]">{p.status || "در جریان"}</span></div></div>)}</div> : <div className="p-12 text-center text-sm text-[#687783]">هنوز پرونده‌ای برای نمایش ثبت نشده است.</div>}
           </div>
           <aside className="space-y-4">
-            <div className="rounded-3xl border border-white/10 bg-[#101F37]/90 p-5"><h2 className="font-extrabold">بخش‌های اختصاصی</h2><div className="mt-4 space-y-2">{config.primary.map(x => actionButton(x))}<button type="button" onClick={logout} className="w-full rounded-xl bg-red-500/10 px-4 py-3 text-right text-sm font-semibold text-red-200 transition hover:bg-red-500/20">خروج</button></div></div>
-            <div className="rounded-3xl border border-white/10 bg-[#101F37]/90 p-5"><h2 className="font-extrabold">اقدامات سریع</h2><div className="mt-4 space-y-2">{config.secondary.map(x => actionButton(x))}</div></div>
+            <div className="rounded-3xl border border-[#E3E0D8] bg-[#FFFEFA] p-5"><h2 className="font-extrabold">بخش‌های اختصاصی</h2><div className="mt-4 space-y-2">{config.primary.map(x => actionButton(x))}<button type="button" onClick={logout} className="w-full rounded-xl bg-red-500/10 px-4 py-3 text-right text-sm font-semibold text-red-700 transition hover:bg-red-500/20">خروج</button></div></div>
+            <div className="rounded-3xl border border-[#E3E0D8] bg-[#FFFEFA] p-5"><h2 className="font-extrabold">اقدامات سریع</h2><div className="mt-4 space-y-2">{config.secondary.map(x => actionButton(x))}</div></div>
           </aside>
         </section>
       </div>
