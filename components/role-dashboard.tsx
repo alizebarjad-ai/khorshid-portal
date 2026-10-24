@@ -217,6 +217,10 @@ export default function RoleDashboard({ role }: { role: ManagementRole }) {
         router.replace("/internal/member-home");
         return;
       }
+      if (currentRole === "owner") {
+        router.replace("/internal/owner");
+        return;
+      }
       if (currentRole !== role) {
         const pathByRole: Record<ManagementRole, string> = {
           ceo: "/internal/roles/ceo",
