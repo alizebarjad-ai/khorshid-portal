@@ -97,3 +97,17 @@ export async function deletePostgresCollection(collection: string): Promise<void
   await importLegacy(collection);
   await db().query("DELETE FROM portal_records WHERE collection=$1", [collection]);
 }
+
+/** Atomically consumes a pending activation token so concurrent requests cannot activate it twice. */
+export async function consumeMemberActivationToken<T extends Item>(
+  item: T,
+  expectedTokenHash: string,
+  nowIso: string,
+): Promise<boolean> {
+  await importLegacy("member-accounts");
+  const result = await db().query(
+    "UPDATE portal_records SET data=$1::jsonb, updated_at=NOW() WHERE collection='member-accounts' AND id=$2 AND data->>'activationTokenHash'=$3 AND data->>'status'='pending_activation' AND data->>'activationExpiresAt' > $4",
+    [JSON.stringify(item), item.id, expectedTokenHash, nowIso],
+  );
+  return (result.rowCount || 0) === 1;
+}
