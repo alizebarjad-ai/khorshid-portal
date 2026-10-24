@@ -14,13 +14,13 @@ type Role =
 
 const ROLE_LABEL: Record<Role, string> = {
   ceo: "مدیرعامل",
-  deputy: "قائم‌مقام و معاون برنامه‌ریزی و راهبردی",
-  economic: "معاونت توسعه مشارکت‌های اقتصادی",
-  csr: "معاونت اجتماعی برنامه‌های حمایتی",
-  media: "معاونت رسانه و محتوا",
-  artists: "معاونت امور هنرمندان",
+  deputy: "قائم‌مقام و معاون راهبرد اجرایی",
+  economic: "معاونت مشارکت‌های اقتصادی",
+  csr: "معاونت اجتماعی و حمایتی",
+  media: "معاونت رسانه، برند و بین‌الملل",
+  artists: "معاونت هنری و امور هنرمندان",
   education: "معاونت آموزش، پژوهش و نوآوری",
-  members: "معاونت مفاخر و امور اعضا",
+  members: "معاونت مفاخر، اعضا و باشگاه‌ها",
 };
 
 export default function InternalHomePage() {
@@ -75,8 +75,8 @@ export default function InternalHomePage() {
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
-              <a href="/" className="rounded-xl border border-white/20 bg-white px-4 py-2.5 text-sm font-extrabold text-[#18304A] hover:bg-[#FFF4D6]">
-                ← سایت اصلی خورشید
+              <a href="https://www.khorshid-mafakher.ir/" target="_blank" rel="noreferrer" className="rounded-xl border border-white/20 bg-white px-4 py-2.5 text-sm font-extrabold text-[#18304A] hover:bg-[#EEECE6]">
+                وب‌سایت خورشید ↗
               </a>
               <button onClick={logout} className="rounded-xl bg-white/10 px-4 py-2.5 text-sm font-bold text-white hover:bg-white/15">
                 خروج از حساب
