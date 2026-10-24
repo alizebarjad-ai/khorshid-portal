@@ -1,13 +1,16 @@
 "use client";
 
-import { FormEvent, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { FormEvent, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
 const SITE_ADMIN_LOGIN = "https://www.khorshid-mafakher.ir/api/admin/login";
 
 export default function LoginPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
+  const [adminError, setAdminError] = useState(false);
+  useEffect(() => {
+    setAdminError(new URLSearchParams(window.location.search).get("adminError") === "1");
+  }, []);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -87,7 +90,7 @@ export default function LoginPage() {
           <label className="mt-4 block text-sm font-semibold">رمز عبور
             <input className="login-input mt-2 w-full rounded-xl px-4 py-3 outline-none" type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} required />
           </label>
-          {(error || searchParams.get("adminError") === "1") && <div className="mt-4 rounded-xl bg-[#FDECEC] px-4 py-3 text-sm font-semibold text-[#A33A3A]">{error || "ورود مدیر سایت ناموفق بود. نام کاربری یا رمز عبور را بررسی کنید."}</div>}
+          {(error || adminError) && <div className="mt-4 rounded-xl bg-[#FDECEC] px-4 py-3 text-sm font-semibold text-[#A33A3A]">{error || "ورود مدیر سایت ناموفق بود. نام کاربری یا رمز عبور را بررسی کنید."}</div>}
           <button className="login-submit btn-primary mt-6 w-full px-5 py-3 disabled:opacity-50" disabled={busy}>{busy ? "در حال ورود..." : "ورود"}</button>
         </form>
       </div>
