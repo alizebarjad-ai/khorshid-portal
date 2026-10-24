@@ -1,4 +1,4 @@
-import { list, put } from "@vercel/blob";
+import { listStored, putStored } from "@/lib/persistent-store";
 import { randomUUID } from "node:crypto";
 
 export type MemberRecord = {
@@ -38,42 +38,16 @@ export type ClubRecord = {
 };
 
 type StoredRecord = MemberRecord | ClubRecord;
-const token = () => process.env.BLOB_READ_WRITE_TOKEN;
-
-function requireToken() {
-  if (!token()) throw new Error("ذخیره‌سازی پایدار سامانه هنوز پیکربندی نشده است.");
-  return token()!;
-}
 
 async function readRecords<T extends StoredRecord>(kind: "member" | "club"): Promise<T[]> {
-  const blobs = await list({ prefix: `khorshid-records/${kind}/`, token: requireToken() });
-  const records: T[] = [];
-  for (const blob of blobs.blobs) {
-    try {
-      const response = await fetch(blob.url, {
-        headers: { Authorization: `Bearer ${requireToken()}` },
-        cache: "no-store",
-      });
-      if (!response.ok) throw new Error("خواندن پرونده از فضای ذخیره‌سازی ناموفق بود.");
-      const item = await response.json() as T;
-      if (item.kind === kind && item.id) records.push(item);
-    } catch (error) {
-      console.error("Could not read record", blob.pathname, error);
-      throw new Error("خواندن اطلاعات سامانه کامل نشد؛ عملیات متوقف شد تا اطلاعات ناقص نمایش داده نشود.");
-    }
-  }
-  return records.sort((a,b) => b.updatedAt.localeCompare(a.updatedAt));
+  const collection = kind === "member" ? "members" : "clubs";
+  const records = await listStored<T>(collection);
+  return records.filter((item) => item.kind === kind).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
 }
 
 async function writeRecord<T extends StoredRecord>(record: T): Promise<T> {
-  await put(`khorshid-records/${record.kind}/${record.id}.json`, JSON.stringify(record), {
-    access: "private",
-    token: requireToken(),
-    addRandomSuffix: false,
-    allowOverwrite: true,
-    contentType: "application/json; charset=utf-8",
-  });
-  return record;
+  const collection = record.kind === "member" ? "members" : "clubs";
+  return putStored(collection, record);
 }
 
 export const readMembers = () => readRecords<MemberRecord>("member");
