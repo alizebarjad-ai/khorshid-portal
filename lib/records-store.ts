@@ -1,11 +1,17 @@
 import { deleteStored, listStored, putStored } from "@/lib/persistent-store";
 import { randomUUID } from "node:crypto";
 
+export type MembershipTier = "affiliate" | "professional" | "supporter_partner";
+
 export type MemberRecord = {
   id: string;
   kind: "member";
   fullName: string;
   memberType: "artist" | "figure" | "supporter" | "expert" | "organization";
+  membershipTier?: MembershipTier;
+  supplementalData?: Record<string, string>;
+  sourceApplicationIds?: string[];
+  membershipHistory?: { from: MembershipTier | null; to: MembershipTier; at: string; actor: string; applicationId?: string }[];
   status: "pending" | "active" | "inactive" | "suspended";
   phone: string;
   email: string;
@@ -78,6 +84,8 @@ async function writeRecord<T extends StoredRecord>(record: T): Promise<T> {
   return putStored(collection, record);
 }
 
+function isMembershipTier(value: unknown): value is MembershipTier { return value === "affiliate" || value === "professional" || value === "supporter_partner"; }
+
 export const readMembers = () => readRecords<MemberRecord>("member");
 export const readClubs = () => readRecords<ClubRecord>("club");
 
@@ -88,6 +96,10 @@ export async function createRecord(kind: "member" | "club", data: Record<string,
     const item: MemberRecord = {
       ...base, kind, fullName: String(data.fullName || "").trim(),
       memberType: (data.memberType || "artist") as MemberRecord["memberType"],
+      ...(isMembershipTier(data.membershipTier) ? { membershipTier: data.membershipTier } : {}),
+      ...(data.supplementalData && typeof data.supplementalData === "object" && !Array.isArray(data.supplementalData) ? { supplementalData: data.supplementalData as Record<string, string> } : {}),
+      sourceApplicationIds: typeof data.sourceApplicationId === "string" && data.sourceApplicationId ? [data.sourceApplicationId] : [],
+      membershipHistory: isMembershipTier(data.membershipTier) ? [{ from: null, to: data.membershipTier, at: now, actor: actor.username, ...(typeof data.sourceApplicationId === "string" ? { applicationId: data.sourceApplicationId } : {}) }] : [],
       status: (data.status || "pending") as MemberRecord["status"],
       phone: String(data.phone || "").trim(), email: String(data.email || "").trim(),
       city: String(data.city || "").trim(), expertise: String(data.expertise || "").trim(),
@@ -125,6 +137,10 @@ export async function updateRecord(kind: "member" | "club", id: string, data: Re
       ...old,
       fullName: String(data.fullName ?? old.fullName).trim(),
       memberType: (data.memberType ?? old.memberType) as MemberRecord["memberType"],
+      ...(isMembershipTier(data.membershipTier) ? { membershipTier: data.membershipTier } : {}),
+      ...(data.supplementalData && typeof data.supplementalData === "object" && !Array.isArray(data.supplementalData) ? { supplementalData: data.supplementalData as Record<string, string> } : {}),
+      sourceApplicationIds: typeof data.sourceApplicationId === "string" && data.sourceApplicationId ? Array.from(new Set([...(old.sourceApplicationIds || []), data.sourceApplicationId])) : (old.sourceApplicationIds || []),
+      membershipHistory: isMembershipTier(data.membershipTier) && data.membershipTier !== old.membershipTier ? [...(old.membershipHistory || []), { from: old.membershipTier || null, to: data.membershipTier, at: now, actor: actor.username, ...(typeof data.sourceApplicationId === "string" ? { applicationId: data.sourceApplicationId } : {}) }] : (old.membershipHistory || []),
       status: (data.status ?? old.status) as MemberRecord["status"],
       phone: String(data.phone ?? old.phone).trim(), email: String(data.email ?? old.email).trim(),
       city: String(data.city ?? old.city).trim(), expertise: String(data.expertise ?? old.expertise).trim(),
