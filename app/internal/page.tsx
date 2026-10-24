@@ -10,7 +10,8 @@ type Role =
   | "media"
   | "artists"
   | "education"
-  | "members";
+  | "members"
+  | "owner";
 
 const ROLE_LABEL: Record<Role, string> = {
   ceo: "مدیرعامل",
@@ -21,6 +22,7 @@ const ROLE_LABEL: Record<Role, string> = {
   artists: "معاونت هنری و امور هنرمندان",
   education: "معاونت آموزش، پژوهش و نوآوری",
   members: "معاونت مفاخر، اعضا و باشگاه‌ها",
+  owner: "مالک سامانه",
 };
 
 export default function InternalHomePage() {
@@ -33,6 +35,7 @@ export default function InternalHomePage() {
         const response = await fetch("/api/auth/me", { cache: "no-store" });
         if (!response.ok) throw new Error();
         const data = await response.json();
+        if (data.user?.role === "owner") { location.href = "/internal/owner"; return; }
         if (!data.user || data.user.role === "finance" || data.user.role === "beneficiary") {
           location.href = data.user?.role === "finance" ? "/internal/project-rewards" : "/login";
           return;
