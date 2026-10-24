@@ -80,7 +80,7 @@ export function decodeSession(value?: string | null): SessionUser | null {
   }
 }
 
-type ConfiguredUser = { username: string; password: string; name: string; role: UserRole };
+type ConfiguredUser = { username: string; password: string; name: string; role: Exclude<UserRole, "member"> };
 
 export function getConfiguredUsers() {
   const managementUsers: ConfiguredUser[] = [
