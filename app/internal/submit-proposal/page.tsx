@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { dashboardPathForRole } from "@/lib/dashboard-path";
 
 type ProposalType = "پروژه" | "مشتری" | "اسپانسر" | "فرصت همکاری";
 
@@ -129,7 +130,7 @@ export default function SubmitProposalPage() {
     <main className="internal-form-page min-h-screen bg-[#F7F5F0] pt-24 pb-16">
       <div className="container-site">
         <div className="rounded-3xl bg-[#10283D] p-7 text-white md:p-10">
-          <div className="mb-4 flex flex-wrap gap-2"><a href={user.role === "beneficiary" ? "/internal/my-reward" : "/internal"} className="internal-home-link">← {user.role === "beneficiary" ? "صفحه اصلی من" : "صفحه اصلی سامانه"}</a><a href="https://www.khorshid-mafakher.ir/" target="_blank" rel="noreferrer" className="internal-home-link">وب‌سایت خورشید ↗</a></div>
+          <div className="mb-4 flex flex-wrap gap-2"><a href={dashboardPathForRole(user.role)} className="internal-home-link">← {user.role === "beneficiary" ? "صفحه اصلی من" : "صفحه اصلی داشبورد"}</a><a href="https://www.khorshid-mafakher.ir/" target="_blank" rel="noreferrer" className="internal-home-link">وب‌سایت خورشید ↗</a></div>
           <p className="text-sm font-bold text-[#B99450]">سامانه داخلی خورشید</p>
           <h1 className="mt-2 text-3xl font-extrabold md:text-4xl">ثبت پیشنهاد اولیه</h1>
           <p className="mt-3 max-w-3xl text-sm leading-7 text-[#E6EAF0]">
