@@ -101,8 +101,8 @@ export default function GeneralRequestsPage() {
 
   async function act(action: string) {
     if (!selected) return;
-    if (action === "complete" && !feedback.trim()) {
-      setError("برای بستن درخواست، خلاصه اقدام یا نتیجه پیگیری را ثبت کنید.");
+    if (["complete", "request-revision"].includes(action) && !feedback.trim()) {
+      setError(action === "complete" ? "برای بستن درخواست، خلاصه اقدام یا نتیجه پیگیری را ثبت کنید." : "برای درخواست تکمیل، موارد موردنیاز را روشن بنویسید.");
       return;
     }
     setBusy(true);
