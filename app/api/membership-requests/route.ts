@@ -63,7 +63,7 @@ export async function PATCH(request: NextRequest) {
       ? NextResponse.json({ item: application, alreadyApproved: true })
       : await upstream("", {
           method: "PATCH",
-          body: JSON.stringify({ ...body, actor: checked.user.name }),
+          body: JSON.stringify({ ...body, actor: checked.user.name, suppressApprovalEmail: true }),
         });
     if (!approval.ok) return approval;
 
