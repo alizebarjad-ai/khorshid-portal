@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { UserRole } from "@/lib/auth";
+import { dashboardPathForRole } from "@/lib/dashboard-path";
 
 type ManagementRole = Exclude<UserRole, "beneficiary">;
 type Opportunity = {
@@ -281,7 +282,7 @@ export default function RoleDashboard({ role }: { role: ManagementRole }) {
             <p className="mt-1 text-xs text-[#687783]">{userName}</p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <a href="/internal" className="rounded-xl border border-[#E3E0D8] bg-[#FFFEFA] px-4 py-2 text-sm font-bold hover:bg-[#EEECE6]">صفحه اصلی سامانه</a>
+            <a href={dashboardPathForRole(role)} className="rounded-xl border border-[#E3E0D8] bg-[#FFFEFA] px-4 py-2 text-sm font-bold hover:bg-[#EEECE6]">صفحه اصلی داشبورد</a>
             <a href="https://www.khorshid-mafakher.ir/" target="_blank" rel="noreferrer" className="rounded-xl border border-[#E3E0D8] bg-[#FFFEFA] px-4 py-2 text-sm font-bold hover:bg-[#EEECE6]">وب‌سایت خورشید</a>
             <button type="button" onClick={() => void load()} className="rounded-xl border border-[#E3E0D8] bg-[#FFFEFA] px-4 py-2 text-sm font-bold hover:bg-[#EEECE6]">به‌روزرسانی</button>
             <button type="button" onClick={logout} className="rounded-xl border border-[#B99450]/50 bg-[#F0DFB8] px-4 py-2 text-sm font-bold">خروج از حساب</button>
