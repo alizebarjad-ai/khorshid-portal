@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react
 import { useRouter } from "next/navigation";
 import { dashboardPathForRole } from "@/lib/dashboard-path";
 
-type Member = {id:string;kind:"member";fullName:string;memberType:string;membershipTier?:string;membershipHistory?:unknown[];status:string;phone:string;email:string;city:string;expertise:string;biography:string;clubIds:string[];notes:string;createdAt:string;updatedAt:string};
+type Member = {id:string;kind:"member";fullName:string;memberType:string;membershipTier?:string;supplementalData?:Record<string,string>;membershipHistory?:unknown[];status:string;phone:string;email:string;city:string;expertise:string;biography:string;clubIds:string[];notes:string;createdAt:string;updatedAt:string};
 type Club = {id:string;kind:"club";name:string;clubType:string;status:string;city:string;description:string;coordinator:string;contact:string;notes:string};
 const blank = {fullName:"",memberType:"artist",membershipTier:"affiliate",status:"pending",phone:"",email:"",city:"",expertise:"",biography:"",clubIds:[] as string[],supplementalData:{} as Record<string,string>,notes:""};
 const typeLabel:Record<string,string>={artist:"هنرمند",figure:"چهره و صاحب‌نظر",supporter:"حامی",expert:"متخصص",organization:"شخصیت حقوقی"};
