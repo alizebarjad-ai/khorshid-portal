@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { dashboardPathForRole } from "@/lib/dashboard-path";
 
 type RoleGuideItem = { name: string; weight: number; desc: string };
 
@@ -1355,7 +1356,7 @@ export default function ProjectRewardsPage() {
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
-            <a href={sessionUser?.role === "beneficiary" ? "/internal/my-reward" : "/internal"} className="rounded-xl border border-white/20 bg-white px-4 py-2 text-sm font-bold text-[#172F48] hover:bg-[#EEECE6]">صفحه اصلی سامانه</a>
+            <a href={dashboardPathForRole(sessionUser?.role)} className="rounded-xl border border-white/20 bg-white px-4 py-2 text-sm font-bold text-[#172F48] hover:bg-[#EEECE6]">صفحه اصلی داشبورد</a>
             <a href="https://www.khorshid-mafakher.ir/" target="_blank" rel="noreferrer" className="rounded-xl border border-white/20 bg-white/10 px-4 py-2 text-sm font-bold text-white hover:bg-white/15">وب‌سایت خورشید ↗</a>
             {sessionUser?.role !== "beneficiary" && <button onClick={() => setView("dashboard")} className={`rounded-xl px-4 py-2 text-sm font-bold ${view === "dashboard" ? "bg-[#B99450] text-[#172F48]" : "bg-white/10 text-white"}`}>داشبورد و گزارش</button>}
             {sessionUser?.role !== "beneficiary" && <button onClick={() => { window.location.href = "/internal/opportunities"; }} className="rounded-xl bg-white/10 px-4 py-2 text-sm font-bold text-white">پیشنهادها و کارتابل</button>}
