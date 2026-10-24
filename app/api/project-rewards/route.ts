@@ -79,8 +79,9 @@ export async function PUT(request: NextRequest) {
 
     if (!existing) {
       if (!proposalRoles.includes(user.role)) return fail("ثبت پیشنهاد برای نقش شما مجاز نیست.", 403);
-      const newItem = {
+      const newItem: Record<string, unknown> & { id: string } = {
         ...item,
+        id: item.id,
         creator: user.username,
         creatorName: user.name,
       };
@@ -109,7 +110,7 @@ export async function PUT(request: NextRequest) {
     if (changes.some((key) => !allowed.includes(key))) {
       return fail("تغییرات ارسالی خارج از محدوده دسترسی این نقش است.", 403);
     }
-    return NextResponse.json({ item: await putStored(collection, item) });
+    return NextResponse.json({ item: await putStored(collection, item as Record<string, unknown> & { id: string }) });
   } catch (error) {
     console.error("PUT /api/project-rewards failed", error);
     return fail(error instanceof Error ? error.message : "ذخیره اطلاعات انجام نشد.", 503);
