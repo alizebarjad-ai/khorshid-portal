@@ -80,9 +80,9 @@ export default function OwnerStaffPage() {
       const body = await response.json();
       if (!response.ok) throw new Error(body.error || "عملیات ناموفق بود.");
       if (body.temporaryPassword) {
-        setSecret({ username: body.username, temporaryPassword: body.temporaryPassword, note: action === "transfer" ? "حساب قبلی غیرفعال شد. رمز موقت را فقط به فرد جایگزین تحویل دهید." : "این رمز فقط اکنون نمایش داده می‌شود. آن را امن به کاربر تحویل دهید." });
+        setSecret({ username: body.username, temporaryPassword: body.temporaryPassword, note: (action === "transfer" ? "حساب قبلی غیرفعال شد. رمز موقت را فقط به فرد جایگزین تحویل دهید." : "این رمز فقط اکنون نمایش داده می‌شود. آن را امن به کاربر تحویل دهید.") + (body.auditRecorded === false ? " هشدار: ثبت سابقه امنیتی ناموفق بود؛ این موضوع را بررسی کنید." : "") });
       } else {
-        setNotice(action === "deactivate" ? "حساب غیرفعال شد." : action === "activate" ? "حساب فعال شد." : "عملیات انجام شد.");
+        setNotice((action === "deactivate" ? "حساب غیرفعال شد." : action === "activate" ? "حساب فعال شد." : "عملیات انجام شد.") + (body.auditRecorded === false ? " هشدار: ثبت سابقه امنیتی ناموفق بود." : ""));
       }
       await load();
     } catch (caught) {
