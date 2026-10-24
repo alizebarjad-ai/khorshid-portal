@@ -1,7 +1,7 @@
 import { Pool } from "pg";
 import { list } from "@vercel/blob";
 
-type Item = { id: string; [key: string]: unknown };
+type Item = { id: string };
 const url = process.env.PRISMA_DATABASE_URL || process.env.POSTGRES_URL || process.env.DATABASE_URL;
 let pool: Pool | undefined;
 let schema: Promise<void> | undefined;
@@ -23,7 +23,7 @@ async function ready() {
     CREATE TABLE IF NOT EXISTS portal_migrations (
       name TEXT PRIMARY KEY, completed_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), imported_count INTEGER NOT NULL DEFAULT 0
     );
-  `).then(() => undefined).catch((e) => { schema = undefined; throw e; });
+  `).then(() => undefined).catch((e: Error) => { schema = undefined; throw e; });
   return schema;
 }
 const prefixes: Record<string, string[]> = {
@@ -42,10 +42,11 @@ async function importLegacy(collection: string) {
     const marker = await client.query("SELECT name FROM portal_migrations WHERE name=$1", ["blob-import:" + collection]);
     if (marker.rowCount) { await client.query("COMMIT"); return; }
     let count = 0;
+    const legacyPrefixes = prefixes[collection] || [];
     const token = process.env.BLOB_READ_WRITE_TOKEN;
-    if (!token) throw new Error("دسترسی انتقال داده‌های قبلی تنظیم نشده است.");
-    for (const prefix of prefixes[collection] || []) {
-      const found = await list({ prefix, token });
+    if (legacyPrefixes.length && !token) throw new Error("دسترسی انتقال داده‌های قبلی تنظیم نشده است.");
+    for (const prefix of legacyPrefixes) {
+      const found = await list({ prefix, token: token! });
       for (const blob of found.blobs) {
         const response = await fetch(blob.url, { headers: { Authorization: "Bearer " + token }, cache: "no-store" });
         if (!response.ok) throw new Error("خواندن یکی از رکوردهای قدیمی ناموفق بود؛ انتقال متوقف شد.");
@@ -63,7 +64,7 @@ async function importLegacy(collection: string) {
 export async function listPostgresStored<T>(collection: string): Promise<T[]> {
   await importLegacy(collection);
   const result = await db().query("SELECT data FROM portal_records WHERE collection=$1 ORDER BY updated_at DESC,id ASC", [collection]);
-  return result.rows.map((row) => row.data as T);
+  return result.rows.map((row: { data: T }) => row.data);
 }
 export async function getPostgresStored<T>(collection: string, id: string): Promise<T | null> {
   await importLegacy(collection);
