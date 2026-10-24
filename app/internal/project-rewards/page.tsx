@@ -832,7 +832,7 @@ export default function ProjectRewardsPage() {
   }
 
   return (
-    <main className="internal-rewards min-h-screen bg-[#F3EFE7] pt-24 pb-16 text-[#14213D]">
+    <main className="internal-rewards min-h-screen bg-[#F3EFE7] pt-24 pb-16 text-[#172F48]">
       <style>{`
         @media print {
           body * { visibility: hidden !important; }
@@ -862,7 +862,7 @@ export default function ProjectRewardsPage() {
           color:#17263B !important;
         }
         .internal-rewards fieldset .bg-white {
-          background:#FBF8F2 !important;
+          background:#FFFEFA !important;
           color:#17263B !important;
         }
         .internal-rewards fieldset .bg-\\[\\#FAF8F4\\] {
@@ -870,11 +870,11 @@ export default function ProjectRewardsPage() {
           color:#17263B !important;
         }
         .internal-rewards fieldset .bg-\\[\\#F4EEE4\\] {
-          background:#EAE3D8 !important;
+          background:#EEECE6 !important;
           color:#17263B !important;
         }
         .internal-rewards fieldset .bg-\\[\\#FFF8E6\\] {
-          background:#FFF4D6 !important;
+          background:#F0DFB8 !important;
           color:#17263B !important;
         }
         .internal-rewards fieldset .text-white {
@@ -895,13 +895,13 @@ export default function ProjectRewardsPage() {
         .internal-rewards aside.internal-card,
         .internal-rewards section.internal-card {
           background:#F8F5EE !important;
-          color:#14213D !important;
+          color:#172F48 !important;
         }
         .internal-rewards .internal-card {
           background:#F8F5EE !important;
           border:1px solid #D6CCBC !important;
           box-shadow:0 10px 28px rgba(20,33,61,.10) !important;
-          color:#14213D !important;
+          color:#172F48 !important;
         }
         .internal-rewards .internal-card > div > .border-b {
           background:#F8F5EE !important;
@@ -911,25 +911,25 @@ export default function ProjectRewardsPage() {
           border-radius:16px;
           padding:4px;
         }
-        .internal-rewards .internal-card .grid.gap-2.sm\\:grid-cols-5 > button.border-\\[\\#F2A900\\] {
-          background:#D89500 !important;
-          border-color:#A96800 !important;
-          color:#14213D !important;
+        .internal-rewards .internal-card .grid.gap-2.sm\\:grid-cols-5 > button.border-\\[\\#B99450\\] {
+          background:#B99450 !important;
+          border-color:#96763D !important;
+          color:#172F48 !important;
           box-shadow:0 4px 12px rgba(168,104,0,.18) !important;
         }
-        .internal-rewards .internal-card .grid.gap-2.sm\\:grid-cols-5 > button.border-\\[\\#F2A900\\] span {
-          color:#14213D !important;
+        .internal-rewards .internal-card .grid.gap-2.sm\\:grid-cols-5 > button.border-\\[\\#B99450\\] span {
+          color:#172F48 !important;
         }
         .internal-rewards aside.internal-card .mt-4.space-y-2 > button {
           min-height:72px;
           text-align:right !important;
-          background:#FBF8F2 !important;
-          color:#14213D !important;
+          background:#FFFEFA !important;
+          color:#172F48 !important;
           border:1px solid #C9C0B2 !important;
           box-shadow:0 2px 7px rgba(20,33,61,.05);
         }
         .internal-rewards aside.internal-card .mt-4.space-y-2 > button span {
-          color:#14213D !important;
+          color:#172F48 !important;
         }
         .internal-rewards aside.internal-card .mt-4.space-y-2 > button span:not(.font-bold) {
           color:#596474 !important;
@@ -938,53 +938,53 @@ export default function ProjectRewardsPage() {
           background:#F1EBDD !important;
           border-color:#AFA38F !important;
         }
-        .internal-rewards aside.internal-card .mt-4.space-y-2 > button.border-\\[\\#F2A900\\] {
+        .internal-rewards aside.internal-card .mt-4.space-y-2 > button.border-\\[\\#B99450\\] {
           background:#FFF0C2 !important;
-          border-color:#D89500 !important;
+          border-color:#B99450 !important;
           box-shadow:0 4px 12px rgba(216,149,0,.15);
         }
-        .internal-rewards aside.internal-card .mt-4.space-y-2 > button.border-\\[\\#F2A900\\] span {
-          color:#14213D !important;
+        .internal-rewards aside.internal-card .mt-4.space-y-2 > button.border-\\[\\#B99450\\] span {
+          color:#172F48 !important;
         }
         .internal-rewards .internal-card .btn-primary,
         .internal-rewards .internal-card .btn-secondary {
-          color:#14213D !important;
+          color:#172F48 !important;
           border-color:#B8AE9E !important;
           box-shadow:none !important;
         }
         .internal-rewards .internal-card .btn-primary {
-          background:#D89500 !important;
+          background:#B99450 !important;
         }
         .internal-rewards .internal-card .btn-primary:hover {
           background:#C47D00 !important;
         }
         .internal-rewards .internal-card .btn-secondary {
-          background:#E9E2D6 !important;
+          background:#EEECE6 !important;
         }
         .internal-rewards .internal-card .btn-secondary:hover {
           background:#DDD4C5 !important;
         }
         .internal-rewards .internal-card .grid.gap-2.sm\\:grid-cols-5 > button {
-          background:#FBF8F2 !important;
-          color:#14213D !important;
+          background:#FFFEFA !important;
+          color:#172F48 !important;
           border-color:#C9C0B2 !important;
           text-align:right !important;
         }
         .internal-rewards .internal-card .grid.gap-2.sm\\:grid-cols-5 > button span {
-          color:#14213D !important;
+          color:#172F48 !important;
         }
         .internal-rewards .internal-card .grid.gap-2.sm\\:grid-cols-5 > button span:first-child {
           color:#3F4B5A !important;
         }
         .internal-rewards .internal-card .grid.gap-2.sm\\:grid-cols-5 > button.bg-\\[\\#FFF0C2\\] span {
-          color:#14213D !important;
+          color:#172F48 !important;
         }
         .internal-rewards .internal-card .grid.gap-2.sm\\:grid-cols-5 > button:hover {
           background:#F1EBDD !important;
         }
         .internal-rewards aside.internal-card .mt-4.space-y-2 > button {
-          background:#FBF8F2 !important;
-          color:#14213D !important;
+          background:#FFFEFA !important;
+          color:#172F48 !important;
           border-color:#C9C0B2 !important;
         }
         .internal-rewards aside.internal-card .mt-4.space-y-2 > button:hover {
@@ -992,13 +992,13 @@ export default function ProjectRewardsPage() {
         }
         .internal-rewards aside.internal-card .mt-4.space-y-2 > button.bg-\\[\\#FFF0C2\\] {
           background:#FFF0C2 !important;
-          border-color:#F2A900 !important;
+          border-color:#B99450 !important;
         }
         .internal-rewards .internal-card h1,
         .internal-rewards .internal-card h2,
         .internal-rewards .internal-card h3,
         .internal-rewards .internal-card h4 {
-          color:#14213D !important;
+          color:#172F48 !important;
         }
         .internal-rewards .internal-card p,
         .internal-rewards .internal-card span,
@@ -1007,13 +1007,13 @@ export default function ProjectRewardsPage() {
         }
         .internal-rewards label {
           display:block;
-          color:#26354A !important;
+          color:#172F48 !important;
           font-weight:700;
         }
         .internal-rewards .form-input {
           appearance:none;
           width:100%;
-          background:#FFFDF8 !important;
+          background:#FFFEFA !important;
           border:1px solid #B8AE9E !important;
           border-radius:12px;
           color:#17263B !important;
@@ -1029,18 +1029,18 @@ export default function ProjectRewardsPage() {
         }
         .internal-rewards .form-input:focus {
           background:#FFFFFF !important;
-          border-color:#D89500 !important;
+          border-color:#B99450 !important;
           box-shadow:0 0 0 3px rgba(216,149,0,.16) !important;
         }
         .internal-rewards select.form-input,
         .internal-rewards input.form-input,
         .internal-rewards textarea.form-input {
           color:#17263B !important;
-          background:#FFFDF8 !important;
+          background:#FFFEFA !important;
         }
         .internal-rewards option {
           color:#17263B !important;
-          background:#FFFDF8 !important;
+          background:#FFFEFA !important;
         }
         .internal-rewards fieldset:disabled .form-input {
           background:#EDE8DE !important;
@@ -1051,28 +1051,28 @@ export default function ProjectRewardsPage() {
           color:#7C8490 !important;
         }
         .internal-rewards .bg-white\/10 {
-          background:#E9E2D6 !important;
-          color:#26354A !important;
+          background:#EEECE6 !important;
+          color:#172F48 !important;
         }
         .internal-rewards .bg-white\/10 * {
-          color:#26354A !important;
+          color:#172F48 !important;
         }
         .internal-rewards .text-\[\#5B6470\] {
           color:#4F5B69 !important;
         }
-        .internal-rewards .text-\[\#14213D\] {
-          color:#14213D !important;
+        .internal-rewards .text-\[\#172F48\] {
+          color:#172F48 !important;
         }
         .internal-rewards .text-\[\#D9622B\] {
           color:#B94E24 !important;
         }
-        .internal-rewards .text-\[\#F2A900\] {
+        .internal-rewards .text-\[\#B99450\] {
           color:#C47D00 !important;
         }
         /* Unified internal-form design system */
         .internal-jalali-calendar .calendar-nav,
         .internal-jalali-calendar .calendar-nav * {
-          color:#14213D !important;
+          color:#172F48 !important;
           background:#EEE8DE !important;
         }
         .internal-jalali-calendar .calendar-nav:hover {
@@ -1080,27 +1080,27 @@ export default function ProjectRewardsPage() {
           border-color:#AFA18E !important;
         }
         .internal-jalali-calendar .calendar-select {
-          color:#14213D !important;
-          background:#FFFDF8 !important;
+          color:#172F48 !important;
+          background:#FFFEFA !important;
         }
         .internal-jalali-calendar .calendar-select option {
-          color:#14213D !important;
-          background:#FFFDF8 !important;
+          color:#172F48 !important;
+          background:#FFFEFA !important;
         }
         .internal-jalali-calendar button {
-          color:#26354A;
+          color:#172F48;
         }
         .internal-jalali-calendar button:hover {
           background:#FFF0C2;
         }
         .internal-rewards .proposal-shell {
-          background:#FFFDF8 !important;
-          color:#14213D !important;
-          border:1px solid #D7CCBC !important;
+          background:#FFFEFA !important;
+          color:#172F48 !important;
+          border:1px solid #E3E0D8 !important;
         }
         .internal-rewards .proposal-shell h2,
         .internal-rewards .proposal-shell h3 {
-          color:#14213D !important;
+          color:#172F48 !important;
         }
         .internal-rewards .proposal-shell p,
         .internal-rewards .proposal-shell span,
@@ -1108,45 +1108,45 @@ export default function ProjectRewardsPage() {
           color:inherit;
         }
         .internal-rewards .proposal-shell .proposal-subcard {
-          background:#FBF8F2 !important;
-          color:#14213D !important;
+          background:#FFFEFA !important;
+          color:#172F48 !important;
           border:1px solid #DDD3C4 !important;
         }
         .internal-rewards .proposal-shell .proposal-subcard h3,
         .internal-rewards .proposal-shell .proposal-subcard b {
-          color:#14213D !important;
+          color:#172F48 !important;
         }
         .internal-rewards .proposal-shell .proposal-history-item {
-          background:#F1EBE1 !important;
-          color:#26354A !important;
+          background:#EEECE6 !important;
+          color:#172F48 !important;
           border:1px solid #DDD3C4 !important;
         }
         .internal-rewards .proposal-shell .proposal-action {
           background:#FFF5D9 !important;
-          color:#26354A !important;
+          color:#172F48 !important;
           border:1px solid #E4C979 !important;
         }
         .internal-rewards .proposal-shell .proposal-action h3,
         .internal-rewards .proposal-shell .proposal-action label {
-          color:#26354A !important;
+          color:#172F48 !important;
         }
         .internal-rewards .proposal-shell .proposal-empty {
           background:#F8F5EE !important;
-          color:#26354A !important;
+          color:#172F48 !important;
           border:1px dashed #C9C0B2 !important;
         }
         .internal-rewards {
           --ir-bg:#F3EFE7;
           --ir-surface:#F8F5EE;
-          --ir-surface-2:#FBF8F2;
-          --ir-input:#FFFDF8;
+          --ir-surface-2:#FFFEFA;
+          --ir-input:#FFFEFA;
           --ir-border:#D2C7B7;
           --ir-border-soft:#E4DCCE;
-          --ir-ink:#14213D;
-          --ir-body:#26354A;
+          --ir-ink:#172F48;
+          --ir-body:#172F48;
           --ir-muted:#596474;
-          --ir-gold:#D89500;
-          --ir-gold-dark:#A96800;
+          --ir-gold:#B99450;
+          --ir-gold-dark:#96763D;
           --ir-gold-soft:#FFF0C2;
           --ir-green:#2D6A4F;
         }
@@ -1166,10 +1166,10 @@ export default function ProjectRewardsPage() {
         }
         .internal-rewards fieldset > div > div.bg-white,
         .internal-rewards fieldset > div > div.bg-\[\#FAF8F4\] {
-          background:#FBF8F2 !important;
+          background:#FFFEFA !important;
         }
         .internal-rewards fieldset > div > div.bg-\[\#F4EEE4\] {
-          background:#F1EBE1 !important;
+          background:#EEECE6 !important;
         }
         .internal-rewards fieldset > div > div.bg-\[\#FFF8E6\] {
           background:#FFF5D9 !important;
@@ -1179,7 +1179,7 @@ export default function ProjectRewardsPage() {
           min-height:48px;
           border-radius:11px !important;
           border-color:#BFB4A4 !important;
-          background:#FFFDF8 !important;
+          background:#FFFEFA !important;
           color:#17263B !important;
           font-size:14px;
           transition:border-color .15s ease, box-shadow .15s ease, background .15s ease;
@@ -1192,11 +1192,11 @@ export default function ProjectRewardsPage() {
           border-color:#9F9382 !important;
         }
         .internal-rewards .form-input:focus {
-          border-color:#D89500 !important;
+          border-color:#B99450 !important;
           box-shadow:0 0 0 3px rgba(216,149,0,.14) !important;
         }
         .internal-rewards label {
-          color:#26354A !important;
+          color:#172F48 !important;
           line-height:1.7;
         }
         .internal-rewards label > input,
@@ -1240,25 +1240,25 @@ export default function ProjectRewardsPage() {
           font-size:13px !important;
         }
         .internal-rewards .btn-primary {
-          background:#D89500 !important;
-          border:1px solid #B87800 !important;
-          color:#14213D !important;
+          background:#B99450 !important;
+          border:1px solid #96763D !important;
+          color:#172F48 !important;
           box-shadow:0 3px 9px rgba(168,104,0,.14) !important;
         }
         .internal-rewards .btn-primary:hover {
-          background:#C98200 !important;
-          border-color:#A96800 !important;
+          background:#96763D !important;
+          border-color:#96763D !important;
           box-shadow:0 5px 14px rgba(168,104,0,.18) !important;
           transform:translateY(-1px);
         }
         .internal-rewards .btn-secondary {
-          background:#E9E2D6 !important;
-          border:1px solid #C8BDAE !important;
-          color:#26354A !important;
+          background:#EEECE6 !important;
+          border:1px solid #E3E0D8 !important;
+          color:#172F48 !important;
         }
         .internal-rewards .btn-secondary:hover {
-          background:#DED5C7 !important;
-          border-color:#ADA190 !important;
+          background:#EEECE6 !important;
+          border-color:#B99450 !important;
           transform:translateY(-1px);
         }
         .internal-rewards button:disabled {
@@ -1270,56 +1270,56 @@ export default function ProjectRewardsPage() {
           border:1px solid #BDD9CC;
         }
         .internal-rewards .rounded-lg.bg-\[\#FFF8E6\] {
-          background:#FFF1C9 !important;
-          color:#875A00 !important;
-          border:1px solid #E3C675;
+          background:#F0DFB8 !important;
+          color:#172F48 !important;
+          border:1px solid #B99450;
         }
         .internal-rewards .rounded-2xl.bg-\[\#F4EEE4\].p-4,
         .internal-rewards .rounded-2xl.bg-\[\#F4EEE4\].p-6 {
-          background:#F1EBE1 !important;
-          border:1px solid #DDD2C3;
+          background:#EEECE6 !important;
+          border:1px solid #E3E0D8;
         }
         .internal-rewards .rounded-2xl.bg-\[\#F4EEE4\] strong {
-          color:#14213D !important;
+          color:#172F48 !important;
         }
         .internal-rewards table {
-          color:#26354A;
+          color:#172F48;
         }
         .internal-rewards table thead {
-          color:#14213D !important;
+          color:#172F48 !important;
         }
         .internal-rewards table thead th {
-          background:#EAE3D8 !important;
-          color:#26354A !important;
+          background:#EEECE6 !important;
+          color:#172F48 !important;
           font-weight:800;
         }
         .internal-rewards table tbody tr {
-          border-color:#DDD3C5 !important;
+          border-color:#E3E0D8 !important;
         }
         .internal-rewards table tbody tr:hover {
-          background:#F6F0E7 !important;
+          background:#F7F5F0 !important;
         }
-        .internal-rewards .rounded-xl.border.border-\[\#14213D\]\/10.bg-\[\#FAF8F4\] {
-          background:#FBF8F2 !important;
-          border-color:#D5CAB9 !important;
+        .internal-rewards .rounded-xl.border.border-\[\#172F48\]\/10.bg-\[\#FAF8F4\] {
+          background:#FFFEFA !important;
+          border-color:#E3E0D8 !important;
         }
         .internal-rewards .h-3.overflow-hidden.rounded-full.bg-\[\#EEE8DE\] {
-          background:#DED7CC !important;
+          background:#EEECE6 !important;
         }
-        .internal-rewards .h-full.rounded-full.bg-\[\#F2A900\] {
-          background:#D89500 !important;
+        .internal-rewards .h-full.rounded-full.bg-\[\#B99450\] {
+          background:#B99450 !important;
         }
-        .internal-rewards .h-full.rounded-full.bg-\[\#14213D\] {
-          background:#52627A !important;
+        .internal-rewards .h-full.rounded-full.bg-\[\#172F48\] {
+          background:#172F48 !important;
         }
         .internal-rewards .text-\[\#D9622B\] {
           color:#B84D25 !important;
         }
-        .internal-rewards .text-\[\#F2A900\] {
-          color:#A96800 !important;
+        .internal-rewards .text-\[\#B99450\] {
+          color:#96763D !important;
         }
         .internal-rewards .text-\[\#D99000\] {
-          color:#A96800 !important;
+          color:#96763D !important;
         }
         .internal-rewards .text-\[\#2D6A4F\] {
           color:#286046 !important;
@@ -1328,12 +1328,12 @@ export default function ProjectRewardsPage() {
         .internal-rewards .text-\[\#E6EAF0\] {
           color:#536074 !important;
         }
-        .internal-rewards .rounded-xl.border.border-\[\#14213D\]\/10.bg-white {
-          border-color:#D7CCBC !important;
-          background:#FBF8F2 !important;
+        .internal-rewards .rounded-xl.border.border-\[\#172F48\]\/10.bg-white {
+          border-color:#E3E0D8 !important;
+          background:#FFFEFA !important;
         }
-        .internal-rewards .rounded-xl.border.border-\[\#14213D\]\/10.bg-white:hover {
-          border-color:#B9AD9C !important;
+        .internal-rewards .rounded-xl.border.border-\[\#172F48\]\/10.bg-white:hover {
+          border-color:#B99450 !important;
         }
         .internal-rewards .text-\[\#E6EAF0\],
         .internal-rewards .text-\[\#DDE3EC\] {
@@ -1344,7 +1344,7 @@ export default function ProjectRewardsPage() {
       <div className="container-site">
         <div className="mb-5 flex flex-col gap-3 rounded-3xl bg-[#10283D] p-5 text-white md:flex-row md:items-center md:justify-between md:p-7">
           <div>
-            <p className="text-sm font-bold text-[#F2A900]">سامانه داخلی خورشید</p>
+            <p className="text-sm font-bold text-[#B99450]">سامانه داخلی خورشید</p>
             <div className="mt-1 flex flex-wrap items-center gap-3">
               <h1 className="text-2xl font-extrabold md:text-3xl">پرونده و پاداش پروژه</h1>
               {sessionUser && (
@@ -1357,7 +1357,7 @@ export default function ProjectRewardsPage() {
           <div className="flex flex-wrap gap-2">
             <a href={sessionUser?.role === "beneficiary" ? "/internal/my-reward" : "/internal"} className="rounded-xl border border-white/20 bg-white px-4 py-2 text-sm font-bold text-[#172F48] hover:bg-[#EEECE6]">صفحه اصلی سامانه</a>
             <a href="https://www.khorshid-mafakher.ir/" target="_blank" rel="noreferrer" className="rounded-xl border border-white/20 bg-white/10 px-4 py-2 text-sm font-bold text-white hover:bg-white/15">وب‌سایت خورشید ↗</a>
-            {sessionUser?.role !== "beneficiary" && <button onClick={() => setView("dashboard")} className={`rounded-xl px-4 py-2 text-sm font-bold ${view === "dashboard" ? "bg-[#F2A900] text-[#14213D]" : "bg-white/10 text-white"}`}>داشبورد و گزارش</button>}
+            {sessionUser?.role !== "beneficiary" && <button onClick={() => setView("dashboard")} className={`rounded-xl px-4 py-2 text-sm font-bold ${view === "dashboard" ? "bg-[#B99450] text-[#172F48]" : "bg-white/10 text-white"}`}>داشبورد و گزارش</button>}
             {sessionUser?.role !== "beneficiary" && <button onClick={() => { window.location.href = "/internal/opportunities"; }} className="rounded-xl bg-white/10 px-4 py-2 text-sm font-bold text-white">پیشنهادها و کارتابل</button>}
             <button type="button" onClick={async () => { await fetch("/api/auth/logout", { method: "POST" }); window.location.href = "/login"; }} className="rounded-xl bg-white/10 px-3 py-2 text-xs font-bold text-white">خروج</button>
           </div>
@@ -1365,7 +1365,7 @@ export default function ProjectRewardsPage() {
         {view === "dashboard" && (
           <>
             <div className="mb-4 flex justify-start">
-              <button onClick={() => setView("projects")} className="rounded-xl border border-[#D8D0C4] bg-[#FFFDF8] px-4 py-2 text-sm font-bold text-[#18304A] shadow-sm hover:bg-[#FFF4D6]">بازگشت به پرونده پروژه‌ها</button>
+              <button onClick={() => setView("projects")} className="rounded-xl border border-[#E3E0D8] bg-[#FFFEFA] px-4 py-2 text-sm font-bold text-[#18304A] shadow-sm hover:bg-[#F0DFB8]">بازگشت به پرونده پروژه‌ها</button>
             </div>
             <Dashboard projects={projects} dashboard={dashboard} />
           </>
@@ -1373,7 +1373,7 @@ export default function ProjectRewardsPage() {
         {view === "proposals" && (
           <section className="proposal-shell grid gap-6 lg:grid-cols-[330px_1fr] rounded-3xl">
             <div className="lg:col-span-2 flex justify-start">
-              <button onClick={() => { setView("projects"); setSelectedProposal(""); }} className="rounded-xl border border-[#D8D0C4] bg-[#FFFDF8] px-4 py-2 text-sm font-bold text-[#18304A] shadow-sm hover:bg-[#FFF4D6]">بازگشت به صفحه اصلی</button>
+              <button onClick={() => { setView("projects"); setSelectedProposal(""); }} className="rounded-xl border border-[#E3E0D8] bg-[#FFFEFA] px-4 py-2 text-sm font-bold text-[#18304A] shadow-sm hover:bg-[#F0DFB8]">بازگشت به صفحه اصلی</button>
             </div>
             <aside className="internal-card proposal-subcard rounded-3xl p-5">
               <h2 className="text-lg font-bold">پیشنهادها و کارتابل</h2>
@@ -1497,7 +1497,7 @@ export default function ProjectRewardsPage() {
         <div className={view !== "projects" ? "hidden" : ""}>
 
         <div className="mb-8 rounded-3xl bg-[#10283D] p-7 text-white md:p-10">
-          <p className="text-sm font-bold text-[#F2A900]">سامانه داخلی خورشید</p>
+          <p className="text-sm font-bold text-[#B99450]">سامانه داخلی خورشید</p>
           <h1 className="mt-2 text-3xl font-extrabold md:text-4xl">پرونده و پاداش پروژه</h1>
           <p className="mt-3 max-w-4xl text-sm leading-8 text-[#E6EAF0]">
             پرونده دیجیتال پروژه از تعریف و قرارداد تا اعضا، مالی، پاداش، تأیید و تسویه در یک مسیر واحد ثبت می‌شود.
@@ -1530,11 +1530,11 @@ export default function ProjectRewardsPage() {
                   }}
                   className={`w-full rounded-xl border px-4 py-3 text-right text-sm transition ${
                     selected === item.id
-                      ? "border-[#F2A900] bg-[#FFF0C2]"
-                      : "border-[#14213D]/10 bg-white hover:bg-[#F7F1E8]"
+                      ? "border-[#B99450] bg-[#FFF0C2]"
+                      : "border-[#172F48]/10 bg-white hover:bg-[#F7F1E8]"
                   }`}
                 >
-                  <span className="block font-bold text-[#14213D]">{item.name || "بدون نام"}</span>
+                  <span className="block font-bold text-[#172F48]">{item.name || "بدون نام"}</span>
                   <span className="mt-1 block text-[11px] !text-[#3F4B5A]">
                     {item.code} · {item.clientName || "مشتری ثبت نشده"}
                   </span>
@@ -1555,12 +1555,12 @@ export default function ProjectRewardsPage() {
           <section className="internal-card glass rounded-3xl p-6 md:p-8">
             {project ? (
               <>
-                <div className="border-b border-[#14213D]/10 pb-6">
+                <div className="border-b border-[#172F48]/10 pb-6">
                   <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                     <div>
                       <p className="text-xs font-bold text-[#D9622B]">پرونده پروژه · {project.code}</p>
                       <input
-                        className="mt-1 w-full bg-transparent text-2xl font-extrabold text-[#14213D] outline-none"
+                        className="mt-1 w-full bg-transparent text-2xl font-extrabold text-[#172F48] outline-none"
                         value={project.name}
                         onChange={(e) => updateProject({ name: e.target.value })}
                       />
@@ -1582,14 +1582,14 @@ export default function ProjectRewardsPage() {
                         onClick={() => setStep(item.n)}
                         className={`rounded-xl border px-3 py-3 text-right transition ${
                           step === item.n
-                            ? "border-[#F2A900] bg-[#FFF0C2]"
+                            ? "border-[#B99450] bg-[#FFF0C2]"
                             : step > item.n
                               ? "border-[#BFD8D0] bg-[#E8F4F1]"
-                              : "border-[#14213D]/10 bg-white"
+                              : "border-[#172F48]/10 bg-white"
                         }`}
                       >
                         <span className="block text-xs !text-[#3F4B5A]">مرحله {item.n}</span>
-                        <span className="mt-1 block text-xs font-bold text-[#14213D]">{item.title}</span>
+                        <span className="mt-1 block text-xs font-bold text-[#172F48]">{item.title}</span>
                       </button>
                     ))}
                   </div>
@@ -1608,7 +1608,7 @@ export default function ProjectRewardsPage() {
                       <span className="rounded-full bg-[#E8F4F1] px-3 py-1 text-xs font-bold">ذخیره خودکار</span>
                     </div>
 
-                    <div className="mt-6 rounded-2xl border border-[#14213D]/10 bg-white p-5">
+                    <div className="mt-6 rounded-2xl border border-[#172F48]/10 bg-white p-5">
                       <h3 className="font-bold">۱. شناسنامه و طرفین پروژه</h3>
                       <div className="mt-4 grid gap-4 md:grid-cols-2">
                         <Field label="نام پروژه *" value={project.name} onChange={(v) => updateProject({ name: v })} />
@@ -1624,7 +1624,7 @@ export default function ProjectRewardsPage() {
                       </div>
                     </div>
 
-                    <div className="mt-5 rounded-2xl border border-[#14213D]/10 bg-white p-5">
+                    <div className="mt-5 rounded-2xl border border-[#172F48]/10 bg-white p-5">
                       <h3 className="font-bold">۲. شرح، هدف و محدوده</h3>
                       <div className="mt-4 grid gap-4">
                         <TextArea label="شرح پروژه" value={project.description} onChange={(v) => updateProject({ description: v })} placeholder="مسئله، نیاز مشتری و ماهیت کلی پروژه" />
@@ -1633,7 +1633,7 @@ export default function ProjectRewardsPage() {
                       </div>
                     </div>
 
-                    <div className="mt-5 rounded-2xl border border-[#14213D]/10 bg-white p-5">
+                    <div className="mt-5 rounded-2xl border border-[#172F48]/10 bg-white p-5">
                       <h3 className="font-bold">۳. زمان، مکان و قرارداد</h3>
                       <div className="mt-4 grid gap-4 md:grid-cols-2">
                         <JalaliDateField label="تاریخ شروع" value={project.startDate} onChange={(v) => updateProject({ startDate: v })} />
@@ -1676,15 +1676,15 @@ export default function ProjectRewardsPage() {
                     </div>
 
                     {showGuide && (
-                      <div className="mt-5 rounded-2xl border border-[#F2A900]/40 bg-[#FFF8E6] p-5">
+                      <div className="mt-5 rounded-2xl border border-[#B99450]/40 bg-[#FFF8E6] p-5">
                         <h3 className="font-bold">راهنمای تعیین وزن</h3>
                         <p className="mt-2 text-sm leading-7 !text-[#3F4B5A]">
                           وزن مؤثر = ضریب پایه نقش × درصد مشارکت ÷ ۱۰۰. این ضرایب پیشنهادی اولیه‌اند و باید در نسخه نهایی سیاست پاداش خورشید تصویب و قابل ویرایش توسط مدیر مجاز شوند.
                         </p>
-                        <div className="mt-4 overflow-x-auto rounded-xl border border-[#14213D]/10 bg-white">
+                        <div className="mt-4 overflow-x-auto rounded-xl border border-[#172F48]/10 bg-white">
                           <table className="w-full min-w-[680px] text-right text-sm">
                             <thead className="bg-[#F4EEE4]"><tr><th className="p-3">نقش</th><th className="p-3">ضریب پایه</th><th className="p-3">شرح</th></tr></thead>
-                            <tbody>{ROLE_GUIDE.map((role) => <tr key={role.name} className="border-t border-[#14213D]/10"><td className="p-3 font-semibold">{role.name}</td><td className="p-3">{role.weight}</td><td className="p-3 !text-[#3F4B5A]">{role.desc}</td></tr>)}</tbody>
+                            <tbody>{ROLE_GUIDE.map((role) => <tr key={role.name} className="border-t border-[#172F48]/10"><td className="p-3 font-semibold">{role.name}</td><td className="p-3">{role.weight}</td><td className="p-3 !text-[#3F4B5A]">{role.desc}</td></tr>)}</tbody>
                           </table>
                         </div>
                       </div>
@@ -1711,7 +1711,7 @@ export default function ProjectRewardsPage() {
                       <div className="mt-3 flex flex-wrap gap-2 text-xs">
                         {ROLE_GUIDE.map((role) => {
                           const total = project.people.filter((p) => p.role === role.name).reduce((sum, p) => sum + p.rolePercent, 0);
-                          return <span key={role.name} className={total === 100 ? "rounded-full border border-[#BFD8D0] bg-[#E8F4F1] px-3 py-1 font-semibold text-[#2D6A4F]" : "rounded-full border border-[#14213D]/10 bg-[#FAF8F4] px-3 py-1 font-semibold !text-[#3F4B5A]"}>{role.name}: {total}٪</span>;
+                          return <span key={role.name} className={total === 100 ? "rounded-full border border-[#BFD8D0] bg-[#E8F4F1] px-3 py-1 font-semibold text-[#2D6A4F]" : "rounded-full border border-[#172F48]/10 bg-[#FAF8F4] px-3 py-1 font-semibold !text-[#3F4B5A]"}>{role.name}: {total}٪</span>;
                         })}
                       </div>
                       <p className="mt-3 text-xs !text-[#3F4B5A]">
@@ -1719,7 +1719,7 @@ export default function ProjectRewardsPage() {
                       </p>
                     </fieldset>
 
-                    <div className="mt-5 overflow-x-auto rounded-2xl border border-[#14213D]/10">
+                    <div className="mt-5 overflow-x-auto rounded-2xl border border-[#172F48]/10">
                       <table className="w-full min-w-[1000px] text-right text-sm">
                         <thead className="bg-[#F4EEE4]">
                           <tr><th className="p-4">عضو</th><th className="p-4">نقش</th><th className="p-4">نوع همکاری</th><th className="p-4">درصد نقش</th><th className="p-4">ضریب</th><th className="p-4">وزن مؤثر</th><th className="p-4">سهم</th><th className="p-4">وضعیت نقش</th><th className="p-4">مبلغ پاداش</th><th /></tr>
@@ -1727,7 +1727,7 @@ export default function ProjectRewardsPage() {
                         <tbody>
                           {payouts.map((person) => {
                             const share = totalWeight ? (person.weight / totalWeight) * 100 : 0;
-                            return <tr key={person.id} className="border-t border-[#14213D]/10">
+                            return <tr key={person.id} className="border-t border-[#172F48]/10">
                               <td className="p-4 font-semibold">{person.name}</td>
                               <td className="p-4">{person.role}</td>
                               <td className="p-4 !text-[#3F4B5A]">{person.relationship}</td>
@@ -1754,7 +1754,7 @@ export default function ProjectRewardsPage() {
                       مبلغ قرارداد، درآمد، هزینه‌های مستقیم و غیرمستقیم، مالیات و دریافتی‌ها جدا ثبت می‌شوند تا سود قابل محاسبه و وضعیت نقدینگی پروژه از هم تفکیک شود.
                     </p>
 
-                    <div className="mt-6 rounded-2xl border border-[#14213D]/10 bg-white p-5">
+                    <div className="mt-6 rounded-2xl border border-[#172F48]/10 bg-white p-5">
                       <h3 className="font-bold">درآمد و قرارداد</h3>
                       <div className="mt-4 grid gap-4 md:grid-cols-3">
                         <Field label="مبلغ قرارداد" type="number" value={project.contractValue ? String(project.contractValue) : ""} onChange={(v) => updateProject({ contractValue: Number(v) || 0, revenue: Number(v) || 0 })} />
@@ -1763,7 +1763,7 @@ export default function ProjectRewardsPage() {
                       </div>
                     </div>
 
-                    <div className="mt-5 rounded-2xl border border-[#14213D]/10 bg-white p-5">
+                    <div className="mt-5 rounded-2xl border border-[#172F48]/10 bg-white p-5">
                       <h3 className="font-bold">هزینه‌های قابل ثبت</h3>
                       <div className="mt-4 grid gap-4 md:grid-cols-2">
                         <Field label="هزینه‌های مستقیم پروژه" type="number" value={project.directCosts ? String(project.directCosts) : ""} onChange={(v) => updateProject({ directCosts: Number(v) || 0 })} />
@@ -1781,7 +1781,7 @@ export default function ProjectRewardsPage() {
                     </div>
 
                     <div className="mt-6 grid gap-5 lg:grid-cols-2">
-                      <div className="rounded-2xl border border-[#14213D]/10 bg-white p-5">
+                      <div className="rounded-2xl border border-[#172F48]/10 bg-white p-5">
                         <h3 className="font-bold">مراحل وصول</h3>
                         <p className="mt-1 text-xs leading-6 !text-[#3F4B5A]">هر مرحله باید با وصول واقعی و تأییدشده قابل تطبیق باشد.</p>
                         <div className="mt-4 grid gap-3">
@@ -1792,9 +1792,9 @@ export default function ProjectRewardsPage() {
                           <TextArea label="توضیحات" value={stageNotes} onChange={setStageNotes} />
                           <button type="button" className="btn-secondary btn-action" onClick={addCollectionStage}>+ افزودن مرحله وصول</button>
                         </div>
-                        <div className="mt-4 space-y-2">{project.collectionStages.map(s=><div key={s.id} className="rounded-xl border border-[#14213D]/10 bg-[#FAF8F4] p-3"><div className="flex items-center justify-between gap-3"><div><strong>{s.title}</strong><div className="mt-1 text-xs !text-[#3F4B5A]">{money(s.plannedAmount)} · {s.status} · {s.receivedDate || "تاریخ ثبت نشده"}</div></div>{canEdit&&<button type="button" className="text-xs text-[#D9622B]" onClick={()=>removeCollectionStage(s.id)}>حذف</button>}</div></div>)}</div>
+                        <div className="mt-4 space-y-2">{project.collectionStages.map(s=><div key={s.id} className="rounded-xl border border-[#172F48]/10 bg-[#FAF8F4] p-3"><div className="flex items-center justify-between gap-3"><div><strong>{s.title}</strong><div className="mt-1 text-xs !text-[#3F4B5A]">{money(s.plannedAmount)} · {s.status} · {s.receivedDate || "تاریخ ثبت نشده"}</div></div>{canEdit&&<button type="button" className="text-xs text-[#D9622B]" onClick={()=>removeCollectionStage(s.id)}>حذف</button>}</div></div>)}</div>
                       </div>
-                      <div className="rounded-2xl border border-[#14213D]/10 bg-white p-5">
+                      <div className="rounded-2xl border border-[#172F48]/10 bg-white p-5">
                         <h3 className="font-bold">دفتر تراکنش‌های مالی</h3>
                         <p className="mt-1 text-xs leading-6 !text-[#3F4B5A]">وصولی تأییدشده مبنای محاسبه پاداش است.</p>
                         <div className="mt-4 grid gap-3">
@@ -1806,10 +1806,10 @@ export default function ProjectRewardsPage() {
                           <TextArea label="توضیحات مالی" value={transactionNotes} onChange={setTransactionNotes} placeholder="شماره سند، مغایرت یا توضیح تکمیلی" />
                           <button type="button" className="btn-secondary btn-action" onClick={addTransaction}>+ ثبت تراکنش</button>
                         </div>
-                        <div className="mt-4 space-y-2">{project.financialTransactions.map(t=><div key={t.id} className="rounded-xl border border-[#14213D]/10 bg-[#FAF8F4] p-3"><div className="flex items-center justify-between gap-3"><div><strong>{t.type} · {t.description}</strong><div className="mt-1 text-xs !text-[#3F4B5A]">{money(t.amount)} · {t.date || "تاریخ ثبت نشده"} · {t.status}</div></div>{canEdit&&<button type="button" className="text-xs text-[#D9622B]" onClick={()=>removeTransaction(t.id)}>حذف</button>}</div></div>)}</div>
+                        <div className="mt-4 space-y-2">{project.financialTransactions.map(t=><div key={t.id} className="rounded-xl border border-[#172F48]/10 bg-[#FAF8F4] p-3"><div className="flex items-center justify-between gap-3"><div><strong>{t.type} · {t.description}</strong><div className="mt-1 text-xs !text-[#3F4B5A]">{money(t.amount)} · {t.date || "تاریخ ثبت نشده"} · {t.status}</div></div>{canEdit&&<button type="button" className="text-xs text-[#D9622B]" onClick={()=>removeTransaction(t.id)}>حذف</button>}</div></div>)}</div>
                       </div>
                     </div>
-                    <div className="mt-5 rounded-2xl border border-[#14213D]/10 bg-white p-5">
+                    <div className="mt-5 rounded-2xl border border-[#172F48]/10 bg-white p-5">
                       <h3 className="font-bold">کنترل مالی و سوابق</h3>
                       <div className="mt-4 grid gap-4 md:grid-cols-2">
                         <JalaliDateField label="تاریخ آخرین بررسی مالی" value={project.lastFinancialReview} onChange={(v)=>updateProject({lastFinancialReview:v})} />
@@ -1847,9 +1847,9 @@ export default function ProjectRewardsPage() {
                       <Summary label="استخر پاداش" value={money(pool)} />
                     </div>
 
-                    <div id="print-reward-results" className="mt-6 overflow-x-auto rounded-2xl border border-[#14213D]/10">
+                    <div id="print-reward-results" className="mt-6 overflow-x-auto rounded-2xl border border-[#172F48]/10">
                       <div className="mb-5 hidden print:block">
-                        <div className="border-b-2 border-[#14213D] pb-4">
+                        <div className="border-b-2 border-[#172F48] pb-4">
                           <div className="flex items-start justify-between gap-6">
                             <div>
                               <p className="text-xs font-bold text-[#D9622B]">خورشید · پرونده پروژه</p>
@@ -1883,7 +1883,7 @@ export default function ProjectRewardsPage() {
                         </thead>
                         <tbody>
                           {payouts.map((person) => (
-                            <tr key={person.id} className="border-t border-[#14213D]/10">
+                            <tr key={person.id} className="border-t border-[#172F48]/10">
                               <td className="p-4 font-semibold">{person.name}</td>
                               <td className="p-4 !text-[#3F4B5A]">{person.role}</td>
                               <td className="p-4">{person.rolePercent}٪</td>
@@ -1907,7 +1907,7 @@ export default function ProjectRewardsPage() {
                       پیش از تسویه، اطلاعات پایه، مالی و جدول پاداش بررسی می‌شود. تأیید و تاریخ تسویه در پرونده ثبت می‌گردد.
                     </p>
 
-                    <div className="mt-6 rounded-2xl border border-[#14213D]/10 bg-white p-5">
+                    <div className="mt-6 rounded-2xl border border-[#172F48]/10 bg-white p-5">
                       <h3 className="font-bold">خلاصه پرونده</h3>
                       <div className="mt-4 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
                         <Summary label="پروژه" value={project.name || "-"} />
@@ -1946,7 +1946,7 @@ export default function ProjectRewardsPage() {
 
                 </fieldset>
 
-                <div className="mt-10 flex flex-col-reverse gap-3 border-t border-[#14213D]/10 pt-6 sm:flex-row sm:items-center sm:justify-between">
+                <div className="mt-10 flex flex-col-reverse gap-3 border-t border-[#172F48]/10 pt-6 sm:flex-row sm:items-center sm:justify-between">
                   <button className="btn-secondary px-6 py-3 disabled:opacity-40" onClick={previousStep} disabled={step === 1}>مرحله قبل</button>
                   <div className="text-center text-xs !text-[#3F4B5A]">مرحله {step} از {steps.length}</div>
                   {step < 5 ? (
@@ -1981,8 +1981,8 @@ export default function ProjectRewardsPage() {
                 </button>
                   </>
                 ) : (
-                  <div className="rounded-2xl border border-[#14213D]/10 bg-[#F4EEE4] p-6">
-                    <h2 className="text-xl font-bold text-[#14213D]">دسترسی فقط نمایشی</h2>
+                  <div className="rounded-2xl border border-[#172F48]/10 bg-[#F4EEE4] p-6">
+                    <h2 className="text-xl font-bold text-[#172F48]">دسترسی فقط نمایشی</h2>
                     <p className="mt-2 text-sm leading-7 !text-[#3F4B5A]">
                       حساب شما امکان ایجاد یا ویرایش پروژه را ندارد. برای مشاهده، یک پرونده را از فهرست سمت راست انتخاب کنید.
                     </p>
@@ -2017,9 +2017,9 @@ function Dashboard({
   ];
   return (
     <section>
-      <div className="mb-6 rounded-3xl bg-white p-6 shadow-sm ring-1 ring-[#14213D]/10 md:p-8">
+      <div className="mb-6 rounded-3xl bg-white p-6 shadow-sm ring-1 ring-[#172F48]/10 md:p-8">
         <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
-          <div><p className="text-xs font-bold text-[#D9622B]">تصویر مدیریتی</p><h2 className="mt-1 text-2xl font-extrabold text-[#14213D]">داشبورد پروژه‌ها</h2></div>
+          <div><p className="text-xs font-bold text-[#D9622B]">تصویر مدیریتی</p><h2 className="mt-1 text-2xl font-extrabold text-[#172F48]">داشبورد پروژه‌ها</h2></div>
           <p className="text-xs !text-[#3F4B5A]">اعداد از پرونده‌های ذخیره‌شده همین سامانه محاسبه می‌شوند.</p>
         </div>
         <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -2034,19 +2034,19 @@ function Dashboard({
         </div>
       </div>
       <div className="grid gap-6 lg:grid-cols-2">
-        <div className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-[#14213D]/10">
-          <h3 className="font-bold text-[#14213D]">وضعیت سبد پروژه‌ها</h3>
+        <div className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-[#172F48]/10">
+          <h3 className="font-bold text-[#172F48]">وضعیت سبد پروژه‌ها</h3>
           <div className="mt-6 space-y-4">
             {statusItems.map((item) => {
               const percent = projects.length ? (item.value / projects.length) * 100 : 0;
               return <div key={item.label}>
                 <div className="mb-1 flex justify-between text-sm"><span>{item.label}</span><strong>{item.value}</strong></div>
-                <div className="h-3 overflow-hidden rounded-full bg-[#EEE8DE]"><div className="h-full rounded-full bg-[#F2A900]" style={{ width: percent + "%" }} /></div>
+                <div className="h-3 overflow-hidden rounded-full bg-[#EEE8DE]"><div className="h-full rounded-full bg-[#B99450]" style={{ width: percent + "%" }} /></div>
               </div>;
             })}
           </div>
         </div>
-        <div className="rounded-3xl bg-[#14213D] p-6 text-white shadow-sm">
+        <div className="rounded-3xl bg-[#172F48] p-6 text-white shadow-sm">
           <h3 className="font-bold">اینفوگرافیک مالی سبد</h3>
           <p className="mt-1 text-xs text-[#DDE3EC]">مقایسه قرارداد، وصولی و هزینه‌ها</p>
           <div className="mt-6 space-y-5">
@@ -2060,7 +2060,7 @@ function Dashboard({
               const width = dashboard.totalContract > 0 ? Math.min(100, (n / dashboard.totalContract) * 100) : 0;
               return <div key={String(label)}>
                 <div className="mb-1 flex justify-between text-xs"><span>{label}</span><strong>{money(n)}</strong></div>
-                <div className="h-4 overflow-hidden rounded-full bg-white/10"><div className="h-full rounded-full bg-[#F2A900]" style={{ width: width + "%" }} /></div>
+                <div className="h-4 overflow-hidden rounded-full bg-white/10"><div className="h-full rounded-full bg-[#B99450]" style={{ width: width + "%" }} /></div>
               </div>;
             })}
           </div>
@@ -2070,8 +2070,8 @@ function Dashboard({
           </div>
         </div>
       </div>
-      <div className="mt-6 rounded-3xl bg-white p-6 shadow-sm ring-1 ring-[#14213D]/10">
-        <div className="flex items-center justify-between"><h3 className="font-bold text-[#14213D]">نمای پروژه‌ها</h3><span className="text-xs !text-[#3F4B5A]">مبنای پاداش بر اساس وصولی خالص</span></div>
+      <div className="mt-6 rounded-3xl bg-white p-6 shadow-sm ring-1 ring-[#172F48]/10">
+        <div className="flex items-center justify-between"><h3 className="font-bold text-[#172F48]">نمای پروژه‌ها</h3><span className="text-xs !text-[#3F4B5A]">مبنای پاداش بر اساس وصولی خالص</span></div>
         <div className="mt-5 space-y-4">
           {projects.length === 0 ? <p className="text-sm !text-[#3F4B5A]">هنوز پروژه‌ای برای نمایش وجود ندارد.</p> : projects.slice(0, 10).map((p) => {
             const costs = p.directCosts + p.overheadCosts + p.tax + p.otherCosts;
@@ -2081,7 +2081,7 @@ function Dashboard({
             const width = (receivedForChart / maxReceived) * 100;
             return <div key={p.id}>
               <div className="mb-1 flex flex-wrap items-center justify-between gap-2 text-xs"><strong>{p.name || "بدون نام"}</strong><span>{p.status} · {money(net)} مبنای پاداش</span></div>
-              <div className="h-3 overflow-hidden rounded-full bg-[#EEE8DE]"><div className="h-full rounded-full bg-[#14213D]" style={{ width: width + "%" }} /></div>
+              <div className="h-3 overflow-hidden rounded-full bg-[#EEE8DE]"><div className="h-full rounded-full bg-[#172F48]" style={{ width: width + "%" }} /></div>
             </div>;
           })}
         </div>
@@ -2186,21 +2186,21 @@ function JalaliDateField({ label, value, onChange }: { label: string; value: str
   return (
     <div className="relative">
       <span className="block text-sm font-semibold">{label}</span>
-      <button type="button" className="form-input mt-2 flex items-center justify-between text-right !text-[#14213D]" onClick={() => setOpen(v=>!v)}>
-        <span className={value ? "!text-[#14213D] font-semibold" : "!text-[#687382]"}>{value || "انتخاب تاریخ شمسی"}</span><span className="!text-[#A96800]">▾</span>
+      <button type="button" className="form-input mt-2 flex items-center justify-between text-right !text-[#172F48]" onClick={() => setOpen(v=>!v)}>
+        <span className={value ? "!text-[#172F48] font-semibold" : "!text-[#687382]"}>{value || "انتخاب تاریخ شمسی"}</span><span className="!text-[#96763D]">▾</span>
       </button>
-      {open && <div className="internal-jalali-calendar absolute right-0 top-full z-50 mt-2 w-full min-w-[310px] rounded-2xl border border-[#D2C7B7] bg-[#FBF8F2] p-4 text-[#14213D] shadow-2xl">
+      {open && <div className="internal-jalali-calendar absolute right-0 top-full z-50 mt-2 w-full min-w-[310px] rounded-2xl border border-[#D2C7B7] bg-[#FFFEFA] p-4 text-[#172F48] shadow-2xl">
         <div className="flex items-center justify-between gap-2">
-          <button type="button" aria-label="ماه قبل" className="calendar-nav rounded-lg border border-[#C8BDAE] bg-[#EEE8DE] px-3 py-2 font-extrabold !text-[#14213D] hover:bg-[#E2D9CA]" onClick={()=>move(-1)}>‹</button>
+          <button type="button" aria-label="ماه قبل" className="calendar-nav rounded-lg border border-[#E3E0D8] bg-[#EEE8DE] px-3 py-2 font-extrabold !text-[#172F48] hover:bg-[#E2D9CA]" onClick={()=>move(-1)}>‹</button>
           <div className="flex items-center gap-2">
-            <select className="calendar-select rounded-lg border border-[#C8BDAE] bg-[#FFFDF8] px-2 py-2 text-sm font-bold !text-[#14213D]" value={month} onChange={e=>setMonth(Number(e.target.value))}>{JALALI_MONTHS.map((m,i)=><option key={m} value={i+1}>{m}</option>)}</select>
-            <select className="rounded-lg border border-[#14213D]/15 bg-white px-2 py-2 text-sm font-bold" value={year} onChange={e=>setYear(Number(e.target.value))}>{Array.from({length:21},(_,i)=>year-10+i).map(y=><option key={y} value={y}>{y}</option>)}</select>
+            <select className="calendar-select rounded-lg border border-[#E3E0D8] bg-[#FFFEFA] px-2 py-2 text-sm font-bold !text-[#172F48]" value={month} onChange={e=>setMonth(Number(e.target.value))}>{JALALI_MONTHS.map((m,i)=><option key={m} value={i+1}>{m}</option>)}</select>
+            <select className="rounded-lg border border-[#172F48]/15 bg-white px-2 py-2 text-sm font-bold" value={year} onChange={e=>setYear(Number(e.target.value))}>{Array.from({length:21},(_,i)=>year-10+i).map(y=><option key={y} value={y}>{y}</option>)}</select>
           </div>
-          <button type="button" aria-label="ماه بعد" className="calendar-nav rounded-lg border border-[#C8BDAE] bg-[#EEE8DE] px-3 py-2 font-extrabold !text-[#14213D] hover:bg-[#E2D9CA]" onClick={()=>move(1)}>›</button>
+          <button type="button" aria-label="ماه بعد" className="calendar-nav rounded-lg border border-[#E3E0D8] bg-[#EEE8DE] px-3 py-2 font-extrabold !text-[#172F48] hover:bg-[#E2D9CA]" onClick={()=>move(1)}>›</button>
         </div>
         <div className="mt-3 grid grid-cols-7 gap-1 text-center text-[11px] font-bold !text-[#596474]">{["ش","ی","د","س","چ","پ","ج"].map(d=><span key={d} className="py-1">{d}</span>)}</div>
-        <div className="grid grid-cols-7 gap-1">{Array.from({length:first},(_,i)=><span key={"p"+i}/>)}{days.map(day=><button key={day} type="button" onClick={()=>choose(day)} className={selectedDay===day ? "rounded-lg bg-[#F2A900] py-2 text-sm font-extrabold text-[#14213D]" : "rounded-lg py-2 text-sm hover:bg-[#FFF3CC]"}>{day}</button>)}</div>
-        <div className="mt-3 flex justify-between border-t border-[#14213D]/10 pt-3">
+        <div className="grid grid-cols-7 gap-1">{Array.from({length:first},(_,i)=><span key={"p"+i}/>)}{days.map(day=><button key={day} type="button" onClick={()=>choose(day)} className={selectedDay===day ? "rounded-lg bg-[#B99450] py-2 text-sm font-extrabold text-[#172F48]" : "rounded-lg py-2 text-sm hover:bg-[#FFF3CC]"}>{day}</button>)}</div>
+        <div className="mt-3 flex justify-between border-t border-[#172F48]/10 pt-3">
           <button type="button" className="text-xs font-bold text-[#D9622B]" onClick={()=>{onChange("");setOpen(false)}}>پاک کردن</button>
           <button type="button" className="text-xs font-bold text-[#2D6A4F]" onClick={()=>{const [y,m,d]=todayJalali();setYear(y);setMonth(m);choose(d)}}>امروز</button>
         </div>
