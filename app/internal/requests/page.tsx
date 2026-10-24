@@ -23,6 +23,7 @@ type RequestItem = {
   createdAt: string;
   updatedAt: string;
   reviewHistory?: { action: string; actor?: string; at?: string; feedback?: string; assignedUnit?: string }[] | null;
+  documents?: { id: string; kind: string; fileName: string; mimeType: string; size: number }[];
 };
 
 const unitOptions = [
