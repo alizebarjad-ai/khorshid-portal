@@ -67,7 +67,7 @@ export default function MyRewardPage() {
 
   async function logout() {
     setLoggingOut(true);
-    try { await fetch("/api/auth/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "logout" }) }); } finally { window.location.href = "/login"; }
+    try { await fetch("/api/auth/logout", { method: "POST" }); } finally { window.location.href = "/login"; }
   }
 
   return (
