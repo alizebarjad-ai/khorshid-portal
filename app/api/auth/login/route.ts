@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { COOKIE_NAME, decodeSession, encodeSession, getConfiguredUsers } from "@/lib/auth";
 import { findMemberAccountByUsername, recordMemberLogin, verifyMemberPassword } from "@/lib/member-accounts";
-import { authenticateStaff, recordStaffLogin } from "@/lib/staff-accounts";
+import { authenticateStaff, findStaffAccount, recordStaffLogin } from "@/lib/staff-accounts";
 
 export async function GET(request: Request) {
   const cookieHeader = request.headers.get("cookie") || "";
@@ -25,16 +25,20 @@ export async function POST(request: Request) {
     const password = String(body.password || "");
 
     const configuredUser = getConfiguredUsers().find((item) => item.username === username);
-    const staffAccount = configuredUser && configuredUser.role !== "beneficiary"
-      ? await authenticateStaff({ username: configuredUser.username, password: configuredUser.password, name: configuredUser.name, role: configuredUser.role }, password)
-      : null;
+    const existingStaff = configuredUser?.role === "beneficiary" ? null : await findStaffAccount(username);
+    const staffConfig = configuredUser && configuredUser.role !== "beneficiary"
+      ? { username: configuredUser.username, password: configuredUser.password, name: configuredUser.name, role: configuredUser.role }
+      : !configuredUser && existingStaff
+        ? { username: existingStaff.username, password: "", name: existingStaff.name || existingStaff.username, role: existingStaff.role }
+        : null;
+    const staffAccount = staffConfig ? await authenticateStaff(staffConfig, password) : null;
 
     let sessionUser: { username: string; name: string; role: "finance" | "ceo" | "deputy" | "beneficiary" | "economic" | "csr" | "media" | "artists" | "education" | "members" | "member" | "owner"; memberId?: string; mustChangePassword?: boolean };
     if (configuredUser?.role === "beneficiary" && configuredUser.password === password) {
       sessionUser = { username: configuredUser.username, name: configuredUser.name, role: configuredUser.role };
-    } else if (configuredUser && staffAccount) {
+    } else if (staffAccount) {
       await recordStaffLogin(staffAccount);
-      sessionUser = { username: configuredUser.username, name: staffAccount.name || configuredUser.name, role: configuredUser.role, mustChangePassword: staffAccount.mustChangePassword };
+      sessionUser = { username: staffAccount.username, name: staffAccount.name || configuredUser?.name || staffAccount.username, role: staffAccount.role, mustChangePassword: staffAccount.mustChangePassword };
     } else {
       const account = await findMemberAccountByUsername(username);
       if (!account) {
