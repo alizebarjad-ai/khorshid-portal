@@ -30,11 +30,13 @@ export async function GET() {
 
   try {
     const [projects, proposals] = await Promise.all([
-      user.role === "beneficiary" ? Promise.resolve([]) : listStored<Record<string, unknown>>("projects"),
+      listStored<Record<string, unknown>>("projects"),
       listStored<Record<string, unknown>>("project-proposals"),
     ]);
     return NextResponse.json({
-      projects,
+      projects: user.role === "beneficiary"
+        ? projects.filter((item) => Array.isArray(item.people) && item.people.some((person: any) => person.name === user.name))
+        : projects,
       proposals: user.role === "beneficiary"
         ? proposals.filter((item) => item.creator === user.username)
         : proposals,
