@@ -120,7 +120,7 @@ export function getConfiguredUsers() {
     beneficiaryUsers = parsed
       .filter((item) => item.username && item.password && item.name)
       .map((item) => ({ ...item, role: "beneficiary" }));
-    if (!beneficiaryUsers.some((item) => item.username === "user")) {
+    if (process.env.NODE_ENV !== "production" && !beneficiaryUsers.some((item) => item.username === "user")) {
       beneficiaryUsers.push({ username: "user", password: "1234", name: "ذی‌نفع آزمایشی", role: "beneficiary" });
     }
   } catch {}
