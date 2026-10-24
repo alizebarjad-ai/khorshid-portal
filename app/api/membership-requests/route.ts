@@ -51,10 +51,12 @@ export async function PATCH(request: NextRequest) {
       const members = await readMembers();
       const email = String(application.email || "").trim().toLowerCase();
       const phone = String(application.phone || "").replaceAll(" ", "").replaceAll("-", "");
+      const linked = members.find((m) => (m.sourceApplicationIds || []).includes(String(application.id)));
       const emailMatch = members.find((m) => email && String(m.email || "").trim().toLowerCase() === email);
       const phoneMatch = members.find((m) => phone && String(m.phone || "").replaceAll(" ", "").replaceAll("-", "") === phone);
-      if (emailMatch && phoneMatch && emailMatch.id !== phoneMatch.id) return NextResponse.json({ error: "ایمیل و تلفن این درخواست به دو پرونده متفاوت متصل است. برای جلوگیری از ایجاد سابقه تکراری، ابتدا پرونده‌ها را بررسی کنید." }, { status: 409 });
-      const existing = emailMatch || phoneMatch;
+      const matches = [linked, emailMatch, phoneMatch].filter(Boolean);
+      if (new Set(matches.map((member) => member!.id)).size > 1) return NextResponse.json({ error: "شناسه درخواست، ایمیل یا تلفن به پرونده‌های متفاوت متصل است. برای جلوگیری از ایجاد سابقه تکراری، ابتدا پرونده‌ها را بررسی کنید." }, { status: 409 });
+      const existing = linked || emailMatch || phoneMatch;
       const inferredMemberType = application.audience === "artist" ? "artist" : ((application.audience === "company" || application.audience === "government" || application.type === "organization") ? "organization" : (application.type === "sponsor" ? "supporter" : "expert"));
       const profileData = { fullName: application.name, memberType: existing ? existing.memberType : inferredMemberType, membershipTier: application.membershipTier, supplementalData: application.supplementalData || {}, status: existing ? existing.status : "pending", phone: application.phone, email: application.email, city: application.city || "", expertise: application.artField || application.area || "", biography: application.message || "", sourceApplicationId: application.id, notes: "پرونده از درخواست عضویت سایت ایجاد/به‌روزرسانی شده است. شناسه درخواست: " + application.id + (application.supplementalData ? "؛ اطلاعات تکمیلی: " + JSON.stringify(application.supplementalData) : "") };
       if (existing) await updateRecord("member", existing.id, profileData, { username: checked.user.username });
