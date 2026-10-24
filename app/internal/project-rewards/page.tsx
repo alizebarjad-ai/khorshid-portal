@@ -1396,6 +1396,12 @@ export default function ProjectRewardsPage() {
           color:#445268 !important;
         }
       `}</style>
+      {storageError && (
+        <div role="alert" className="mx-auto mb-4 max-w-7xl rounded-xl border border-red-300 bg-red-50 px-4 py-3 text-sm font-bold text-red-800">
+          مشکل ذخیره‌سازی: {storageError}
+        </div>
+      )}
+
 
       <div className="container-site">
         <div className="mb-5 flex flex-col gap-3 rounded-3xl bg-[#10283D] p-5 text-white md:flex-row md:items-center md:justify-between md:p-7">
