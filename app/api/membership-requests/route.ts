@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { COOKIE_NAME, decodeSession } from "@/lib/auth";
+import { createRecord, readMembers, updateRecord } from "@/lib/records-store";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -39,6 +40,23 @@ export async function PATCH(request: NextRequest) {
   if (!checked.user) return checked.response!;
   try {
     const body = await request.json();
+    if (body.action === "approve") {
+      if (typeof body.id !== "string" || !body.id) return NextResponse.json({ error: "شناسه درخواست معتبر نیست." }, { status: 400 });
+      const fetched = await upstream("?id=" + encodeURIComponent(body.id));
+      if (!fetched.ok) return fetched;
+      const appData = await fetched.clone().json();
+      const application = appData.item;
+      if (!application) return NextResponse.json({ error: "درخواست عضویت پیدا نشد." }, { status: 404 });
+      if (!application.membershipTier) return NextResponse.json({ error: "ابتدا نوع عضویت را تعیین کنید." }, { status: 409 });
+      const members = await readMembers();
+      const email = String(application.email || "").trim().toLowerCase();
+      const phone = String(application.phone || "").replaceAll(" ", "").replaceAll("-", "");
+      const existing = members.find((m) => (email && String(m.email || "").trim().toLowerCase() === email) || (phone && String(m.phone || "").replaceAll(" ", "").replaceAll("-", "") === phone));
+      const memberType = application.audience === "artist" ? "artist" : ((application.audience === "company" || application.audience === "government" || application.type === "organization") ? "organization" : (application.type === "sponsor" ? "supporter" : "expert"));
+      const profileData = { fullName: application.name, memberType, membershipTier: application.membershipTier, status: "pending", phone: application.phone, email: application.email, city: application.city || "", expertise: application.artField || application.area || "", biography: application.message || "", sourceApplicationId: application.id, notes: "پرونده از درخواست عضویت سایت ایجاد/به‌روزرسانی شده است. شناسه درخواست: " + application.id };
+      if (existing) await updateRecord("member", existing.id, profileData, { username: checked.user.username });
+      else await createRecord("member", profileData, { username: checked.user.username });
+    }
     return await upstream("", { method: "PATCH", body: JSON.stringify({ ...body, actor: checked.user.name }) });
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : "ثبت تصمیم انجام نشد." }, { status: 503 });
