@@ -61,7 +61,7 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="login-page min-h-screen px-4 pb-16 pt-32"><div className="mx-auto max-w-md">
+    <main className="login-page min-h-screen px-4 pb-16 pt-12"><div className="mx-auto max-w-md">
         <div className="mb-4"><a href="/" className="internal-home-link">← صفحه اصلی سایت</a></div>
         <div className="login-panel rounded-3xl p-8 text-white shadow-xl">
           <p className="text-sm font-bold text-[#F2A900]">سامانه داخلی خورشید</p>
