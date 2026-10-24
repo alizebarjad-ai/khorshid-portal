@@ -127,7 +127,6 @@ type Project = {
   sourceOpportunityId: string;
 };
 
-const KEY = "khorshid-project-rewards-v1";
 // Vercel deployment trigger: 2026-09-23
 
 const ROLE_GUIDE: RoleGuideItem[] = [
