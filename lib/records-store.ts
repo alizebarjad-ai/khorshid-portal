@@ -153,7 +153,7 @@ export async function updateRecord(kind: "member" | "club", id: string, data: Re
 }
 
 
-export async function deleteRecord(kind: "member" | "club", id: string) {
+export async function deleteRecord(kind: "member" | "club", id: string, actor: {username:string}) {
   const existing = kind === "member" ? (await readMembers()).find(item => item.id === id) : (await readClubs()).find(item => item.id === id);
   if (kind === "club") {
     const linkedMembers = (await readMembers()).filter((member) => (member.clubIds || []).includes(id));
@@ -162,6 +162,6 @@ export async function deleteRecord(kind: "member" | "club", id: string) {
     }
   }
   await deleteStored(kind === "member" ? "members" : "clubs", id);
-  if (existing) await writeAudit({ kind, recordId: id, recordName: kind === "member" ? (existing as MemberRecord).fullName : (existing as ClubRecord).name, action: "delete", actor: "system" });
+  if (existing) await writeAudit({ kind, recordId: id, recordName: kind === "member" ? (existing as MemberRecord).fullName : (existing as ClubRecord).name, action: "delete", actor: actor.username });
   return { deleted: true as const, linkedMemberCount: 0 };
 }
