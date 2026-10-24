@@ -53,7 +53,7 @@ export async function POST(request: Request) {
       path: "/",
       maxAge: 60 * 60 * 8,
     });
-
+    return response;
   } catch {
     return NextResponse.json({ error: "درخواست ورود معتبر نیست." }, { status: 400 });
   }
