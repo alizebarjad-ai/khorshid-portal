@@ -6,12 +6,12 @@ import { useRouter } from "next/navigation";
 type Document = { id: string; kind: string; fileName: string; mimeType: string; size: number };
 type Application = {
   id: string; name: string; phone: string; email: string; city?: string | null;
-  artField?: string | null; organization?: string | null; role?: string | null;
+  artField?: string | null; area?: string | null; organization?: string | null; role?: string | null;
   audience?: string | null; message: string; nationalId?: string | null; birthDate?: string | null;
   education?: string | null; educationField?: string | null; address?: string | null; postalCode?: string | null;
   requestType?: string | null; reviewStatus?: string; membershipTier?: string | null;
   supplementalData?: Record<string, string> | null; reviewFeedback?: string | null;
-  reviewedBy?: string | null; createdAt: string; documents: Document[];
+  reviewedBy?: string | null; createdAt: string; updatedAt: string; documents: Document[];
 };
 const tiers = [
   { value: "affiliate", label: "عضو وابسته", description: "مشارکت در برنامه‌ها، باشگاه‌ها و فعالیت‌های داوطلبانه" },
