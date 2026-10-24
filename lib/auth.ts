@@ -52,7 +52,7 @@ function sign(value: string): string | null {
 }
 
 export function encodeSession(user: SessionUser) {
-  const payload = Buffer.from(JSON.stringify(user), "utf8").toString("base64url");
+  const payload = Buffer.from(JSON.stringify({ ...user, exp: Math.floor(Date.now() / 1000) + 8 * 60 * 60 }), "utf8").toString("base64url");
   const signature = sign(payload);
   if (!signature) throw new Error("AUTH_SECRET باید در محیط production با حداقل ۳۲ نویسه تنظیم شود.");
   return payload + "." + signature;
@@ -70,7 +70,8 @@ export function decodeSession(value?: string | null): SessionUser | null {
     return null;
   }
   try {
-    const user = JSON.parse(Buffer.from(payload, "base64url").toString("utf8")) as SessionUser;
+    const user = JSON.parse(Buffer.from(payload, "base64url").toString("utf8")) as SessionUser & { exp?: number };
+    if (!user.exp || user.exp <= Math.floor(Date.now() / 1000)) return null;
     if (!user.username || !user.name || !ROLE_LABELS[user.role]) return null;
     return user;
   } catch {
