@@ -74,7 +74,7 @@ export default function InternalHomePage() {
                 {user.name} · {ROLE_LABEL[user.role]}
               </p>
             </div>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2"><a href="/internal/requests" className="rounded-xl border border-white/20 px-4 py-2.5 text-sm font-extrabold text-white hover:bg-white/10">کارتابل درخواست‌ها</a>
               <a href="https://www.khorshid-mafakher.ir/" target="_blank" rel="noreferrer" className="rounded-xl border border-white/20 bg-white px-4 py-2.5 text-sm font-extrabold text-[#18304A] hover:bg-[#EEECE6]">
                 وب‌سایت خورشید ↗
               </a>
