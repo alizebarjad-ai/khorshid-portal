@@ -73,15 +73,15 @@ export default function MyRewardPage() {
   return (
     <main className="internal-rewards min-h-screen bg-[#FBF7F0] pt-24 pb-16">
       <div className="container-site">
-        <div className="rounded-3xl bg-[#14213D] p-7 text-white md:p-10">
-          <div className="mb-4"><a href="/" className="internal-home-link !bg-[#FFFDF8] !text-[#18304A] hover:!bg-[#FFF4D6]">← صفحه اصلی سایت</a></div>
-          <p className="text-sm font-bold text-[#F2A900]">سامانه داخلی خورشید</p>
+        <div className="rounded-3xl bg-[#10283D] p-7 text-white md:p-10">
+          <div className="mb-4"><a href="https://www.khorshid-mafakher.ir/" target="_blank" rel="noreferrer" className="internal-home-link">وب‌سایت خورشید ↗</a></div>
+          <p className="text-sm font-bold text-[#B99450]">سامانه داخلی خورشید</p>
           <h1 className="mt-2 text-3xl font-extrabold md:text-4xl">پاداش من</h1>
           <p className="mt-3 text-sm leading-7 text-[#E6EAF0]">
             فقط اطلاعات پاداش ثبت‌شده برای حساب کاربری شما نمایش داده می‌شود.
           </p>
           <div className="mt-5 flex flex-wrap gap-2">
-            <button type="button" onClick={() => { window.location.assign("/internal/submit-proposal"); }} className="rounded-xl bg-[#F2A900] px-5 py-2.5 text-sm font-extrabold text-[#14213D] hover:bg-[#FFC44D]">+ ثبت پیشنهاد</button>
+            <button type="button" onClick={() => { window.location.assign("/internal/submit-proposal"); }} className="rounded-xl bg-[#B99450] px-5 py-2.5 text-sm font-extrabold text-[#14213D] hover:bg-[#96763D]">+ ثبت پیشنهاد</button>
             <button type="button" onClick={logout} disabled={loggingOut} className="rounded-xl border border-white/20 bg-white/10 px-5 py-2.5 text-sm font-bold text-white hover:bg-white/15 disabled:opacity-50">{loggingOut ? "در حال خروج..." : "خروج از حساب کاربری"}</button>
           </div>
         </div>
