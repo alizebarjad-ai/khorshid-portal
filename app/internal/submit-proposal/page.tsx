@@ -128,9 +128,9 @@ export default function SubmitProposalPage() {
   return (
     <main className="internal-form-page min-h-screen bg-[#FBF7F0] pt-24 pb-16">
       <div className="container-site">
-        <div className="rounded-3xl bg-[#14213D] p-7 text-white md:p-10">
-          <div className="mb-4"><a href="/internal/my-reward" className="internal-home-link !bg-[#FFFDF8] !text-[#18304A] hover:!bg-[#FFF4D6]">← صفحه اصلی من</a></div>
-          <p className="text-sm font-bold text-[#F2A900]">سامانه داخلی خورشید</p>
+        <div className="rounded-3xl bg-[#10283D] p-7 text-white md:p-10">
+          <div className="mb-4 flex flex-wrap gap-2"><a href={user.role === "beneficiary" ? "/internal/my-reward" : "/internal"} className="internal-home-link">← {user.role === "beneficiary" ? "صفحه اصلی من" : "صفحه اصلی سامانه"}</a><a href="https://www.khorshid-mafakher.ir/" target="_blank" rel="noreferrer" className="internal-home-link">وب‌سایت خورشید ↗</a></div>
+          <p className="text-sm font-bold text-[#B99450]">سامانه داخلی خورشید</p>
           <h1 className="mt-2 text-3xl font-extrabold md:text-4xl">ثبت پیشنهاد اولیه</h1>
           <p className="mt-3 max-w-3xl text-sm leading-7 text-[#E6EAF0]">
             پیشنهاد شما ابتدا برای بررسی قائم‌مقام ثبت می‌شود و در صورت تأیید، وارد مسیر تدوین، مذاکره، قرارداد و ثبت مالی خواهد شد.
@@ -181,7 +181,7 @@ export default function SubmitProposalPage() {
             </label>
 
             <div className="mt-5 flex flex-wrap gap-3">
-              <button type="button" onClick={submit} disabled={saving} className="rounded-xl bg-[#D89500] px-6 py-3 font-extrabold text-[#14213D] hover:bg-[#C98200] disabled:opacity-60">
+              <button type="button" onClick={submit} disabled={saving} className="rounded-xl bg-[#B99450] px-6 py-3 font-extrabold text-[#14213D] hover:bg-[#96763D] disabled:opacity-60">
                 {saving ? "در حال ثبت..." : "ارسال برای قائم‌مقام"}
               </button>
               <a href="/internal/my-reward" className="rounded-xl bg-[#E9E2D6] px-6 py-3 font-bold text-[#26354A] hover:bg-[#DED5C7]">
