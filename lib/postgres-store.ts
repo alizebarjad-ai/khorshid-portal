@@ -6,9 +6,18 @@ const url = process.env.PRISMA_DATABASE_URL || process.env.POSTGRES_URL || proce
 let pool: Pool | undefined;
 let schema: Promise<void> | undefined;
 
+// pg-connection-string currently treats these legacy modes as verify-full.
+// Make that effective behavior explicit and avoid a future-major-version warning.
+function normalizeSslMode(connectionString: string) {
+  return connectionString.replace(
+    /([?&]sslmode=)(prefer|require|verify-ca)(?=(&|#|$))/i,
+    "$1verify-full",
+  );
+}
+
 function db() {
   if (!url) throw new Error("اتصال پایگاه داده PostgreSQL تنظیم نشده است.");
-  if (!pool) pool = new Pool({ connectionString: url, max: 3, idleTimeoutMillis: 10000, connectionTimeoutMillis: 10000, application_name: "khorshid-portal" });
+  if (!pool) pool = new Pool({ connectionString: normalizeSslMode(url), max: 3, idleTimeoutMillis: 10000, connectionTimeoutMillis: 10000, application_name: "khorshid-portal" });
   return pool;
 }
 async function ready() {
