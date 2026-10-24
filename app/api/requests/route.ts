@@ -16,7 +16,8 @@ async function upstream(path: string, init?: RequestInit) {
   const base = process.env.WEBSITE_MEMBERSHIP_API_URL;
   const key = process.env.PORTAL_MEMBERSHIP_API_KEY;
   if (!base || !key) throw new Error("اتصال امن به سامانه درخواست‌های سایت تنظیم نشده است.");
-  const response = await fetch(base.replace(/\/$/, "") + path, {
+  const endpoint = base.replace(/\/api\/portal\/membership-requests\/?$/, "/api/portal/requests").replace(/\/$/, "");
+  const response = await fetch(endpoint + path, {
     ...init,
     cache: "no-store",
     headers: { "Content-Type": "application/json", "x-portal-membership-key": key, ...(init?.headers || {}) },
