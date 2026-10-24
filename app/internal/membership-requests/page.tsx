@@ -106,7 +106,7 @@ export default function MembershipRequestsPage() {
       <a href="/internal/roles/members" className="text-sm text-[#F2A900]">← بازگشت به داشبورد اعضا</a>
       <h1 className="mt-3 text-3xl font-extrabold">کارتابل درخواست‌های عضویت</h1>
       <p className="mt-2 max-w-3xl text-sm leading-7 text-[#E6EAF0]">بررسی اطلاعات و مدارک ارسالی از سایت، تعیین نوع عضویت، درخواست تکمیل یا رد مستدل و تأیید نهایی. نوع عضویت را معاون اعضا تعیین می‌کند.</p>
-      <div className="mt-5 flex flex-wrap gap-3"><span className="rounded-xl bg-white/10 px-4 py-2">کل درخواست‌ها: {items.length}</span><span className="rounded-xl bg-white/10 px-4 py-2">در انتظار اقدام: {items.filter((item) => !["approved", "rejected"].includes(item.reviewStatus || "new")).length}</span><a href="/internal/members" className="rounded-xl border border-white/30 px-4 py-2 font-bold">پرونده اعضا</a></div>
+      <div className="mt-5 flex flex-wrap gap-3"><span className="rounded-xl bg-white/10 px-4 py-2">کل درخواست‌ها: {items.length}</span><span className="rounded-xl bg-white/10 px-4 py-2">در انتظار اقدام: {items.filter((item) => !["approved", "rejected"].includes(item.reviewStatus || "new")).length}</span><a href="/internal/members" className="rounded-xl border border-white/30 px-4 py-2 font-bold">پرونده اعضا</a><a href="/internal/requests" className="rounded-xl border border-white/30 px-4 py-2 font-bold">کارتابل سایر درخواست‌ها</a></div>
     </header>
     {error && <p className="mt-4 rounded-xl bg-red-50 p-3 text-sm text-red-800">{error}</p>}
     {notice && <p className="mt-4 rounded-xl bg-emerald-50 p-3 text-sm text-emerald-800">{notice}</p>}
