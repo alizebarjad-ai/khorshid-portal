@@ -46,15 +46,19 @@ async function importLegacy(collection: string) {
     const token = process.env.BLOB_READ_WRITE_TOKEN;
     if (legacyPrefixes.length && !token) throw new Error("دسترسی انتقال داده‌های قبلی تنظیم نشده است.");
     for (const prefix of legacyPrefixes) {
-      const found = await list({ prefix, token: token! });
-      for (const blob of found.blobs) {
-        const response = await fetch(blob.url, { headers: { Authorization: "Bearer " + token }, cache: "no-store" });
-        if (!response.ok) throw new Error("خواندن یکی از رکوردهای قدیمی ناموفق بود؛ انتقال متوقف شد.");
-        const item = await response.json() as Item;
-        if (!item?.id) throw new Error("یک رکورد قدیمی شناسه معتبر ندارد؛ انتقال متوقف شد.");
-        const saved = await client.query("INSERT INTO portal_records (collection,id,data) VALUES ($1,$2,$3::jsonb) ON CONFLICT (collection,id) DO NOTHING", [collection, item.id, JSON.stringify(item)]);
-        count += saved.rowCount || 0;
-      }
+      let cursor: string | undefined;
+      do {
+        const page = await list({ prefix, token: token!, ...(cursor ? { cursor } : {}) });
+        for (const blob of page.blobs) {
+          const response = await fetch(blob.url, { headers: { Authorization: "Bearer " + token }, cache: "no-store" });
+          if (!response.ok) throw new Error("خواندن یکی از رکوردهای قدیمی ناموفق بود؛ انتقال متوقف شد.");
+          const item = await response.json() as Item;
+          if (!item?.id) throw new Error("یک رکورد قدیمی شناسه معتبر ندارد؛ انتقال متوقف شد.");
+          const saved = await client.query("INSERT INTO portal_records (collection,id,data) VALUES ($1,$2,$3::jsonb) ON CONFLICT (collection,id) DO NOTHING", [collection, item.id, JSON.stringify(item)]);
+          count += saved.rowCount || 0;
+        }
+        cursor = page.hasMore ? page.cursor : undefined;
+      } while (cursor);
     }
     await client.query("INSERT INTO portal_migrations (name,imported_count) VALUES ($1,$2) ON CONFLICT (name) DO NOTHING", ["blob-import:" + collection, count]);
     await client.query("COMMIT");
