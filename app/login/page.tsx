@@ -60,6 +60,7 @@ export default function LoginPage() {
         return;
       }
       const destination =
+        role === "owner" ? "/internal/owner" :
         role === "member" ? "/internal/member-home" :
         role === "beneficiary" ? "/internal/my-reward" :
         role === "ceo" ? "/internal/roles/ceo" :
