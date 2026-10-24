@@ -56,7 +56,8 @@ export default function ChangePasswordPage() {
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "تغییر رمز انجام نشد.");
       const role = user?.role;
-      const destination = role === "member" ? "/internal/member-home"
+      const destination = role === "owner" ? "/internal/owner"
+        : role === "member" ? "/internal/member-home"
         : role === "beneficiary" ? "/internal/my-reward"
         : role === "finance" ? "/internal/project-rewards"
         : "/internal";
