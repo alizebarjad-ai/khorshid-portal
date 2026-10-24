@@ -82,7 +82,7 @@ export default function MembershipRequestsPage() {
         const saveData = await save.json();
         if (!save.ok) throw new Error(saveData.error || "ذخیره فرم تکمیلی ناموفق بود.");
       } else {
-        if (action === "approve") {
+        if (action === "approve" && selected.reviewStatus !== "approved") {
           const typeResponse = await fetch("/api/membership-requests", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: selected.id, action: "set-type", membershipTier: tier, supplementalData: extra }) });
           const typeData = await typeResponse.json();
           if (!typeResponse.ok) throw new Error(typeData.error || "ذخیره نوع عضویت پیش از تأیید ناموفق بود.");
