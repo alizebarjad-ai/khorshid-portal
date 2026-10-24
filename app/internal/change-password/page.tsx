@@ -1,14 +1,13 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 
 type SessionUser = { username: string; name: string; role: string; mustChangePassword?: boolean };
 
 export default function ChangePasswordPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const required = searchParams.get("required") === "1";
+  const [required, setRequired] = useState(false);
   const [user, setUser] = useState<SessionUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [currentPassword, setCurrentPassword] = useState("");
@@ -18,6 +17,7 @@ export default function ChangePasswordPage() {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
+    setRequired(new URLSearchParams(window.location.search).get("required") === "1");
     fetch("/api/auth/me", { cache: "no-store" })
       .then(async (response) => {
         const data = await response.json();
