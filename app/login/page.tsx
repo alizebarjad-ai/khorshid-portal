@@ -61,19 +61,8 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="login-page min-h-screen px-4 pb-16 pt-32">
-      <style>{`
-        main.login-page { background:#F3EFE7 !important; color:#14213D !important; }
-        main.login-page .login-panel { background:#14213D !important; color:#FFFFFF !important; border:1px solid #24385A !important; box-shadow:0 18px 45px rgba(20,33,61,.16) !important; }
-        main.login-page .login-form { background:#FFFDF8 !important; color:#14213D !important; border:1px solid #D6CCBC !important; box-shadow:0 12px 30px rgba(20,33,61,.10) !important; }
-        main.login-page .login-form label { color:#14213D !important; }
-        main.login-page .login-input { background:#FFFFFF !important; color:#14213D !important; border:1px solid #AFA493 !important; caret-color:#14213D !important; }
-        main.login-page .login-input::placeholder { color:#7A8490 !important; opacity:1 !important; }
-        main.login-page .login-input:focus { background:#FFFFFF !important; color:#14213D !important; border-color:#1F8A8A !important; box-shadow:0 0 0 3px rgba(31,138,138,.14) !important; }
-        main.login-page .login-submit { background:#D89500 !important; color:#14213D !important; border:1px solid #B87800 !important; }
-      `}</style>
-      <div className="mx-auto max-w-md">
-        <div className="mb-4"><a href="/" className="internal-home-link !bg-[#FFFDF8] !text-[#18304A] hover:!bg-[#FFF4D6]">← صفحه اصلی سایت</a></div>
+    <main className="login-page min-h-screen px-4 pb-16 pt-32"><div className="mx-auto max-w-md">
+        <div className="mb-4"><a href="/" className="internal-home-link">← صفحه اصلی سایت</a></div>
         <div className="login-panel rounded-3xl p-8 text-white shadow-xl">
           <p className="text-sm font-bold text-[#F2A900]">سامانه داخلی خورشید</p>
           <h1 className="mt-2 text-3xl font-extrabold">ورود به سامانه</h1>
