@@ -41,7 +41,7 @@ export async function proxy(request: NextRequest) {
     }
   }
 
-  if (user.role === "owner" && !OWNER_ALLOWED_PREFIXES.some((prefix) => path.startsWith(prefix)) && path !== "/api/auth/me" && path !== "/api/auth/logout" && path !== "/api/auth/change-password") {
+  if (user.role === "owner" && !OWNER_ALLOWED_PREFIXES.some((prefix) => path.startsWith(prefix)) && !PASSWORD_ALLOWED.has(path)) {
     if (path.startsWith("/api/")) return NextResponse.json({ error: "حساب مالک فقط به پنل مالک دسترسی دارد." }, { status: 403 });
     return NextResponse.redirect(new URL("/internal/owner", request.url));
   }
