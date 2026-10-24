@@ -63,7 +63,7 @@ export async function prepareMemberActivation(input: { memberId: string; phone: 
   }
   const existing = linkedAccount || usernameAccount;
   if (existing?.status === "active") {
-    const updated = { ...existing, memberId: input.memberId, username, fullName: input.fullName, email: input.email.trim().toLowerCase(), updatedAt: new Date().toISOString() };
+    const updated = { ...existing, memberId: input.memberId, fullName: input.fullName, updatedAt: new Date().toISOString() };
     await putStored("member-accounts", updated);
     return { account: updated, activationToken: null as string | null };
   }
