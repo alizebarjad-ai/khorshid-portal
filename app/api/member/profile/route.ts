@@ -1,0 +1,23 @@
+import { NextRequest, NextResponse } from "next/server";
+import { COOKIE_NAME, decodeSession } from "@/lib/auth";
+import { readClubs, readMembers } from "@/lib/records-store";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+export async function GET(request: NextRequest) {
+  const user = decodeSession(request.cookies.get(COOKIE_NAME)?.value);
+  if (!user) return NextResponse.json({ error: "برای ادامه وارد سامانه شوید." }, { status: 401 });
+  if (user.role !== "member" || !user.memberId) return NextResponse.json({ error: "این صفحه مخصوص اعضای فعال است." }, { status: 403 });
+  try {
+    const members = await readMembers();
+    const member = members.find((item) => item.id === user.memberId);
+    if (!member || member.status !== "active") return NextResponse.json({ error: "پرونده عضو فعال پیدا نشد." }, { status: 404 });
+    const clubs = await readClubs();
+    const linkedClubs = clubs.filter((club) => (member.clubIds || []).includes(club.id));
+    return NextResponse.json({ member, clubs: linkedClubs });
+  } catch (error) {
+    console.error("Member profile GET failed", error);
+    return NextResponse.json({ error: "دریافت پرونده عضو ناموفق بود." }, { status: 503 });
+  }
+}
