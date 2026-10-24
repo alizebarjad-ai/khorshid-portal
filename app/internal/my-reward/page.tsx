@@ -67,39 +67,39 @@ export default function MyRewardPage() {
 
   async function logout() {
     setLoggingOut(true);
-    try { await fetch("/api/auth/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "logout" }) }); } finally { window.location.href = "/login"; }
+    try { await fetch("/api/auth/logout", { method: "POST" }); } finally { window.location.href = "/login"; }
   }
 
   return (
-    <main className="internal-rewards min-h-screen bg-[#FBF7F0] pt-24 pb-16">
+    <main className="internal-rewards min-h-screen bg-[#F7F5F0] pt-24 pb-16">
       <div className="container-site">
-        <div className="rounded-3xl bg-[#14213D] p-7 text-white md:p-10">
-          <div className="mb-4"><a href="/" className="internal-home-link !bg-[#FFFDF8] !text-[#18304A] hover:!bg-[#FFF4D6]">← صفحه اصلی سایت</a></div>
-          <p className="text-sm font-bold text-[#F2A900]">سامانه داخلی خورشید</p>
+        <div className="rounded-3xl bg-[#10283D] p-7 text-white md:p-10">
+          <div className="mb-4"><a href="https://www.khorshid-mafakher.ir/" target="_blank" rel="noreferrer" className="internal-home-link">وب‌سایت خورشید ↗</a></div>
+          <p className="text-sm font-bold text-[#B99450]">سامانه داخلی خورشید</p>
           <h1 className="mt-2 text-3xl font-extrabold md:text-4xl">پاداش من</h1>
           <p className="mt-3 text-sm leading-7 text-[#E6EAF0]">
             فقط اطلاعات پاداش ثبت‌شده برای حساب کاربری شما نمایش داده می‌شود.
           </p>
           <div className="mt-5 flex flex-wrap gap-2">
-            <button type="button" onClick={() => { window.location.assign("/internal/submit-proposal"); }} className="rounded-xl bg-[#F2A900] px-5 py-2.5 text-sm font-extrabold text-[#14213D] hover:bg-[#FFC44D]">+ ثبت پیشنهاد</button>
+            <button type="button" onClick={() => { window.location.assign("/internal/submit-proposal"); }} className="rounded-xl bg-[#B99450] px-5 py-2.5 text-sm font-extrabold text-[#172F48] hover:bg-[#96763D]">+ ثبت پیشنهاد</button>
             <button type="button" onClick={logout} disabled={loggingOut} className="rounded-xl border border-white/20 bg-white/10 px-5 py-2.5 text-sm font-bold text-white hover:bg-white/15 disabled:opacity-50">{loggingOut ? "در حال خروج..." : "خروج از حساب کاربری"}</button>
           </div>
         </div>
 
-        <div className="mt-5 rounded-3xl bg-white p-6 shadow-sm ring-1 ring-[#14213D]/10">
+        <div className="mt-5 rounded-3xl bg-white p-6 shadow-sm ring-1 ring-[#172F48]/10">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
             <div>
               <p className="text-xs text-[#5B6470]">کاربر</p>
-              <h2 className="mt-1 text-xl font-extrabold text-[#14213D]">{name || "کاربر"}</h2>
+              <h2 className="mt-1 text-xl font-extrabold text-[#172F48]">{name || "کاربر"}</h2>
             </div>
-            <div className="rounded-2xl bg-[#FFF0C2] px-5 py-3">
+            <div className="rounded-2xl bg-[#F0DFB8] px-5 py-3">
               <span className="block text-xs text-[#5B6470]">جمع پاداش ثبت‌شده</span>
-              <strong className="text-xl text-[#14213D]">{money(total)}</strong>
+              <strong className="text-xl text-[#172F48]">{money(total)}</strong>
             </div>
           </div>
         </div>
 
-        <div className="mt-5 overflow-x-auto rounded-3xl bg-white shadow-sm ring-1 ring-[#14213D]/10">
+        <div className="mt-5 overflow-x-auto rounded-3xl bg-white shadow-sm ring-1 ring-[#172F48]/10">
           <table className="w-full min-w-[760px] text-right text-sm">
             <thead className="bg-[#F4EEE4]">
               <tr>
@@ -114,7 +114,7 @@ export default function MyRewardPage() {
             </thead>
             <tbody>
               {rows.map((row) => (
-                <tr key={row.project.id + "-" + row.id} className="border-t border-[#14213D]/10">
+                <tr key={row.project.id + "-" + row.id} className="border-t border-[#172F48]/10">
                   <td className="p-4 font-bold">{row.project.name}</td>
                   <td className="p-4">{row.project.clientName || "-"}</td>
                   <td className="p-4">{row.role}</td>
@@ -131,7 +131,7 @@ export default function MyRewardPage() {
           </table>
         </div>
 
-        <div className="mt-5 rounded-2xl border border-[#14213D]/10 bg-white p-5 text-xs leading-7 text-[#5B6470]">
+        <div className="mt-5 rounded-2xl border border-[#172F48]/10 bg-white p-5 text-xs leading-7 text-[#5B6470]">
           این صفحه نمایشی است و کاربر ذی‌نفع امکان ویرایش اطلاعات پروژه، هزینه، درصد پاداش یا سهم خود را ندارد.
         </div>
       </div>

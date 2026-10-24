@@ -115,9 +115,9 @@ export default function SubmitProposalPage() {
 
   if (checking || !user) {
     return (
-      <main className="internal-form-page min-h-screen bg-[#FBF7F0] pt-24 pb-16">
+      <main className="internal-form-page min-h-screen bg-[#F7F5F0] pt-24 pb-16">
         <div className="container-site">
-          <div className="rounded-3xl bg-white p-8 text-center text-[#14213D] shadow-sm ring-1 ring-[#14213D]/10">
+          <div className="rounded-3xl bg-white p-8 text-center text-[#172F48] shadow-sm ring-1 ring-[#172F48]/10">
             در حال بررسی دسترسی...
           </div>
         </div>
@@ -126,23 +126,23 @@ export default function SubmitProposalPage() {
   }
 
   return (
-    <main className="internal-form-page min-h-screen bg-[#FBF7F0] pt-24 pb-16">
+    <main className="internal-form-page min-h-screen bg-[#F7F5F0] pt-24 pb-16">
       <div className="container-site">
-        <div className="rounded-3xl bg-[#14213D] p-7 text-white md:p-10">
-          <div className="mb-4"><a href="/internal/my-reward" className="internal-home-link !bg-[#FFFDF8] !text-[#18304A] hover:!bg-[#FFF4D6]">← صفحه اصلی من</a></div>
-          <p className="text-sm font-bold text-[#F2A900]">سامانه داخلی خورشید</p>
+        <div className="rounded-3xl bg-[#10283D] p-7 text-white md:p-10">
+          <div className="mb-4 flex flex-wrap gap-2"><a href={user.role === "beneficiary" ? "/internal/my-reward" : "/internal"} className="internal-home-link">← {user.role === "beneficiary" ? "صفحه اصلی من" : "صفحه اصلی سامانه"}</a><a href="https://www.khorshid-mafakher.ir/" target="_blank" rel="noreferrer" className="internal-home-link">وب‌سایت خورشید ↗</a></div>
+          <p className="text-sm font-bold text-[#B99450]">سامانه داخلی خورشید</p>
           <h1 className="mt-2 text-3xl font-extrabold md:text-4xl">ثبت پیشنهاد اولیه</h1>
           <p className="mt-3 max-w-3xl text-sm leading-7 text-[#E6EAF0]">
             پیشنهاد شما ابتدا برای بررسی قائم‌مقام ثبت می‌شود و در صورت تأیید، وارد مسیر تدوین، مذاکره، قرارداد و ثبت مالی خواهد شد.
           </p>
         </div>
 
-        <section className="mt-5 rounded-3xl bg-white p-6 shadow-sm ring-1 ring-[#14213D]/10 md:p-8">
-          <div className="rounded-2xl border border-[#D7CCBC] bg-[#FFFDF8] p-5 md:p-6">
+        <section className="mt-5 rounded-3xl bg-white p-6 shadow-sm ring-1 ring-[#172F48]/10 md:p-8">
+          <div className="rounded-2xl border border-[#E3E0D8] bg-[#FFFEFA] p-5 md:p-6">
             <div className="grid gap-5 md:grid-cols-2">
-              <label className="block text-sm font-bold text-[#26354A]">
+              <label className="block text-sm font-bold text-[#172F48]">
                 نوع فرصت
-                <select value={type} onChange={(e) => setType(e.target.value as ProposalType)} className="mt-2 min-h-12 w-full rounded-xl border border-[#BFB4A4] bg-white px-3 text-[#17263B] outline-none focus:border-[#D89500]">
+                <select value={type} onChange={(e) => setType(e.target.value as ProposalType)} className="mt-2 min-h-12 w-full rounded-xl border border-[#BFB4A4] bg-white px-3 text-[#172F48] outline-none focus:border-[#B99450]">
                   <option>پروژه</option>
                   <option>مشتری</option>
                   <option>اسپانسر</option>
@@ -150,41 +150,41 @@ export default function SubmitProposalPage() {
                 </select>
               </label>
 
-              <label className="block text-sm font-bold text-[#26354A]">
+              <label className="block text-sm font-bold text-[#172F48]">
                 عنوان پیشنهاد *
-                <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="مثلاً پیشنهاد همکاری با..." className="mt-2 min-h-12 w-full rounded-xl border border-[#BFB4A4] bg-white px-3 text-[#17263B] outline-none focus:border-[#D89500]" />
+                <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="مثلاً پیشنهاد همکاری با..." className="mt-2 min-h-12 w-full rounded-xl border border-[#BFB4A4] bg-white px-3 text-[#172F48] outline-none focus:border-[#B99450]" />
               </label>
 
-              <label className="block text-sm font-bold text-[#26354A]">
+              <label className="block text-sm font-bold text-[#172F48]">
                 مشتری / برند / اسپانسر
-                <input value={client} onChange={(e) => setClient(e.target.value)} placeholder="در صورت مشخص بودن" className="mt-2 min-h-12 w-full rounded-xl border border-[#BFB4A4] bg-white px-3 text-[#17263B] outline-none focus:border-[#D89500]" />
+                <input value={client} onChange={(e) => setClient(e.target.value)} placeholder="در صورت مشخص بودن" className="mt-2 min-h-12 w-full rounded-xl border border-[#BFB4A4] bg-white px-3 text-[#172F48] outline-none focus:border-[#B99450]" />
               </label>
 
-              <label className="block text-sm font-bold text-[#26354A]">
+              <label className="block text-sm font-bold text-[#172F48]">
                 اطلاعات تماس
-                <input value={contact} onChange={(e) => setContact(e.target.value)} placeholder="نام رابط، تلفن، ایمیل یا راه ارتباطی" className="mt-2 min-h-12 w-full rounded-xl border border-[#BFB4A4] bg-white px-3 text-[#17263B] outline-none focus:border-[#D89500]" />
+                <input value={contact} onChange={(e) => setContact(e.target.value)} placeholder="نام رابط، تلفن، ایمیل یا راه ارتباطی" className="mt-2 min-h-12 w-full rounded-xl border border-[#BFB4A4] bg-white px-3 text-[#172F48] outline-none focus:border-[#B99450]" />
               </label>
 
-              <label className="block text-sm font-bold text-[#26354A]">
+              <label className="block text-sm font-bold text-[#172F48]">
                 برآورد اولیه ارزش
-                <input type="number" value={expectedValue} onChange={(e) => setExpectedValue(e.target.value)} placeholder="اختیاری" className="mt-2 min-h-12 w-full rounded-xl border border-[#BFB4A4] bg-white px-3 text-[#17263B] outline-none focus:border-[#D89500]" />
+                <input type="number" value={expectedValue} onChange={(e) => setExpectedValue(e.target.value)} placeholder="اختیاری" className="mt-2 min-h-12 w-full rounded-xl border border-[#BFB4A4] bg-white px-3 text-[#172F48] outline-none focus:border-[#B99450]" />
               </label>
 
-              <div className="rounded-xl bg-[#F1EBE1] p-4 text-sm leading-7 text-[#596474]">
-                ثبت‌کننده: <strong className="text-[#14213D]">{user.name}</strong>
+              <div className="rounded-xl bg-[#F1EBE1] p-4 text-sm leading-7 text-[#687783]">
+                ثبت‌کننده: <strong className="text-[#172F48]">{user.name}</strong>
               </div>
             </div>
 
-            <label className="mt-5 block text-sm font-bold text-[#26354A]">
+            <label className="mt-5 block text-sm font-bold text-[#172F48]">
               شرح کوتاه پیشنهاد *
-              <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={6} placeholder="فرصت چیست، چه نیازی وجود دارد و پیشنهاد شما برای خورشید چیست؟" className="mt-2 w-full rounded-xl border border-[#BFB4A4] bg-white px-3 py-3 leading-7 text-[#17263B] outline-none focus:border-[#D89500]" />
+              <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={6} placeholder="فرصت چیست، چه نیازی وجود دارد و پیشنهاد شما برای خورشید چیست؟" className="mt-2 w-full rounded-xl border border-[#BFB4A4] bg-white px-3 py-3 leading-7 text-[#172F48] outline-none focus:border-[#B99450]" />
             </label>
 
             <div className="mt-5 flex flex-wrap gap-3">
-              <button type="button" onClick={submit} disabled={saving} className="rounded-xl bg-[#D89500] px-6 py-3 font-extrabold text-[#14213D] hover:bg-[#C98200] disabled:opacity-60">
+              <button type="button" onClick={submit} disabled={saving} className="rounded-xl bg-[#B99450] px-6 py-3 font-extrabold text-[#172F48] hover:bg-[#96763D] disabled:opacity-60">
                 {saving ? "در حال ثبت..." : "ارسال برای قائم‌مقام"}
               </button>
-              <a href="/internal/my-reward" className="rounded-xl bg-[#E9E2D6] px-6 py-3 font-bold text-[#26354A] hover:bg-[#DED5C7]">
+              <a href="/internal/my-reward" className="rounded-xl bg-[#E9E2D6] px-6 py-3 font-bold text-[#172F48] hover:bg-[#DED5C7]">
                 بازگشت
               </a>
             </div>
