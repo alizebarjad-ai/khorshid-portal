@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { COOKIE_NAME, decodeSession } from "@/lib/auth";
 import { createRecord, readMembers, updateRecord } from "@/lib/records-store";
-import { prepareMemberActivation } from "@/lib/member-accounts";
+import { normalizeMemberUsername, prepareMemberActivation } from "@/lib/member-accounts";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
