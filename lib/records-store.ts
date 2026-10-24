@@ -9,6 +9,7 @@ export type MemberRecord = {
   fullName: string;
   memberType: "artist" | "figure" | "supporter" | "expert" | "organization";
   membershipTier?: MembershipTier;
+  supplementalData?: Record<string, string>;
   sourceApplicationIds?: string[];
   membershipHistory?: { from: MembershipTier | null; to: MembershipTier; at: string; actor: string; applicationId?: string }[];
   status: "pending" | "active" | "inactive" | "suspended";
@@ -96,6 +97,7 @@ export async function createRecord(kind: "member" | "club", data: Record<string,
       ...base, kind, fullName: String(data.fullName || "").trim(),
       memberType: (data.memberType || "artist") as MemberRecord["memberType"],
       ...(isMembershipTier(data.membershipTier) ? { membershipTier: data.membershipTier } : {}),
+      ...(data.supplementalData && typeof data.supplementalData === "object" && !Array.isArray(data.supplementalData) ? { supplementalData: data.supplementalData as Record<string, string> } : {}),
       sourceApplicationIds: typeof data.sourceApplicationId === "string" && data.sourceApplicationId ? [data.sourceApplicationId] : [],
       membershipHistory: isMembershipTier(data.membershipTier) ? [{ from: null, to: data.membershipTier, at: now, actor: actor.username, ...(typeof data.sourceApplicationId === "string" ? { applicationId: data.sourceApplicationId } : {}) }] : [],
       status: (data.status || "pending") as MemberRecord["status"],
@@ -136,6 +138,7 @@ export async function updateRecord(kind: "member" | "club", id: string, data: Re
       fullName: String(data.fullName ?? old.fullName).trim(),
       memberType: (data.memberType ?? old.memberType) as MemberRecord["memberType"],
       ...(isMembershipTier(data.membershipTier) ? { membershipTier: data.membershipTier } : {}),
+      ...(data.supplementalData && typeof data.supplementalData === "object" && !Array.isArray(data.supplementalData) ? { supplementalData: data.supplementalData as Record<string, string> } : {}),
       sourceApplicationIds: typeof data.sourceApplicationId === "string" && data.sourceApplicationId ? Array.from(new Set([...(old.sourceApplicationIds || []), data.sourceApplicationId])) : (old.sourceApplicationIds || []),
       membershipHistory: isMembershipTier(data.membershipTier) && data.membershipTier !== old.membershipTier ? [...(old.membershipHistory || []), { from: old.membershipTier || null, to: data.membershipTier, at: now, actor: actor.username, ...(typeof data.sourceApplicationId === "string" ? { applicationId: data.sourceApplicationId } : {}) }] : (old.membershipHistory || []),
       status: (data.status ?? old.status) as MemberRecord["status"],
