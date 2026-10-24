@@ -37,17 +37,25 @@ export const ROLE_LABELS: Record<UserRole, string> = {
 
 const COOKIE_NAME = "khorshid_session";
 
-function secret() {
-  return process.env.AUTH_SECRET || "CHANGE_ME_BEFORE_PRODUCTION";
+function secret(): string | null {
+  const configured = process.env.AUTH_SECRET;
+  if (process.env.NODE_ENV === "production") {
+    return configured && configured.length >= 32 ? configured : null;
+  }
+  return configured || "local-development-only-secret";
 }
 
-function sign(value: string) {
-  return createHmac("sha256", secret()).update(value).digest("base64url");
+function sign(value: string): string | null {
+  const key = secret();
+  if (!key) return null;
+  return createHmac("sha256", key).update(value).digest("base64url");
 }
 
 export function encodeSession(user: SessionUser) {
   const payload = Buffer.from(JSON.stringify(user), "utf8").toString("base64url");
-  return payload + "." + sign(payload);
+  const signature = sign(payload);
+  if (!signature) throw new Error("AUTH_SECRET باید در محیط production با حداقل ۳۲ نویسه تنظیم شود.");
+  return payload + "." + signature;
 }
 
 export function decodeSession(value?: string | null): SessionUser | null {
@@ -55,6 +63,7 @@ export function decodeSession(value?: string | null): SessionUser | null {
   const [payload, signature] = value.split(".");
   if (!payload || !signature) return null;
   const expected = sign(payload);
+  if (!expected) return null;
   try {
     if (!timingSafeEqual(Buffer.from(signature), Buffer.from(expected))) return null;
   } catch {
@@ -115,7 +124,15 @@ export function getConfiguredUsers() {
       beneficiaryUsers.push({ username: "user", password: "1234", name: "ذی‌نفع آزمایشی", role: "beneficiary" });
     }
   } catch {}
-  return [...managementUsers, ...unitUsers, ...beneficiaryUsers];
+  const allUsers = [...managementUsers, ...unitUsers, ...beneficiaryUsers];
+  if (process.env.NODE_ENV !== "production") return allUsers;
+  // Never expose sample/default credentials in production. Every staff account must be
+  // explicitly configured, and beneficiary accounts must come from the configured list.
+  return allUsers.filter((item) => {
+    if (item.role === "beneficiary") return Boolean(process.env.AUTH_BENEFICIARIES_JSON);
+    const prefix = "AUTH_" + item.role.toUpperCase();
+    return Boolean(process.env[prefix + "_USERNAME"] && process.env[prefix + "_PASSWORD"]);
+  });
 }
 
 export { COOKIE_NAME };
