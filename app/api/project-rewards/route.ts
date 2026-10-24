@@ -83,7 +83,7 @@ export async function PUT(request: NextRequest) {
         creatorName: user.name,
       };
       if (user.role === "beneficiary") {
-        newItem.status = "ثبت اولیه";
+        newItem.status = "در حال بررسی قائم‌مقام";
         newItem.assignedTo = "deputy";
         newItem.assignedToName = "قائم‌مقام";
       }
