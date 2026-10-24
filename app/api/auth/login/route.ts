@@ -32,11 +32,14 @@ export async function POST(request: Request) {
       sessionUser = { username: configuredUser.username, name: configuredUser.name, role: configuredUser.role };
     } else {
       const account = await findMemberAccountByUsername(username);
-      if (!account || !account.passwordHash || !verifyMemberPassword(password, account.passwordHash)) {
+      if (!account) {
         return NextResponse.json({ error: "نام کاربری یا رمز عبور نادرست است." }, { status: 401 });
       }
       if (account.status !== "active") {
         return NextResponse.json({ error: account.status === "pending_activation" ? "حساب شما هنوز فعال نشده است. پیوند فعال‌سازی ارسال‌شده به ایمیل را باز کنید." : "دسترسی این حساب غیرفعال است." }, { status: 403 });
+      }
+      if (!account.passwordHash || !verifyMemberPassword(password, account.passwordHash)) {
+        return NextResponse.json({ error: "نام کاربری یا رمز عبور نادرست است." }, { status: 401 });
       }
       await recordMemberLogin(account);
       sessionUser = { username: account.username, name: account.fullName, role: "member", memberId: account.memberId };
