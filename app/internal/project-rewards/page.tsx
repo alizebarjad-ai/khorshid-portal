@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { dashboardPathForRole } from "@/lib/dashboard-path";
 
 type RoleGuideItem = { name: string; weight: number; desc: string };
@@ -127,7 +127,6 @@ type Project = {
   sourceOpportunityId: string;
 };
 
-const KEY = "khorshid-project-rewards-v1";
 // Vercel deployment trigger: 2026-09-23
 
 const ROLE_GUIDE: RoleGuideItem[] = [
@@ -311,6 +310,11 @@ export default function ProjectRewardsPage() {
   const [stageNotes, setStageNotes] = useState("");
   const [view, setView] = useState<"projects" | "dashboard" | "proposals">("projects");
   const [proposals, setProposals] = useState<Proposal[]>([]);
+  const [storageReady, setStorageReady] = useState(false);
+  const [storageError, setStorageError] = useState("");
+  const savedProjectsRef = useRef<Record<string, string>>({});
+  const savedProposalsRef = useRef<Record<string, string>>({});
+
   const [selectedProposal, setSelectedProposal] = useState("");
   const [proposalType, setProposalType] = useState<Proposal["type"]>("پروژه");
   const [proposalTitle, setProposalTitle] = useState("");
@@ -374,25 +378,39 @@ export default function ProjectRewardsPage() {
     (Math.max(0, Math.min(100, Number(personPercent) || 0)) / 100);
 
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(KEY);
-      if (raw) {
-        const parsed = (JSON.parse(raw) as Partial<Project>[]).map(normalizeProject);
-        setProjects(parsed);
-        if (parsed[0]) setSelected(parsed[0].id);
-      }
-    } catch {}
+    let cancelled = false;
 
-    // پرونده‌هایی که مالی در گردش فرصت‌ها تکمیل و «ثبت پروژه» شده‌اند،
-    // به‌صورت خودکار وارد ماژول پروژه و استخر پاداش می‌شوند.
-    fetch("/api/opportunities", { cache: "no-store" })
-      .then(async (response) => {
-        if (!response.ok) return;
+    async function loadSharedData() {
+      try {
+        const response = await fetch("/api/project-rewards", { cache: "no-store" });
         const data = await response.json();
-        const completed = (data.items || []).filter((item: any) => item.status === "ثبت پروژه");
+        if (!response.ok) throw new Error(data.error || "دریافت اطلاعات پروژه‌ها ناموفق بود.");
+
+        const loadedProjects = ((data.projects || []) as Partial<Project>[]).map(normalizeProject);
+        const loadedProposals = ((data.proposals || []) as Partial<Proposal>[]).map(normalizeProposal);
+        if (cancelled) return;
+
+        savedProjectsRef.current = Object.fromEntries(loadedProjects.map((item) => [item.id, JSON.stringify(item)]));
+        savedProposalsRef.current = Object.fromEntries(loadedProposals.map((item) => [item.id, JSON.stringify(item)]));
+        setProjects(loadedProjects);
+        setProposals(loadedProposals);
+        if (loadedProjects[0]) setSelected(loadedProjects[0].id);
+        setStorageError("");
+        setStorageReady(true);
+
+        const authResponse = await fetch("/api/auth/me", { cache: "no-store" });
+        if (!authResponse.ok || cancelled) return;
+        const authData = await authResponse.json();
+        if (authData.user?.role !== "finance") return;
+
+        const opportunitiesResponse = await fetch("/api/opportunities", { cache: "no-store" });
+        if (!opportunitiesResponse.ok || cancelled) return;
+        const opportunitiesData = await opportunitiesResponse.json();
+        const completed = (opportunitiesData.items || []).filter((item: any) => item.status === "ثبت پروژه");
         if (!completed.length) return;
+
         setProjects((current) => {
-          const existingSources = new Set(current.map((p) => p.sourceOpportunityId).filter(Boolean));
+          const existingSources = new Set(current.map((item) => item.sourceOpportunityId).filter(Boolean));
           const imported = completed
             .filter((item: any) => !existingSources.has(item.id))
             .map((item: any) => normalizeProject({
@@ -416,32 +434,65 @@ export default function ProjectRewardsPage() {
               sourceOpportunityId: item.id,
               people: [],
             }));
-          if (!imported.length) return current;
-          return [...imported, ...current];
+          return imported.length ? [...imported, ...current] : current;
         });
-      })
-      .catch(() => {});
-  }, []);
-
-  useEffect(() => {
-    localStorage.setItem(KEY, JSON.stringify(projects));
-  }, [projects]);
-
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem("khorshid-opportunities-v1");
-      if (raw) {
-        const parsed = (JSON.parse(raw) as Partial<Proposal>[]).map(normalizeProposal);
-        setProposals(parsed);
-        // هیچ پیشنهادی به‌صورت خودکار انتخاب نمی‌شود؛ کاربر باید خودش پرونده را انتخاب کند.
+      } catch (error) {
+        if (!cancelled) {
+          setStorageError(error instanceof Error ? error.message : "اتصال به ذخیره‌سازی پایدار برقرار نشد.");
+          setStorageReady(false);
+        }
       }
-    } catch {}
+    }
+
+    void loadSharedData();
+    return () => { cancelled = true; };
   }, []);
 
   useEffect(() => {
-    localStorage.setItem("khorshid-opportunities-v1", JSON.stringify(proposals));
-  }, [proposals]);
+    if (!storageReady || !sessionUser || !["finance", "ceo"].includes(sessionUser.role)) return;
+    const timer = setTimeout(async () => {
+      const dirty = projects.filter((item) => savedProjectsRef.current[item.id] !== JSON.stringify(item));
+      try {
+        for (const item of dirty) {
+          const response = await fetch("/api/project-rewards", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ kind: "project", item }),
+          });
+          const data = await response.json();
+          if (!response.ok) throw new Error(data.error || "ذخیره پروژه انجام نشد.");
+          savedProjectsRef.current[item.id] = JSON.stringify(item);
+        }
+        if (dirty.length) setStorageError("");
+      } catch (error) {
+        setStorageError(error instanceof Error ? error.message : "ذخیره پروژه انجام نشد.");
+      }
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [projects, storageReady, sessionUser?.role]);
 
+  useEffect(() => {
+    if (!storageReady || !sessionUser) return;
+    const timer = setTimeout(async () => {
+      const dirty = proposals.filter((item) => savedProposalsRef.current[item.id] !== JSON.stringify(item));
+      try {
+        for (const item of dirty) {
+          const response = await fetch("/api/project-rewards", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ kind: "proposal", item }),
+          });
+          const data = await response.json();
+          if (!response.ok) throw new Error(data.error || "ذخیره پیشنهاد انجام نشد.");
+          savedProposalsRef.current[item.id] = JSON.stringify(item);
+        }
+        if (dirty.length) setStorageError("");
+      } catch (error) {
+        setStorageError(error instanceof Error ? error.message : "ذخیره پیشنهاد انجام نشد.");
+      }
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [proposals, storageReady, sessionUser?.role]);
 
   const project = projects.find((p) => p.id === selected) ?? null;
   const totalCosts = project
@@ -615,11 +666,19 @@ export default function ProjectRewardsPage() {
     setStep((current) => { const prev = current - 1; return !canEdit && prev === 3 ? 2 : Math.max(1, prev); });
   }
 
-  function resetAll() {
-    if (!confirm("همه پروژه‌های ذخیره‌شده در این مرورگر حذف شوند؟")) return;
-    localStorage.removeItem(KEY);
-    setProjects([]);
-    resetDraft();
+  async function resetAll() {
+    if (!confirm("همه پرونده‌های پروژه در سامانه مشترک حذف شوند؟ این کار برای همه کاربران اثر دارد.")) return;
+    try {
+      const response = await fetch("/api/project-rewards?kind=projects", { method: "DELETE" });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "پاک‌سازی پروژه‌ها انجام نشد.");
+      savedProjectsRef.current = {};
+      setProjects([]);
+      setStorageError("");
+      resetDraft();
+    } catch (error) {
+      setStorageError(error instanceof Error ? error.message : "پاک‌سازی پروژه‌ها انجام نشد.");
+    }
   }
 
   function approveProject() {
@@ -1341,6 +1400,12 @@ export default function ProjectRewardsPage() {
           color:#445268 !important;
         }
       `}</style>
+      {storageError && (
+        <div role="alert" className="mx-auto mb-4 max-w-7xl rounded-xl border border-red-300 bg-red-50 px-4 py-3 text-sm font-bold text-red-800">
+          مشکل ذخیره‌سازی: {storageError}
+        </div>
+      )}
+
 
       <div className="container-site">
         <div className="mb-5 flex flex-col gap-3 rounded-3xl bg-[#10283D] p-5 text-white md:flex-row md:items-center md:justify-between md:p-7">

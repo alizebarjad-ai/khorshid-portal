@@ -1,5 +1,4 @@
-import fs from "node:fs";
-import path from "node:path";
+import { getStored, listStored, putStored } from "@/lib/persistent-store";
 
 export type OpportunityHistory = {
   id: string;
@@ -40,44 +39,21 @@ export type Opportunity = {
   unitNote?: string;
 };
 
-const filePath = path.join(process.cwd(), "data", "opportunities.json");
+const COLLECTION = "opportunities";
 
-function ensureFile() {
-  const dir = path.dirname(filePath);
-  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-  if (!fs.existsSync(filePath)) fs.writeFileSync(filePath, "[]\n", "utf8");
+export async function readOpportunities(): Promise<Opportunity[]> {
+  const items = await listStored<Opportunity>(COLLECTION);
+  return items.sort((a, b) => String(b.createdAt || "").localeCompare(String(a.createdAt || "")));
 }
 
-export function readOpportunities(): Opportunity[] {
-  ensureFile();
-  try {
-    const raw = fs.readFileSync(filePath, "utf8");
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
+export async function createOpportunity(item: Opportunity): Promise<Opportunity> {
+  const existing = await getStored<Opportunity>(COLLECTION, item.id);
+  if (existing) throw new Error("شناسه این فرصت از قبل ثبت شده است.");
+  return putStored(COLLECTION, item);
 }
 
-export function writeOpportunities(items: Opportunity[]) {
-  ensureFile();
-  const tempPath = filePath + ".tmp";
-  fs.writeFileSync(tempPath, JSON.stringify(items, null, 2) + "\n", "utf8");
-  fs.renameSync(tempPath, filePath);
-}
-
-export function createOpportunity(item: Opportunity) {
-  const items = readOpportunities();
-  writeOpportunities([item, ...items]);
-  return item;
-}
-
-export function updateOpportunity(id: string, patch: Partial<Opportunity>) {
-  const items = readOpportunities();
-  const index = items.findIndex((item) => item.id === id);
-  if (index < 0) return null;
-  const next = { ...items[index], ...patch };
-  items[index] = next;
-  writeOpportunities(items);
-  return next;
+export async function updateOpportunity(id: string, patch: Partial<Opportunity>): Promise<Opportunity | null> {
+  const existing = await getStored<Opportunity>(COLLECTION, id);
+  if (!existing) return null;
+  return putStored(COLLECTION, { ...existing, ...patch, id });
 }

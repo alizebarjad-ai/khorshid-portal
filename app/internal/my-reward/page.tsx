@@ -26,7 +26,6 @@ type Project = {
   people: Person[];
 };
 
-const KEY = "khorshid-project-rewards-v1";
 const money = (n: number) => new Intl.NumberFormat("fa-IR").format(Math.max(0, Math.round(n)));
 
 export default function MyRewardPage() {
@@ -41,10 +40,13 @@ export default function MyRewardPage() {
         setName(data.user?.name || "");
       }
     });
-    try {
-      const raw = localStorage.getItem(KEY);
-      if (raw) setProjects(JSON.parse(raw));
-    } catch {}
+    fetch("/api/project-rewards", { cache: "no-store" })
+      .then(async (response) => {
+        if (!response.ok) return;
+        const data = await response.json();
+        setProjects((data.projects || []) as Project[]);
+      })
+      .catch((error) => console.error("Could not load reward records", error));
   }, []);
 
   const rows = useMemo(() => projects.flatMap((project) => {

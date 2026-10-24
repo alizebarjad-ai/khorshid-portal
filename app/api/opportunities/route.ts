@@ -50,7 +50,7 @@ export async function GET() {
     return NextResponse.json({ error: "احراز هویت لازم است." }, { status: 401 });
   }
 
-  const all = readOpportunities();
+  const all = await readOpportunities();
 
   if (user.role === "beneficiary") {
     return NextResponse.json({
@@ -124,7 +124,7 @@ export async function POST(request: Request) {
     ],
   };
 
-  return NextResponse.json({ item: createOpportunity(proposal) }, { status: 201 });
+  return NextResponse.json({ item: await createOpportunity(proposal) }, { status: 201 });
 }
 
 export async function PATCH(request: Request) {
@@ -143,7 +143,7 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: "شناسه پرونده ارسال نشده است." }, { status: 400 });
   }
 
-  const existing = readOpportunities().find((item) => item.id === id);
+  const existing = (await readOpportunities()).find((item) => item.id === id);
   if (!existing) {
     return NextResponse.json({ error: "پرونده پیدا نشد." }, { status: 404 });
   }
@@ -229,7 +229,7 @@ export async function PATCH(request: Request) {
     if (existing.status === "ثبت پروژه") {
       return NextResponse.json({ error: "پس از ثبت نهایی پرونده، تغییر اعضای تیم مجاز نیست." }, { status: 403 });
     }
-    const updated = updateOpportunity(id, {
+    const updated = await updateOpportunity(id, {
       team: patch.team,
       assignedTo: patch.assignedTo,
       assignedToName: patch.assignedToName,
@@ -290,7 +290,7 @@ export async function PATCH(request: Request) {
   ];
 
   try {
-    const updated = updateOpportunity(id, {
+    const updated = await updateOpportunity(id, {
       ...patch,
       history,
     });
