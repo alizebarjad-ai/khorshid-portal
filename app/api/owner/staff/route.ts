@@ -1,7 +1,7 @@
 import { randomBytes, randomUUID } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { COOKIE_NAME, decodeSession, getConfiguredUsers, ROLE_LABELS } from "@/lib/auth";
-import { listStored, putStored } from "@/lib/persistent-store";
+import { deleteStored, listStored, putStored } from "@/lib/persistent-store";
 import { createPasswordHash, findStaffAccount, type StaffAccount, updateStaffPassword } from "@/lib/staff-accounts";
 
 export const runtime = "nodejs";
@@ -21,15 +21,20 @@ function temporaryPassword() {
 }
 
 async function audit(actor: string, action: string, target: string, metadata: Record<string, string> = {}) {
-  await putStored("security-audit", {
-    id: randomUUID(),
-    kind: "security-audit",
-    actor,
-    action,
-    target,
-    metadata,
-    at: new Date().toISOString(),
-  });
+  try {
+    await putStored("security-audit", {
+      id: randomUUID(),
+      kind: "security-audit",
+      actor,
+      action,
+      target,
+      metadata,
+      at: new Date().toISOString(),
+    });
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 async function getAccount(username: string): Promise<StaffAccount | null> {
@@ -124,8 +129,8 @@ export async function POST(request: NextRequest) {
         password,
         true,
       );
-      await audit(checked.user.username, "reset-password", username);
-      return NextResponse.json({ success: true, username, temporaryPassword: password, mustChangePassword: updated.mustChangePassword });
+      const auditRecorded = await audit(checked.user.username, "reset-password", username);
+      return NextResponse.json({ success: true, username, temporaryPassword: password, mustChangePassword: updated.mustChangePassword, auditRecorded });
     }
 
     if (action === "deactivate" || action === "activate") {
@@ -135,8 +140,8 @@ export async function POST(request: NextRequest) {
         updatedAt: new Date().toISOString(),
       };
       await putStored("staff-accounts", updated);
-      await audit(checked.user.username, action, username, { role: account.role });
-      return NextResponse.json({ success: true, username, status: updated.status });
+      const auditRecorded = await audit(checked.user.username, action, username, { role: account.role });
+      return NextResponse.json({ success: true, username, status: updated.status, auditRecorded });
     }
 
     if (action === "transfer") {
@@ -167,9 +172,14 @@ export async function POST(request: NextRequest) {
       };
       // Preserve the previous identity and history; the successor receives a separate account.
       await putStored("staff-accounts", successor);
-      await putStored("staff-accounts", { ...account, status: "disabled", updatedAt: now });
-      await audit(checked.user.username, "transfer-role", username, { successor: newUsername, role: account.role });
-      return NextResponse.json({ success: true, previousUsername: username, username: newUsername, name: newName, role: account.role, temporaryPassword: password });
+      try {
+        await putStored("staff-accounts", { ...account, status: "disabled", updatedAt: now });
+      } catch (error) {
+        await deleteStored("staff-accounts", newUsername).catch(() => undefined);
+        throw error;
+      }
+      const auditRecorded = await audit(checked.user.username, "transfer-role", username, { successor: newUsername, role: account.role });
+      return NextResponse.json({ success: true, previousUsername: username, username: newUsername, name: newName, role: account.role, temporaryPassword: password, auditRecorded });
     }
 
     return NextResponse.json({ error: "عملیات درخواستی پشتیبانی نمی‌شود." }, { status: 400 });
