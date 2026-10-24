@@ -40,36 +40,84 @@ export async function PATCH(request: NextRequest) {
   if (!checked.user) return checked.response!;
   try {
     const body = await request.json();
-    if (body.action === "approve") {
-      if (typeof body.id !== "string" || !body.id) return NextResponse.json({ error: "شناسه درخواست معتبر نیست." }, { status: 400 });
-      const fetched = await upstream("?id=" + encodeURIComponent(body.id));
-      if (!fetched.ok) return fetched;
-      const appData = await fetched.clone().json();
-      const application = appData.item;
-      if (!application) return NextResponse.json({ error: "درخواست عضویت پیدا نشد." }, { status: 404 });
-      if (!application.membershipTier) return NextResponse.json({ error: "ابتدا نوع عضویت را تعیین کنید." }, { status: 409 });
-      const members = await readMembers();
-      const email = String(application.email || "").trim().toLowerCase();
-      const phone = String(application.phone || "").replaceAll(" ", "").replaceAll("-", "");
-      const linked = members.find((m) => (m.sourceApplicationIds || []).includes(String(application.id)));
-      const emailMatch = members.find((m) => email && String(m.email || "").trim().toLowerCase() === email);
-      const phoneMatch = members.find((m) => phone && String(m.phone || "").replaceAll(" ", "").replaceAll("-", "") === phone);
-      const matches = [linked, emailMatch, phoneMatch].filter(Boolean);
-      if (new Set(matches.map((member) => member?.id).filter((id): id is string => Boolean(id))).size > 1) return NextResponse.json({ error: "شناسه درخواست، ایمیل یا تلفن به پرونده‌های متفاوت متصل است. برای جلوگیری از ایجاد سابقه تکراری، ابتدا پرونده‌ها را بررسی کنید." }, { status: 409 });
-      const existing = linked || emailMatch || phoneMatch;
-      const inferredMemberType = application.audience === "artist" ? "artist" : ((application.audience === "company" || application.audience === "government" || application.type === "organization") ? "organization" : (application.type === "sponsor" ? "supporter" : "expert"));
-      const profileData = { fullName: application.name, memberType: existing ? existing.memberType : inferredMemberType, membershipTier: application.membershipTier, supplementalData: application.supplementalData || {}, status: existing ? existing.status : "pending", phone: application.phone, email: application.email, city: application.city || "", expertise: application.artField || application.area || "", biography: application.message || "", sourceApplicationId: application.id, notes: "پرونده از درخواست عضویت سایت ایجاد/به‌روزرسانی شده است. شناسه درخواست: " + application.id + (application.supplementalData ? "؛ اطلاعات تکمیلی: " + JSON.stringify(application.supplementalData) : "") };
-      if (existing) await updateRecord("member", existing.id, profileData, { username: checked.user.username });
-      else await createRecord("member", profileData, { username: checked.user.username });
+    if (body.action !== "approve") {
+      return await upstream("", { method: "PATCH", body: JSON.stringify({ ...body, actor: checked.user.name }) });
     }
-    const result = await upstream("", { method: "PATCH", body: JSON.stringify({ ...body, actor: checked.user.name }) });
-    if (body.action === "approve" && result.ok) {
-      const latestMembers = await readMembers();
-      const profile = latestMembers.find((member) => (member.sourceApplicationIds || []).includes(String(body.id)));
-      if (profile && profile.status !== "active") await updateRecord("member", profile.id, { status: "active" }, { username: checked.user.username });
+
+    if (typeof body.id !== "string" || !body.id) {
+      return NextResponse.json({ error: "شناسه درخواست معتبر نیست." }, { status: 400 });
     }
-    return result;
+
+    // Read the authoritative application and approve it upstream before syncing the portal profile.
+    const fetched = await upstream("?id=" + encodeURIComponent(body.id));
+    if (!fetched.ok) return fetched;
+    const appData = await fetched.clone().json();
+    const application = appData.item;
+    if (!application) return NextResponse.json({ error: "درخواست عضویت پیدا نشد." }, { status: 404 });
+    if (!application.membershipTier) {
+      return NextResponse.json({ error: "ابتدا نوع عضویت را تعیین کنید." }, { status: 409 });
+    }
+
+    const approval = application.reviewStatus === "approved"
+      ? NextResponse.json({ item: application, alreadyApproved: true })
+      : await upstream("", {
+          method: "PATCH",
+          body: JSON.stringify({ ...body, actor: checked.user.name }),
+        });
+    if (!approval.ok) return approval;
+
+    // Synchronize only after the authoritative approval succeeded. Retrying is safe because
+    // the source application ID is checked before creating another member profile.
+    const members = await readMembers();
+    const email = String(application.email || "").trim().toLowerCase();
+    const phone = String(application.phone || "").replace(/[\\s()-]/g, "");
+    const sourceId = String(application.id);
+    const linked = members.find((member) => (member.sourceApplicationIds || []).includes(sourceId));
+    const emailMatch = members.find((member) => email && String(member.email || "").trim().toLowerCase() === email);
+    const phoneMatch = members.find((member) => phone && String(member.phone || "").replace(/[\\s()-]/g, "") === phone);
+    const matches = [linked, emailMatch, phoneMatch].filter(Boolean);
+    const uniqueMatches = new Set(matches.map((member) => member!.id));
+    if (uniqueMatches.size > 1) {
+      return NextResponse.json({
+        error: "درخواست تأیید شده است، اما اطلاعات هویتی به چند پرونده متصل است. برای جلوگیری از ادغام اشتباه، همگام‌سازی پرونده متوقف شد.",
+        approved: true,
+        needsManualMerge: true,
+      }, { status: 409 });
+    }
+
+    const existing = linked || emailMatch || phoneMatch;
+    const inferredMemberType = application.audience === "artist"
+      ? "artist"
+      : (["company", "government"].includes(application.audience) || application.type === "organization")
+        ? "organization"
+        : application.type === "sponsor" ? "supporter" : "expert";
+    const profileData = {
+      fullName: application.name,
+      memberType: existing ? existing.memberType : inferredMemberType,
+      membershipTier: application.membershipTier,
+      supplementalData: application.supplementalData || {},
+      status: "active",
+      phone: application.phone,
+      email: application.email,
+      city: application.city || "",
+      expertise: application.artField || application.area || "",
+      biography: application.message || "",
+      sourceApplicationId: sourceId,
+      notes: "پرونده از درخواست عضویت سایت ایجاد/به‌روزرسانی شده است. شناسه درخواست: " + sourceId
+        + (application.supplementalData ? "؛ اطلاعات تکمیلی: " + JSON.stringify(application.supplementalData) : ""),
+    };
+    if (existing) {
+      await updateRecord("member", existing.id, profileData, { username: checked.user.username });
+    } else {
+      await createRecord("member", profileData, { username: checked.user.username });
+    }
+
+    return approval;
   } catch (error) {
-    return NextResponse.json({ error: error instanceof Error ? error.message : "ثبت تصمیم انجام نشد." }, { status: 503 });
+    console.error("Membership request action failed", error);
+    return NextResponse.json({
+      error: error instanceof Error ? error.message : "ثبت تصمیم انجام نشد.",
+      hint: "اگر درخواست تأیید شده باشد، می‌توان اقدام تأیید را دوباره اجرا کرد تا همگام‌سازی پرونده تکرار شود.",
+    }, { status: 503 });
   }
 }
