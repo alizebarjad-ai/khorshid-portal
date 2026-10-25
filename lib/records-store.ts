@@ -2,6 +2,7 @@ import { deleteStored, listStored, putStored } from "@/lib/persistent-store";
 import { randomUUID } from "node:crypto";
 
 export type MembershipTier = "affiliate" | "professional" | "supporter_partner";
+export type MemberRank = "volunteer" | "professional" | "club_manager";
 
 export type MemberRecord = {
   id: string;
@@ -9,6 +10,8 @@ export type MemberRecord = {
   fullName: string;
   memberType: "artist" | "figure" | "supporter" | "expert" | "organization";
   membershipTier?: MembershipTier;
+  memberRank?: MemberRank;
+  rankHistory?: { from: MemberRank | null; to: MemberRank; at: string; actor: string }[];
   supplementalData?: Record<string, string>;
   sourceApplicationIds?: string[];
   membershipHistory?: { from: MembershipTier | null; to: MembershipTier; at: string; actor: string; applicationId?: string }[];
@@ -85,6 +88,7 @@ async function writeRecord<T extends StoredRecord>(record: T): Promise<T> {
 }
 
 function isMembershipTier(value: unknown): value is MembershipTier { return value === "affiliate" || value === "professional" || value === "supporter_partner"; }
+function isMemberRank(value: unknown): value is MemberRank { return value === "volunteer" || value === "professional" || value === "club_manager"; }
 
 export const readMembers = () => readRecords<MemberRecord>("member");
 export const readClubs = () => readRecords<ClubRecord>("club");
@@ -96,7 +100,9 @@ export async function createRecord(kind: "member" | "club", data: Record<string,
     const item: MemberRecord = {
       ...base, kind, fullName: String(data.fullName || "").trim(),
       memberType: (data.memberType || "artist") as MemberRecord["memberType"],
-      ...(isMembershipTier(data.membershipTier) ? { membershipTier: data.membershipTier } : {}),
+      ...(isMembershipTier(data.membershipTier) ? { membershipTier: data.membershipTier } : { membershipTier: "affiliate" as const }),
+      memberRank: isMemberRank(data.memberRank) ? data.memberRank : "volunteer",
+      rankHistory: [],
       ...(data.supplementalData && typeof data.supplementalData === "object" && !Array.isArray(data.supplementalData) ? { supplementalData: data.supplementalData as Record<string, string> } : {}),
       sourceApplicationIds: typeof data.sourceApplicationId === "string" && data.sourceApplicationId ? [data.sourceApplicationId] : [],
       membershipHistory: isMembershipTier(data.membershipTier) ? [{ from: null, to: data.membershipTier, at: now, actor: actor.username, ...(typeof data.sourceApplicationId === "string" ? { applicationId: data.sourceApplicationId } : {}) }] : [],
@@ -138,6 +144,8 @@ export async function updateRecord(kind: "member" | "club", id: string, data: Re
       fullName: String(data.fullName ?? old.fullName).trim(),
       memberType: (data.memberType ?? old.memberType) as MemberRecord["memberType"],
       ...(isMembershipTier(data.membershipTier) ? { membershipTier: data.membershipTier } : {}),
+      memberRank: isMemberRank(data.memberRank) ? data.memberRank : (old.memberRank || "volunteer"),
+      rankHistory: isMemberRank(data.memberRank) && data.memberRank !== (old.memberRank || "volunteer") ? [...(old.rankHistory || []), { from: old.memberRank || "volunteer", to: data.memberRank, at: now, actor: actor.username }] : (old.rankHistory || []),
       ...(data.supplementalData && typeof data.supplementalData === "object" && !Array.isArray(data.supplementalData) ? { supplementalData: data.supplementalData as Record<string, string> } : {}),
       sourceApplicationIds: typeof data.sourceApplicationId === "string" && data.sourceApplicationId ? Array.from(new Set([...(old.sourceApplicationIds || []), data.sourceApplicationId])) : (old.sourceApplicationIds || []),
       membershipHistory: isMembershipTier(data.membershipTier) && data.membershipTier !== old.membershipTier ? [...(old.membershipHistory || []), { from: old.membershipTier || null, to: data.membershipTier, at: now, actor: actor.username, ...(typeof data.sourceApplicationId === "string" ? { applicationId: data.sourceApplicationId } : {}) }] : (old.membershipHistory || []),
