@@ -93,7 +93,8 @@ export default function LoginPage() {
         </div>
         <form onSubmit={submit} className="login-form mt-5 rounded-3xl p-6 shadow-sm">
           <label className="block text-sm font-semibold">نام کاربری
-            <input className="login-input mt-2 w-full rounded-xl px-4 py-3 outline-none" autoComplete="username" value={username} onChange={(e) => setUsername(e.target.value)} required />
+            <input className="login-input mt-2 w-full rounded-xl px-4 py-3 outline-none" autoComplete="username" placeholder="برای اعضا: شماره تلفن ثبت‌شده" value={username} onChange={(e) => setUsername(e.target.value)} required />
+            <span className="mt-1 block text-xs font-normal leading-5 text-[#687783]">نام کاربری اعضا همان شماره تلفن ثبت‌شده در پرونده است؛ شماره را با ارقام لاتین وارد کنید. همکاران از نام کاربری سازمانی خود استفاده کنند.</span>
           </label>
           <label className="mt-4 block text-sm font-semibold">رمز عبور
             <input className="login-input mt-2 w-full rounded-xl px-4 py-3 outline-none" type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} required />
