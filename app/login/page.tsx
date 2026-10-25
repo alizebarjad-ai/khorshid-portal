@@ -64,7 +64,7 @@ export default function LoginPage() {
         role === "media" ? "/internal/media-manager" :
         role === "artists" ? "/internal/roles/artists" :
         role === "education" ? "/internal/education-manager" :
-        role === "members" ? "/internal/roles/members" : "/login";
+        role === "members" ? "/internal/roles/members" :\n        role === "member" ? "/internal/member-home" : "/login";
 
       router.push(destination);
       router.refresh();
