@@ -89,6 +89,19 @@ export default function MemberHomePage(){
  },[router]);
 
  useEffect(()=>{
+   const profile = upgradeTarget==="artist" ? member?.artistProfile : member?.expertProfile;
+   if(!profile) return;
+   setProfessionalHeadline(String(profile.educationField||profile.headline||""));
+   const specialties=profile.specialties;
+   setProfessionalSpecialties(Array.isArray(specialties)?specialties.join("، "):typeof specialties==="string"?specialties:"");
+   setProfessionalEducation(String(profile.education||""));
+   setProfessionalExperience(String(profile.experience||""));
+   setProfessionalPortfolio(String(profile.portfolio||""));
+   setProfessionalBio(String(profile.biography||""));
+   setProfessionalWebsite(String(profile.website||""));
+ },[member,upgradeTarget]);
+
+ useEffect(()=>{
    if(!contentFile){setContentPreview("");return;}
    const url=URL.createObjectURL(contentFile);setContentPreview(url);
    return ()=>URL.revokeObjectURL(url);
