@@ -111,7 +111,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (body.action === "promote-tier") {
-      const current = ranks.includes(member.membershipRank as MembershipRank) ? member.membershipRank as MembershipRank : "volunteer";
+      const current = ranks.includes(member.membershipRank as MembershipRank) ? member.membershipRank as MembershipRank : (ranks.includes(member.membershipGrade as MembershipRank) ? member.membershipGrade as MembershipRank : "volunteer");
       const currentIndex = ranks.indexOf(current);
       if (currentIndex >= ranks.length - 1) {
         return NextResponse.json({ error: "رده «مدیر باشگاه» بالاترین رده تعریف‌شده فعلی است." }, { status: 409 });
