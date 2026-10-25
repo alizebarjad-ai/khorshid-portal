@@ -14,9 +14,7 @@ type Application = {
   reviewedBy?: string | null; reviewHistory?: { action: string; actor?: string; at?: string; feedback?: string; membershipTier?: string }[]; createdAt: string; updatedAt: string; documents: Document[];
 };
 const tiers = [
-  { value: "affiliate", label: "عضو وابسته", description: "مشارکت در برنامه‌ها، باشگاه‌ها و فعالیت‌های داوطلبانه" },
-  { value: "professional", label: "عضو حرفه‌ای / تخصصی", description: "پرونده تخصص، آثار، سوابق و فرصت‌های همکاری حرفه‌ای" },
-  { value: "supporter_partner", label: "حامی مالی / شریک سازمانی", description: "ثبت ظرفیت حمایت، همکاری سازمانی و مسئولیت اجتماعی" },
+  { value: "affiliate", label: "عضو وابسته", description: "نوع عضویت فعلی برای همه اعضا؛ رده با سابقه مشارکت و امتیازها ارتقا می‌یابد." },
 ];
 const statuses: Record<string, string> = { new: "تازه‌وارد", resubmitted: "ارسال مجدد", in_review: "در حال بررسی", needs_revision: "نیازمند تکمیل", rejected: "ردشده", approved: "تأییدشده" };
 const fieldClass = "mt-1 w-full rounded-xl border border-[#D8D0C4] bg-white px-3 py-2.5 text-sm text-[#18304A]";
@@ -60,7 +58,7 @@ export default function MembershipRequestsPage() {
 
   useEffect(() => {
     if (!selected) return;
-    setTier(selected.membershipTier || selected.requestedMembershipType || "affiliate");
+    setTier("affiliate");
     setExtra((selected.supplementalData || {}) as Record<string, string>);
     setFeedback(selected.reviewFeedback || "");
   }, [selectedId, selected?.updatedAt]);

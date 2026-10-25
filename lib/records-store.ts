@@ -2,13 +2,18 @@ import { deleteStored, listStored, putStored } from "@/lib/persistent-store";
 import { randomUUID } from "node:crypto";
 
 export type MembershipTier = "affiliate" | "professional" | "supporter_partner";
+export type MembershipRank = "volunteer" | "professional" | "club_manager";
+export type MembershipRankHistory = { from: MembershipRank | null; to: MembershipRank; at: string; actor: string; reason: string };
 
 export type MemberRecord = {
   id: string;
   kind: "member";
   fullName: string;
   memberType: "artist" | "figure" | "supporter" | "expert" | "organization";
+  membershipType: "affiliate";
   membershipTier?: MembershipTier;
+  membershipRank: MembershipRank;
+  rankHistory?: MembershipRankHistory[];
   supplementalData?: Record<string, string>;
   sourceApplicationIds?: string[];
   membershipHistory?: { from: MembershipTier | null; to: MembershipTier; at: string; actor: string; applicationId?: string }[];
@@ -73,18 +78,35 @@ export async function readRecordAudit(limit = 200): Promise<RecordAudit[]> {
   return events.sort((a, b) => b.occurredAt.localeCompare(a.occurredAt)).slice(0, Math.min(500, Math.max(1, limit)));
 }
 
+function isMembershipRank(value: unknown): value is MembershipRank {
+  return value === "volunteer" || value === "professional" || value === "club_manager";
+}
+
 async function readRecords<T extends StoredRecord>(kind: "member" | "club"): Promise<T[]> {
   const collection = kind === "member" ? "members" : "clubs";
   const records = await listStored<T>(collection);
-  return records.filter((item) => item.kind === kind).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+  const matching = records.filter((item) => item.kind === kind);
+  const normalized = kind === "member"
+    ? matching.map((record) => {
+        const member = record as unknown as MemberRecord;
+        return {
+          ...member,
+          // Membership type and advancement rank are separate concepts. Older records
+          // used membershipTier for the type, so normalize them conservatively.
+          membershipType: "affiliate" as const,
+          membershipTier: "affiliate" as const,
+          membershipRank: isMembershipRank(member.membershipRank) ? member.membershipRank : "volunteer" as const,
+          rankHistory: Array.isArray(member.rankHistory) ? member.rankHistory : [],
+        } as unknown as T;
+      })
+    : matching;
+  return normalized.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
 }
 
 async function writeRecord<T extends StoredRecord>(record: T): Promise<T> {
   const collection = record.kind === "member" ? "members" : "clubs";
   return putStored(collection, record);
 }
-
-function isMembershipTier(value: unknown): value is MembershipTier { return value === "affiliate" || value === "professional" || value === "supporter_partner"; }
 
 export const readMembers = () => readRecords<MemberRecord>("member");
 export const readClubs = () => readRecords<ClubRecord>("club");
@@ -96,10 +118,13 @@ export async function createRecord(kind: "member" | "club", data: Record<string,
     const item: MemberRecord = {
       ...base, kind, fullName: String(data.fullName || "").trim(),
       memberType: (data.memberType || "artist") as MemberRecord["memberType"],
-      ...(isMembershipTier(data.membershipTier) ? { membershipTier: data.membershipTier } : {}),
+      membershipType: "affiliate",
+      membershipTier: "affiliate",
+      membershipRank: "volunteer",
+      rankHistory: [],
       ...(data.supplementalData && typeof data.supplementalData === "object" && !Array.isArray(data.supplementalData) ? { supplementalData: data.supplementalData as Record<string, string> } : {}),
       sourceApplicationIds: typeof data.sourceApplicationId === "string" && data.sourceApplicationId ? [data.sourceApplicationId] : [],
-      membershipHistory: isMembershipTier(data.membershipTier) ? [{ from: null, to: data.membershipTier, at: now, actor: actor.username, ...(typeof data.sourceApplicationId === "string" ? { applicationId: data.sourceApplicationId } : {}) }] : [],
+      membershipHistory: [{ from: null, to: "affiliate", at: now, actor: actor.username, ...(typeof data.sourceApplicationId === "string" ? { applicationId: data.sourceApplicationId } : {}) }],
       status: (data.status || "pending") as MemberRecord["status"],
       phone: String(data.phone || "").trim(), email: String(data.email || "").trim(),
       city: String(data.city || "").trim(), expertise: String(data.expertise || "").trim(),
@@ -137,10 +162,21 @@ export async function updateRecord(kind: "member" | "club", id: string, data: Re
       ...old,
       fullName: String(data.fullName ?? old.fullName).trim(),
       memberType: (data.memberType ?? old.memberType) as MemberRecord["memberType"],
-      ...(isMembershipTier(data.membershipTier) ? { membershipTier: data.membershipTier } : {}),
+      membershipType: "affiliate",
+      membershipTier: "affiliate",
+      membershipRank: isMembershipRank(data.membershipRank) ? data.membershipRank : (isMembershipRank(old.membershipRank) ? old.membershipRank : "volunteer"),
+      rankHistory: isMembershipRank(data.membershipRank) && data.membershipRank !== old.membershipRank
+        ? [...(old.rankHistory || []), {
+            from: isMembershipRank(old.membershipRank) ? old.membershipRank : "volunteer",
+            to: data.membershipRank,
+            at: now,
+            actor: actor.username,
+            reason: String(data.membershipRankReason || "").trim(),
+          }]
+        : (old.rankHistory || []),
       ...(data.supplementalData && typeof data.supplementalData === "object" && !Array.isArray(data.supplementalData) ? { supplementalData: data.supplementalData as Record<string, string> } : {}),
       sourceApplicationIds: typeof data.sourceApplicationId === "string" && data.sourceApplicationId ? Array.from(new Set([...(old.sourceApplicationIds || []), data.sourceApplicationId])) : (old.sourceApplicationIds || []),
-      membershipHistory: isMembershipTier(data.membershipTier) && data.membershipTier !== old.membershipTier ? [...(old.membershipHistory || []), { from: old.membershipTier || null, to: data.membershipTier, at: now, actor: actor.username, ...(typeof data.sourceApplicationId === "string" ? { applicationId: data.sourceApplicationId } : {}) }] : (old.membershipHistory || []),
+      membershipHistory: old.membershipHistory || [],
       status: (data.status ?? old.status) as MemberRecord["status"],
       phone: String(data.phone ?? old.phone).trim(), email: String(data.email ?? old.email).trim(),
       city: String(data.city ?? old.city).trim(), expertise: String(data.expertise ?? old.expertise).trim(),
