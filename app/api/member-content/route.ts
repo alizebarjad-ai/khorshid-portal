@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { put } from "@vercel/blob";
 import { COOKIE_NAME, decodeSession } from "@/lib/auth";
 import { listStored, putStored } from "@/lib/persistent-store";
+import { readMembers } from "@/lib/records-store";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -21,6 +22,8 @@ export async function POST(request: NextRequest) {
   if (!user) return jsonError("برای ادامه وارد سامانه شوید.", 401);
   if (user.role !== "member" || !user.memberId) return jsonError("ارسال محتوا فقط از حساب عضو امکان‌پذیر است.", 403);
   try {
+    const member = (await readMembers()).find(item => item.id === user.memberId && item.status === "active");
+    if (!member) return jsonError("پرونده عضو فعال پیدا نشد.", 404);
     const form = await request.formData();
     const kind = String(form.get("kind") || "");
     const title = String(form.get("title") || "").trim().slice(0, 160);
@@ -28,7 +31,7 @@ export async function POST(request: NextRequest) {
     if (!title || !["text", "image", "video"].includes(kind)) return jsonError("نوع و عنوان محتوا الزامی است.", 400);
     const item: Submission = {
       id: randomUUID(), kind: kind as Submission["kind"], title, description,
-      memberId: user.memberId, memberName: user.name, memberEmail: "",
+      memberId: user.memberId, memberName: member.fullName, memberEmail: member.email,
       status: "pending_media", createdAt: new Date().toISOString(), updatedAt: new Date().toISOString()
     };
     if (kind === "text") {
