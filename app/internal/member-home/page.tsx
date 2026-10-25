@@ -100,7 +100,12 @@ export default function MemberHomePage(){
 
  useEffect(()=>{
    const profile = upgradeTarget==="artist" ? member?.artistProfile : member?.expertProfile;
-   if(!profile) return;
+   setProfessionalFiles([]);
+   if(!profile){
+     setProfessionalHeadline("");setProfessionalSpecialties("");setProfessionalEducation("");
+     setProfessionalExperience("");setProfessionalPortfolio("");setProfessionalBio("");setProfessionalWebsite("");
+     return;
+   }
    setProfessionalHeadline(String(profile.educationField||profile.headline||""));
    const specialties=profile.specialties;
    setProfessionalSpecialties(Array.isArray(specialties)?specialties.join("، "):typeof specialties==="string"?specialties:"");
