@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
   try {
     const members: MemberRecord[] = await readMembers();
     const visible = members.flatMap(member => (member.upgradeRequests || [])
-      .filter(item => auth.user!.role === "ceo" || auth.user!.role === "deputy" || item.assignedRole === auth.user!.role)
+      .filter(item => auth.user!.role === "ceo" || auth.user!.role === "deputy" || auth.user!.role === "members" || item.assignedRole === auth.user!.role)
       .map(item => ({ ...item, member: { id: member.id, fullName: member.fullName, memberType: member.memberType, email: member.email, phone: member.phone, city: member.city, membershipTier: member.membershipTier || "affiliate", membershipGrade: member.membershipGrade || member.membershipRank || "volunteer", membershipRank: member.membershipRank || member.membershipGrade || "volunteer", pointsBalance: Number(member.pointsBalance) || 0, expertise: member.expertise, biography: member.biography, artistProfile: member.artistProfile || {}, expertProfile: member.expertProfile || {} } })));
     visible.sort((a,b) => b.submittedAt.localeCompare(a.submittedAt));
     return NextResponse.json({ items: visible }, { headers: { "Cache-Control": "private, no-store" } });
