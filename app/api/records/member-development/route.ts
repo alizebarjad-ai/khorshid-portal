@@ -49,7 +49,7 @@ export async function GET(request: NextRequest) {
     const filtered = [...new Map([
       ...entries.filter((entry) => validMemberIds.has(entry.memberId) && (!memberId || entry.memberId === memberId)),
       ...legacyEntries.filter((entry) => !memberId || entry.memberId === memberId),
-    ].map((entry) => [entry.id, entry])).values()]
+    ].map((entry) => [entry.id, entry] as const)).values()]
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
     const pointsByMember: Record<string, { balance: number; events: PointEntry[] }> = {};
     for (const entry of filtered) {
@@ -100,7 +100,7 @@ export async function POST(request: NextRequest) {
       await putStored("member-points", entry);
       const all = await listStored<PointEntry>("member-points");
       const legacy = (member.pointEvents || []).map((event) => ({ id: event.id, memberId, points: event.points, title: event.title, note: event.note, createdAt: event.createdAt, createdBy: event.actor || "سامانه" }));
-      const merged = [...new Map([...all.filter((item) => item.memberId === memberId), ...legacy].map((item) => [item.id, item])).values()];
+      const merged = [...new Map([...all.filter((item) => item.memberId === memberId), ...legacy].map((item) => [item.id, item] as const)).values()];
       const balance = merged.reduce((sum, item) => sum + (Number(item.points) || 0), 0);
       const synced = await updateRecord("member", member.id, {
         pointsBalance: balance,
