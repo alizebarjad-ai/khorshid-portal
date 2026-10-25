@@ -21,7 +21,8 @@ export type MemberRecord = {
   pointEvents?: MemberPointEvent[];
   artistProfile?: Record<string, unknown>;
   expertProfile?: Record<string, unknown>;
-  upgradeRequests?: { id: string; target: "artist" | "expert" | "consultant"; status: "pending" | "approved" | "rejected" | "needs_info"; assignedRole: "artists" | "csr"; submittedAt: string; reviewedAt?: string; reviewer?: string; note?: string }[];
+  professionalMemberships?: ("artist" | "expert")[];
+  upgradeRequests?: { id: string; target: "artist" | "expert" | "consultant"; status: "pending" | "approved" | "rejected" | "needs_info"; assignedRole: "artists" | "education" | "csr"; submittedAt: string; reviewedAt?: string; reviewer?: string; note?: string; documents?: { id: string; fileName: string; mimeType: string; size: number; uploadedAt: string }[] }[];
   supplementalData?: Record<string, string>;
   sourceApplicationIds?: string[];
   membershipHistory?: { from: MembershipTier | null; to: MembershipTier; at: string; actor: string; applicationId?: string }[];
@@ -97,6 +98,8 @@ async function readRecords<T extends StoredRecord>(kind: "member" | "club"): Pro
       membershipType: "affiliate" as const,
       membershipTier: "affiliate" as const,
       membershipRank: isMembershipRank(member.membershipRank) ? member.membershipRank : (isMembershipGrade(member.membershipGrade) ? member.membershipGrade : "volunteer" as const),
+      membershipGrade: isMembershipRank(member.membershipRank) ? member.membershipRank : (isMembershipGrade(member.membershipGrade) ? member.membershipGrade : "volunteer" as const),
+      professionalMemberships: Array.isArray(member.professionalMemberships) ? member.professionalMemberships.filter((value) => value === "artist" || value === "expert") : [],
       rankHistory: Array.isArray(member.rankHistory) ? member.rankHistory : [],
     } as unknown as T;
   });
@@ -132,6 +135,7 @@ export async function createRecord(kind: "member" | "club", data: Record<string,
       pointEvents: validPointEvents(data.pointEvents),
       ...(data.artistProfile && typeof data.artistProfile === "object" ? { artistProfile: data.artistProfile as Record<string, unknown> } : {}),
       ...(data.expertProfile && typeof data.expertProfile === "object" ? { expertProfile: data.expertProfile as Record<string, unknown> } : {}),
+      professionalMemberships: Array.isArray(data.professionalMemberships) ? data.professionalMemberships.filter((value) => value === "artist" || value === "expert") as ("artist" | "expert")[] : [],
       upgradeRequests: Array.isArray(data.upgradeRequests) ? data.upgradeRequests as MemberRecord["upgradeRequests"] : [],
       ...(data.supplementalData && typeof data.supplementalData === "object" && !Array.isArray(data.supplementalData) ? { supplementalData: data.supplementalData as Record<string, string> } : {}),
       sourceApplicationIds: typeof data.sourceApplicationId === "string" && data.sourceApplicationId ? [data.sourceApplicationId] : [],
@@ -175,9 +179,8 @@ export async function updateRecord(kind: "member" | "club", id: string, data: Re
       memberType: (data.memberType ?? old.memberType) as MemberRecord["memberType"],
       membershipType: "affiliate",
       membershipTier: "affiliate",
-      ...(isMembershipGrade(data.membershipGrade) ? { membershipGrade: data.membershipGrade } : {}),
+      ...(isMembershipRank(data.membershipRank) ? { membershipGrade: data.membershipRank, membershipRank: data.membershipRank } : isMembershipGrade(data.membershipGrade) ? { membershipGrade: data.membershipGrade, membershipRank: data.membershipGrade } : {}),
       ...(isMembershipRank(data.membershipRank) ? {
-        membershipRank: data.membershipRank,
         rankHistory: data.membershipRank !== old.membershipRank
           ? [...(old.rankHistory || []), { from: isMembershipRank(old.membershipRank) ? old.membershipRank : null, to: data.membershipRank, at: now, actor: actor.username, reason: String(data.rankReason || "تغییر رده عضویت").slice(0, 500) }]
           : (old.rankHistory || []),
