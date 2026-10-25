@@ -123,7 +123,7 @@ export async function GET(request: NextRequest) {
       }];
     }).sort((a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime()).slice(0, 20);
 
-    const pointEvents = pointRows.flatMap((item) => {
+    const allPointEvents = pointRows.flatMap((item) => {
       const itemMemberId = text(item.memberId);
       const itemUsername = text(item.username || item.memberUsername);
       const itemMemberIds = strings(item.memberIds);
@@ -136,10 +136,12 @@ export async function GET(request: NextRequest) {
         createdAt: text(item.createdAt || item.date || ""),
         note: text(item.note || item.description || ""),
       }];
-    }).sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 50);
+    }).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    const pointsBalance = allPointEvents.reduce((sum, event) => sum + event.points, 0);
+    const pointEvents = allPointEvents.slice(0, 50);
 
     return NextResponse.json({
-      pointsBalance: pointEvents.reduce((sum, event) => sum + event.points, 0),
+      pointsBalance,
       pointEvents,
       programs,
       siteContent,
