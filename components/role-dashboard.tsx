@@ -156,6 +156,7 @@ const CONFIG: Record<ManagementRole, DashboardConfig> = {
     actions: [
       { label: "پرونده‌های هنری", description: "پیگیری پرونده‌های ارجاع‌شده به واحد", href: "/internal/opportunities", primary: true },
       { label: "کارتابل ارتقای هنرمندان", description: "بررسی درخواست‌های هنرمندی و تأیید پروفایل تخصصی", href: "/internal/member-upgrades", primary: true },
+      { label: "بانک هنرمندان تأییدشده", description: "جست‌وجو در هنرمندان تأییدشده برای تطبیق با پروژه‌ها", href: "/internal/artist-directory", primary: true },
       { label: "ثبت پیشنهاد هنری", description: "ثبت ایده پروژه یا همکاری با هنرمندان", href: "/internal/submit-proposal" },
     ],
     attentionStatuses: ["ارجاع به واحد تخصصی", "تشکیل تیم پروژه", "در حال تدوین طرح و پروپوزال", "نیازمند تکمیل"],
