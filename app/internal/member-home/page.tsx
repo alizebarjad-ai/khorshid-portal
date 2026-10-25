@@ -10,6 +10,7 @@ type Club = { id:string; name:string; clubType:string; city:string; description:
 type Program = { id:string; title:string; description:string; startsAt:string; location:string; clubName:string; format:string; href?:string };
 type ClubFeedItem = { id:string; kind:string; title:string; description?:string; dateLabel?:string; href?:string; clubIds?:string[]; showToMembers?:boolean };
 type PointEvent = { id:string; title:string; points:number; createdAt:string; note:string };
+type ContentSubmission = { id:string; title:string; kind:"text"|"image"|"video"; status:string; createdAt:string; description?:string; mediaNote?:string; adminNote?:string };
 type DashboardData = { pointsBalance:number; pointEvents:PointEvent[]; programs:Program[] };
 const tierLabels:Record<string,string>={affiliate:"عضو وابسته",professional:"عضو حرفه‌ای / تخصصی",supporter_partner:"حامی مالی / شریک سازمانی"};
 const typeLabels:Record<string,string>={individual:"شخص حقیقی",artist:"هنرمند",figure:"چهره و صاحب‌نظر",supporter:"حامی",expert:"متخصص",organization:"شخصیت حقوقی",media:"رسانه"};
@@ -60,6 +61,7 @@ export default function MemberHomePage(){
  const [contentNotice,setContentNotice]=useState("");
  const [contentError,setContentError]=useState("");
  const [contentPrepared,setContentPrepared]=useState(false);
+ const [contentSubmissions,setContentSubmissions]=useState<ContentSubmission[]>([]);
  const [loggingOut,setLoggingOut]=useState(false);
 
  useEffect(()=>{
@@ -67,22 +69,25 @@ export default function MemberHomePage(){
    async function load(){
      setLoading(true);setError("");
      try{
-       const [profileResponse,dashboardResponse,feedResponse]=await Promise.all([
+       const [profileResponse,dashboardResponse,feedResponse,contentResponse]=await Promise.all([
          fetch("/api/member/profile",{cache:"no-store"}),
          fetch("/api/member/dashboard",{cache:"no-store"}),
-         fetch("/api/club-feed",{cache:"no-store"})
+         fetch("/api/club-feed",{cache:"no-store"}),
+         fetch("/api/member-content",{cache:"no-store"})
        ]);
        const profile=await profileResponse.json();
        if(profileResponse.status===401||profileResponse.status===403){router.replace("/login");return;}
        if(!profileResponse.ok)throw new Error(profile.error||"دریافت پرونده ناموفق بود.");
        const dash=dashboardResponse.ok?await dashboardResponse.json():{pointsBalance:0,pointEvents:[],programs:[]};
        const feedData=feedResponse.ok?await feedResponse.json():{items:[]};
+       const contentData=contentResponse.ok?await contentResponse.json():{items:[]};
        const sharedPrograms:Program[]=(Array.isArray(feedData.items)?feedData.items:[])
          .filter((item:ClubFeedItem)=>item.showToMembers===true)
          .map((item:ClubFeedItem)=>({id:"site-"+item.id,title:item.title,description:item.description||"",startsAt:item.dateLabel||"",location:"",clubName:(item.clubIds||[]).length?"باشگاه تخصصی":"خورشید مفاخر",format:item.kind==="project"?"پروژه":item.kind==="announcement"?"اطلاعیه":"برنامه",href:item.href?(item.href.startsWith("http")?item.href:"https://www.khorshid-mafakher.ir"+item.href):undefined}));
        if(cancelled)return;
        setMember(profile.member);setCity(profile.member.city||"");setExpertise(profile.member.expertise||"");setBiography(profile.member.biography||"");
        setClubs(profile.clubs||[]);
+       setContentSubmissions(Array.isArray(contentData.items)?contentData.items:[]);
        setDashboard({pointsBalance:Number(dash.pointsBalance)||0,pointEvents:Array.isArray(dash.pointEvents)?dash.pointEvents:[],programs:[...(Array.isArray(dash.programs)?dash.programs:[]),...sharedPrograms]});
      }catch(e){if(!cancelled)setError(e instanceof Error?e.message:"دریافت پرونده ناموفق بود.");}
      finally{if(!cancelled)setLoading(false);}
