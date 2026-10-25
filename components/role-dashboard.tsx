@@ -12,6 +12,7 @@ type Opportunity = {
   title?: string;
   clientName?: string;
   type?: string;
+  subjectArea?: string;
   status?: string;
   createdAt?: string;
   assignedToName?: string;
@@ -93,7 +94,7 @@ const CONFIG: Record<ManagementRole, DashboardConfig> = {
       { label: "فرصت‌ها و پرونده‌های مشارکت", description: "پیگیری فرصت‌های ارجاع‌شده به واحد", href: "/internal/opportunities", primary: true },
       { label: "ثبت فرصت یا حامی جدید", description: "ثبت اطلاعات اولیه شریک یا فرصت همکاری", href: "/internal/submit-proposal" },
     ],
-    attentionStatuses: ["تشکیل تیم پروژه", "در حال تدوین طرح و پروپوزال", "مذاکرات اولیه", "نیازمند تکمیل"],
+    attentionStatuses: ["ارجاع به واحد تخصصی", "تشکیل تیم پروژه", "در حال تدوین طرح و پروپوزال", "مذاکرات اولیه", "نیازمند تکمیل"],
     progressStatuses: ["قیمت‌گذاری و بررسی مالی", "ارسال طرح نهایی به مدیرعامل"],
     completedStatuses: ["قرارداد تنظیم شد", "ثبت پروژه"],
     emptyTitle: "فرصت مشارکتی ارجاع‌شده‌ای وجود ندارد",
@@ -108,7 +109,7 @@ const CONFIG: Record<ManagementRole, DashboardConfig> = {
       { label: "پرونده‌های اجتماعی", description: "پیگیری پروژه‌های ارجاع‌شده به واحد", href: "/internal/opportunities", primary: true },
       { label: "ثبت پیشنهاد اجتماعی", description: "ثبت نیاز یا ایده برای پروژه حمایتی", href: "/internal/submit-proposal" },
     ],
-    attentionStatuses: ["تشکیل تیم پروژه", "در حال تدوین طرح و پروپوزال", "نیازمند تکمیل"],
+    attentionStatuses: ["ارجاع به واحد تخصصی", "تشکیل تیم پروژه", "در حال تدوین طرح و پروپوزال", "نیازمند تکمیل"],
     progressStatuses: ["قیمت‌گذاری و بررسی مالی", "مذاکرات اولیه", "ارسال طرح نهایی به مدیرعامل"],
     completedStatuses: ["قرارداد تنظیم شد", "ثبت پروژه"],
     emptyTitle: "پرونده اجتماعی ارجاع‌شده‌ای وجود ندارد",
@@ -123,7 +124,7 @@ const CONFIG: Record<ManagementRole, DashboardConfig> = {
       { label: "پرونده‌های رسانه‌ای", description: "پیگیری پروژه‌های ارجاع‌شده به واحد", href: "/internal/opportunities", primary: true },
       { label: "ثبت پیشنهاد رسانه‌ای", description: "ثبت ایده تولید محتوا یا همکاری رسانه‌ای", href: "/internal/submit-proposal" },
     ],
-    attentionStatuses: ["تشکیل تیم پروژه", "در حال تدوین طرح و پروپوزال", "نیازمند تکمیل"],
+    attentionStatuses: ["ارجاع به واحد تخصصی", "تشکیل تیم پروژه", "در حال تدوین طرح و پروپوزال", "نیازمند تکمیل"],
     progressStatuses: ["قیمت‌گذاری و بررسی مالی", "مذاکرات اولیه", "ارسال طرح نهایی به مدیرعامل"],
     completedStatuses: ["قرارداد تنظیم شد", "ثبت پروژه"],
     emptyTitle: "پرونده رسانه‌ای ارجاع‌شده‌ای وجود ندارد",
@@ -138,7 +139,7 @@ const CONFIG: Record<ManagementRole, DashboardConfig> = {
       { label: "پرونده‌های هنری", description: "پیگیری پرونده‌های ارجاع‌شده به واحد", href: "/internal/opportunities", primary: true },
       { label: "ثبت پیشنهاد هنری", description: "ثبت ایده پروژه یا همکاری با هنرمندان", href: "/internal/submit-proposal" },
     ],
-    attentionStatuses: ["تشکیل تیم پروژه", "در حال تدوین طرح و پروپوزال", "نیازمند تکمیل"],
+    attentionStatuses: ["ارجاع به واحد تخصصی", "تشکیل تیم پروژه", "در حال تدوین طرح و پروپوزال", "نیازمند تکمیل"],
     progressStatuses: ["قیمت‌گذاری و بررسی مالی", "مذاکرات اولیه", "ارسال طرح نهایی به مدیرعامل"],
     completedStatuses: ["قرارداد تنظیم شد", "ثبت پروژه"],
     emptyTitle: "پرونده هنری ارجاع‌شده‌ای وجود ندارد",
@@ -153,7 +154,7 @@ const CONFIG: Record<ManagementRole, DashboardConfig> = {
       { label: "پرونده‌های آموزشی و پژوهشی", description: "پیگیری پرونده‌های ارجاع‌شده به واحد", href: "/internal/opportunities", primary: true },
       { label: "ثبت پیشنهاد آموزشی", description: "ثبت ایده آموزشی، پژوهشی یا نوآورانه", href: "/internal/submit-proposal" },
     ],
-    attentionStatuses: ["تشکیل تیم پروژه", "در حال تدوین طرح و پروپوزال", "نیازمند تکمیل"],
+    attentionStatuses: ["ارجاع به واحد تخصصی", "تشکیل تیم پروژه", "در حال تدوین طرح و پروپوزال", "نیازمند تکمیل"],
     progressStatuses: ["قیمت‌گذاری و بررسی مالی", "مذاکرات اولیه", "ارسال طرح نهایی به مدیرعامل"],
     completedStatuses: ["قرارداد تنظیم شد", "ثبت پروژه"],
     emptyTitle: "پرونده آموزشی یا پژوهشی ارجاع‌شده‌ای وجود ندارد",
@@ -171,7 +172,7 @@ const CONFIG: Record<ManagementRole, DashboardConfig> = {
       { label: "پرونده‌های مرتبط با اعضا", description: "پیگیری پرونده‌های ارجاع‌شده به واحد", href: "/internal/opportunities" },
       { label: "ثبت پیشنهاد اعضا یا باشگاه", description: "ثبت ایده یا فرصت همکاری مرتبط با اعضا", href: "/internal/submit-proposal" },
     ],
-    attentionStatuses: ["تشکیل تیم پروژه", "در حال تدوین طرح و پروپوزال", "نیازمند تکمیل"],
+    attentionStatuses: ["ارجاع به واحد تخصصی", "تشکیل تیم پروژه", "در حال تدوین طرح و پروپوزال", "نیازمند تکمیل"],
     progressStatuses: ["قیمت‌گذاری و بررسی مالی", "مذاکرات اولیه", "ارسال طرح نهایی به مدیرعامل"],
     completedStatuses: ["قرارداد تنظیم شد", "ثبت پروژه"],
     emptyTitle: "پرونده مرتبط با اعضا یا باشگاه‌ها وجود ندارد",
