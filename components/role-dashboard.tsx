@@ -379,11 +379,16 @@ export default function RoleDashboard({ role }: { role: ManagementRole }) {
         { label: "نیازمند اقدام", value: money(countByStatuses(items, config.attentionStatuses)), hint: "کارهای اولویت‌دار واحد" },
       ];
     }
+    const unitLabels = role === "media"
+      ? { all: "پرونده‌های رسانه‌ای", attention: "خروجی‌های نیازمند اقدام", progress: "پروژه‌های در حال تولید", completed: "پروژه‌های نهایی‌شده" }
+      : role === "education"
+        ? { all: "پرونده‌های آموزشی و پژوهشی", attention: "برنامه‌های نیازمند اقدام", progress: "برنامه‌های در حال اجرا", completed: "برنامه‌های تکمیل‌شده" }
+        : { all: "پرونده‌های در دسترس", attention: "نیازمند اقدام", progress: "در حال پیگیری", completed: "پرونده‌های نهایی‌شده" };
     return [
-      { label: "پرونده‌های در دسترس", value: money(items.length), hint: "بر اساس سطح دسترسی شما" },
-      { label: "نیازمند اقدام", value: money(countByStatuses(items, config.attentionStatuses)), hint: "طبق مرحله گردش کار" },
-      { label: "در حال پیگیری", value: money(countByStatuses(items, config.progressStatuses)), hint: "پرونده‌های فعال در مسیر اجرا" },
-      { label: "اقدامات اولویت‌دار", value: money(config.actions.length), hint: "میان‌برهای مرتبط با مأموریت واحد" },
+      { label: unitLabels.all, value: money(items.length), hint: "بر اساس پرونده‌های قابل مشاهده برای واحد" },
+      { label: unitLabels.attention, value: money(countByStatuses(items, config.attentionStatuses)), hint: "طبق مرحله گردش کار این نقش" },
+      { label: unitLabels.progress, value: money(countByStatuses(items, config.progressStatuses)), hint: "پرونده‌های فعال در مسیر اجرا" },
+      { label: unitLabels.completed, value: money(countByStatuses(items, config.completedStatuses)), hint: "پرونده‌های تکمیل‌شده یا ثبت نهایی" },
     ];
   }, [role, items, config, openPipelineValue, contractedValue, membershipOverview, upgradeItems]);
   const reportRows = useMemo(() => {
@@ -419,10 +424,19 @@ export default function RoleDashboard({ role }: { role: ManagementRole }) {
       { label: "ارسال‌شده برای تصمیم نهایی", value: countByStatuses(items, ["ارسال طرح نهایی به مدیرعامل"]) },
       { label: "قرارداد / ثبت نهایی", value: countByStatuses(items, ["قرارداد تنظیم شد", "ثبت پروژه"]) },
     ];
+    const unitReportLabels = role === "media"
+      ? { attention: "محتوای/پروژه رسانه‌ای نیازمند اقدام", progress: "تولید و هماهنگی انتشار", completed: "خروجی‌های نهایی‌شده" }
+      : role === "education"
+        ? { attention: "برنامه آموزشی نیازمند اقدام", progress: "برنامه‌های در حال طراحی یا اجرا", completed: "برنامه‌های تکمیل‌شده" }
+        : role === "artists"
+          ? { attention: "پرونده‌های هنری نیازمند اقدام", progress: "پرونده‌های هنری در حال پیگیری", completed: "پرونده‌های هنری نهایی‌شده" }
+          : role === "csr"
+            ? { attention: "پرونده‌های اجتماعی نیازمند اقدام", progress: "پروژه‌های اجتماعی در حال پیگیری", completed: "پروژه‌های اجتماعی نهایی‌شده" }
+            : { attention: "نیازمند اقدام", progress: "در حال پیگیری", completed: "پرونده‌های نهایی‌شده" };
     return [
-      { label: "نیازمند اقدام", value: countByStatuses(items, config.attentionStatuses) },
-      { label: "در حال پیگیری", value: countByStatuses(items, config.progressStatuses) },
-      { label: "قرارداد / ثبت نهایی", value: countByStatuses(items, config.completedStatuses) },
+      { label: unitReportLabels.attention, value: countByStatuses(items, config.attentionStatuses) },
+      { label: unitReportLabels.progress, value: countByStatuses(items, config.progressStatuses) },
+      { label: unitReportLabels.completed, value: countByStatuses(items, config.completedStatuses) },
     ];
   }, [role, items, config, membershipOverview]);
 
