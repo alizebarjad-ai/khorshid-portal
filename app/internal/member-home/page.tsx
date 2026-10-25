@@ -166,7 +166,7 @@ export default function MemberHomePage(){
      const response=await fetch("/api/member-content",{method:"POST",body:form});
      const data=await response.json();
      if(!response.ok)throw new Error(data.error||"ارسال محتوا انجام نشد.");
-     setContentPrepared(true);setContentNotice("محتوا با موفقیت برای بررسی معاون رسانه ارسال شد. پس از بررسی، نتیجه و توضیحات در همین مسیر پیگیری می‌شود.");
+     setContentPrepared(true);if(data.item)setContentSubmissions(prev=>[data.item as ContentSubmission,...prev.filter(item=>item.id!==data.item.id)]);setContentNotice("محتوا با موفقیت برای بررسی معاون رسانه ارسال شد. وضعیت آن اکنون در فهرست پیگیری ثبت شده است.");
      setContentTitle("");setContentText("");setContentDescription("");setContentFile(null);setContentPreview("");
    }catch(error){setContentError(error instanceof Error?error.message:"ارسال محتوا انجام نشد.");}
    finally{setBusy(false);}
