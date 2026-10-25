@@ -21,6 +21,13 @@ type Opportunity = {
   team?: string[];
 };
 
+type ClubSummary = {
+  totals: { members: number; activeMembers: number; clubs: number; activeClubs: number };
+  clubs: Array<{ id: string; name: string; status: string; source: string; memberCount: number; activeMemberCount: number }>;
+  upcomingPrograms: Array<{ id: string; title: string; dateLabel: string; isoDate: string; clubNames: string[]; href: string; description: string }>;
+  feedAvailable: boolean;
+};
+
 type Action = { label: string; description: string; href: string; primary?: boolean };
 type DashboardConfig = {
   title: string;
@@ -198,6 +205,7 @@ export default function RoleDashboard({ role }: { role: ManagementRole }) {
   const router = useRouter();
   const config = CONFIG[role];
   const [items, setItems] = useState<Opportunity[]>([]);
+  const [clubSummary, setClubSummary] = useState<ClubSummary | null>(null);
   const [userName, setUserName] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -241,6 +249,18 @@ export default function RoleDashboard({ role }: { role: ManagementRole }) {
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "دریافت اطلاعات داشبورد انجام نشد.");
       setItems(Array.isArray(data.items) ? data.items : []);
+      if (role === "ceo" || role === "deputy") {
+        try {
+          const summaryResponse = await fetch("/api/management/club-summary", { cache: "no-store" });
+          const summaryData = await summaryResponse.json();
+          if (summaryResponse.ok) setClubSummary(summaryData as ClubSummary);
+          else setClubSummary(null);
+        } catch {
+          setClubSummary(null);
+        }
+      } else {
+        setClubSummary(null);
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : "ارتباط با سامانه برقرار نشد.");
     } finally {
@@ -393,6 +413,78 @@ export default function RoleDashboard({ role }: { role: ManagementRole }) {
             </div>
           </div>
         </section>
+
+        {(role === "ceo" || role === "deputy") && (
+          <section className="mt-6 rounded-3xl border border-[#E3E0D8] bg-[#FFFEFA] p-5 md:p-6">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <h3 className="text-lg font-extrabold">نمای مدیریتی اعضا و باشگاه‌ها</h3>
+                <p className="mt-1 text-sm leading-6 text-[#687783]">آمار از پرونده‌های اعضا و باشگاه‌های ثبت‌شده در سامانه محاسبه می‌شود. تعداد اعضای هر باشگاه بر اساس ارتباط ثبت‌شده در پرونده عضو است.</p>
+              </div>
+              <button type="button" onClick={() => void load()} className="rounded-xl border border-[#E3E0D8] bg-white px-3 py-2 text-sm font-bold">به‌روزرسانی گزارش</button>
+            </div>
+            {clubSummary ? (
+              <>
+                <div className="mt-4 grid grid-cols-2 gap-3 xl:grid-cols-4">
+                  {[
+                    { label: "کل اعضا", value: clubSummary.totals.members, hint: "تمام پرونده‌های اعضا" },
+                    { label: "اعضای فعال", value: clubSummary.totals.activeMembers, hint: "وضعیت عضویت فعال" },
+                    { label: "کل باشگاه‌ها", value: clubSummary.totals.clubs, hint: "باشگاه‌های پایه و ثبت‌شده" },
+                    { label: "باشگاه‌های فعال", value: clubSummary.totals.activeClubs, hint: "وضعیت فعال در سامانه" },
+                  ].map((metric) => (
+                    <div key={metric.label} className="rounded-2xl bg-[#F7F5F0] p-4">
+                      <div className="text-xs text-[#687783]">{metric.label}</div>
+                      <div className="mt-2 text-2xl font-extrabold tabular-nums">{money(metric.value)}</div>
+                      <div className="mt-1 text-[11px] text-[#687783]">{metric.hint}</div>
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-5 grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+                  <div>
+                    <h4 className="font-extrabold">تعداد اعضا به تفکیک باشگاه</h4>
+                    <div className="mt-3 divide-y divide-[#E3E0D8]">
+                      {clubSummary.clubs.map((club) => (
+                        <div key={club.id} className="flex items-center justify-between gap-4 py-3 text-sm">
+                          <div>
+                            <span className="block font-bold">{club.name}</span>
+                            <span className="mt-1 block text-xs text-[#687783]">{club.status === "active" ? "فعال" : club.status === "planning" ? "در حال شکل‌گیری" : club.status === "paused" ? "متوقف موقت" : club.status === "closed" ? "خاتمه‌یافته" : "باشگاه پایه"} · اعضای فعال: {money(club.activeMemberCount)}</span>
+                          </div>
+                          <strong className="min-w-10 rounded-lg bg-[#F0DFB8] px-3 py-2 text-center tabular-nums">{money(club.memberCount)}</strong>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <h4 className="font-extrabold">برنامه‌های آتی باشگاه‌ها</h4>
+                    <p className="mt-1 text-xs leading-6 text-[#687783]">فقط اطلاعیه‌های تاریخ‌دار آینده که در سایت اصلی به باشگاه مشخصی مرتبط شده‌اند نمایش داده می‌شوند.</p>
+                    {clubSummary.upcomingPrograms.length ? (
+                      <div className="mt-3 space-y-3">
+                        {clubSummary.upcomingPrograms.map((program) => (
+                          <a key={program.id} href={program.href} target="_blank" rel="noreferrer" className="block rounded-2xl border border-[#E3E0D8] p-4 transition hover:bg-[#F7F5F0]">
+                            <span className="block font-bold">{program.title}</span>
+                            <span className="mt-1 block text-xs text-[#96763D]">{program.dateLabel}</span>
+                            <span className="mt-1 block text-xs leading-5 text-[#687783]">{program.clubNames.join("، ")}</span>
+                            {program.description && <span className="mt-2 block text-sm leading-6 text-[#526173]">{program.description}</span>}
+                          </a>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="mt-3 rounded-2xl bg-[#F7F5F0] p-5 text-sm leading-6 text-[#687783]">
+                        {clubSummary.feedAvailable ? "فعلاً برنامه تاریخ‌دار آینده‌ای برای باشگاه‌ها در سایت ثبت نشده است. برنامه‌ای که تاریخ یا ارتباط باشگاهی نداشته باشد، به‌اشتباه به‌عنوان برنامه آتی نمایش داده نمی‌شود." : "فهرست برنامه‌های سایت اصلی فعلاً دریافت نشد؛ آمار اعضا و باشگاه‌ها همچنان در دسترس است."}
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div className="mt-4 flex flex-wrap gap-3 border-t border-[#E3E0D8] pt-4">
+                  <a href="/internal/members" className="rounded-xl bg-[#172F48] px-4 py-2.5 text-sm font-bold text-white">بازکردن پرونده اعضا</a>
+                  <a href="/internal/clubs" className="rounded-xl border border-[#E3E0D8] bg-white px-4 py-2.5 text-sm font-bold">مدیریت باشگاه‌ها</a>
+                </div>
+              </>
+            ) : (
+              <p className="mt-4 rounded-2xl bg-[#F7F5F0] p-5 text-sm text-[#687783]">گزارش اعضا و باشگاه‌ها فعلاً دریافت نشد. اطلاعات این بخش از API مستقل خوانده می‌شود و خطای آن روی کارتابل فرصت‌ها اثری ندارد.</p>
+            )}
+          </section>
+        )}
 
         {error && <div role="alert" className="mt-5 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">{error} <button type="button" className="mr-3 font-bold underline" onClick={() => void load()}>تلاش مجدد</button></div>}
 
