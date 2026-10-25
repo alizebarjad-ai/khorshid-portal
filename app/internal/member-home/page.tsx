@@ -7,7 +7,8 @@ type Member = { id:string; fullName:string; memberType:string; membershipTier?:s
 type Club = { id:string; name:string; clubType:string; city:string; description:string; status:string };
 type Program = { id:string; title:string; description:string; startsAt:string; location:string; clubName:string; format:string };
 type PointEvent = { id:string; title:string; points:number; createdAt:string; note:string };
-type DashboardData = { pointsBalance:number; pointEvents:PointEvent[]; programs:Program[] };
+type SiteContent = {id:string;title:string;kind:string;description:string;image:string;dateLabel:string;href:string;linkLabel:string};
+type DashboardData = { pointsBalance:number; pointEvents:PointEvent[]; programs:Program[]; siteContent:SiteContent[] };
 const tierLabels:Record<string,string>={affiliate:"عضو وابسته",professional:"عضو حرفه‌ای / تخصصی",supporter_partner:"حامی مالی / شریک سازمانی"};
 const typeLabels:Record<string,string>={artist:"هنرمند",figure:"چهره و صاحب‌نظر",supporter:"حامی",expert:"متخصص",organization:"شخصیت حقوقی"};
 const inputClass="w-full rounded-xl border border-[#D8D0C4] bg-white px-3 py-3 text-sm text-[#18304A] outline-none focus:border-[#B99450]";
@@ -25,7 +26,7 @@ export default function MemberHomePage(){
  const router=useRouter();
  const [member,setMember]=useState<Member|null>(null);
  const [clubs,setClubs]=useState<Club[]>([]);
- const [dashboard,setDashboard]=useState<DashboardData>({pointsBalance:0,pointEvents:[],programs:[]});
+ const [dashboard,setDashboard]=useState<DashboardData>({pointsBalance:0,pointEvents:[],programs:[],siteContent:[]});
  const [loading,setLoading]=useState(true);
  const [currentPassword,setCurrentPassword]=useState("");
  const [newPassword,setNewPassword]=useState("");
@@ -59,11 +60,11 @@ export default function MemberHomePage(){
        const profile=await profileResponse.json();
        if(profileResponse.status===401||profileResponse.status===403){router.replace("/login");return;}
        if(!profileResponse.ok)throw new Error(profile.error||"دریافت پرونده ناموفق بود.");
-       const dash=dashboardResponse.ok?await dashboardResponse.json():{pointsBalance:0,pointEvents:[],programs:[]};
+       const dash=dashboardResponse.ok?await dashboardResponse.json():{pointsBalance:0,pointEvents:[],programs:[],siteContent:[]};
        if(cancelled)return;
        setMember(profile.member);setCity(profile.member.city||"");setExpertise(profile.member.expertise||"");setBiography(profile.member.biography||"");
        setClubs(profile.clubs||[]);
-       setDashboard({pointsBalance:Number(dash.pointsBalance)||0,pointEvents:Array.isArray(dash.pointEvents)?dash.pointEvents:[],programs:Array.isArray(dash.programs)?dash.programs:[]});
+       setDashboard({pointsBalance:Number(dash.pointsBalance)||0,pointEvents:Array.isArray(dash.pointEvents)?dash.pointEvents:[],programs:Array.isArray(dash.programs)?dash.programs:[],siteContent:Array.isArray(dash.siteContent)?dash.siteContent:[]});
      }catch(e){if(!cancelled)setError(e instanceof Error?e.message:"دریافت پرونده ناموفق بود.");}
      finally{if(!cancelled)setLoading(false);}
    }
@@ -148,6 +149,11 @@ export default function MemberHomePage(){
        <section id="programs" className="mt-8 scroll-mt-36">
          <div className="mb-4 flex items-end justify-between gap-3"><div><p className="text-xs font-bold text-[#96763D]">تقویم اختصاصی</p><h2 className="mt-1 text-xl font-extrabold">برنامه‌های پیش‌رو</h2></div><span className="rounded-full bg-[#EEECE6] px-3 py-1 text-xs text-[#526173]">ویژه باشگاه‌های شما</span></div>
          {upcomingPrograms.length?<div className="grid gap-3 md:grid-cols-2">{upcomingPrograms.map(p=><article key={p.id} className="rounded-2xl border border-[#E3E0D8] bg-white p-5 shadow-sm"><div className="flex items-start justify-between gap-3"><span className="rounded-lg bg-[#F0DFB8] px-2.5 py-1 text-xs font-bold text-[#172F48]">{p.format||"برنامه باشگاهی"}</span><span className="text-xs text-[#687783]">{dateLabel(p.startsAt)}</span></div><h3 className="mt-3 font-extrabold">{p.title}</h3><p className="mt-2 text-sm leading-6 text-[#687783]">{p.description||"توضیحات تکمیلی متعاقباً اعلام می‌شود."}</p><div className="mt-3 flex flex-wrap gap-2 text-xs text-[#526173]"><span>باشگاه: {p.clubName||"خورشید مفاخر"}</span>{p.location&&<span>· مکان: {p.location}</span>}</div></article>)}</div>:<div className="rounded-2xl border border-dashed border-[#D8D0C4] bg-white p-6"><p className="font-bold">فعلاً برنامه‌ای برای باشگاه‌های شما ثبت نشده است.</p><p className="mt-2 text-sm leading-7 text-[#687783]">به‌محض اینکه برنامه‌ای برای یکی از باشگاه‌های عضو شما در سامانه ثبت و منتشر شود، زمان و جزئیات آن در همین بخش نمایش داده می‌شود.</p></div>}
+       </section>
+
+       <section id="site-content" className="mt-8 scroll-mt-36">
+         <div className="mb-4"><p className="text-xs font-bold text-[#96763D]">محتوای منتشرشده در سایت اصلی</p><h2 className="mt-1 text-xl font-extrabold">مطالب و فرصت‌های باشگاه‌های شما</h2><p className="mt-2 text-sm leading-7 text-[#687783]">این مطالب مستقیماً از سایت اصلی خورشید مفاخر خوانده می‌شوند؛ با تغییر انتشار یا تنظیمات نمایش در سایت، فهرست این بخش هم به‌روز می‌شود.</p></div>
+         {dashboard.siteContent.length?<div className="grid gap-3 md:grid-cols-2">{dashboard.siteContent.map(item=><article key={item.id} className="overflow-hidden rounded-2xl border border-[#E3E0D8] bg-white shadow-sm">{item.image&&<img src={item.image} alt="" className="aspect-[16/8] w-full object-cover"/>}<div className="p-5"><p className="text-xs font-bold text-[#96763D]">{item.dateLabel||item.kind}</p><h3 className="mt-2 font-extrabold">{item.title}</h3><p className="mt-2 text-sm leading-7 text-[#687783]">{item.description||"توضیحات تکمیلی ثبت نشده است."}</p>{item.href&&<a href={item.href} className="mt-4 inline-flex rounded-xl border border-[#D8D0C4] px-4 py-2 text-sm font-bold text-[#18304A]">{item.linkLabel||"مشاهده جزئیات"} ←</a>}</div></article>)}</div>:<div className="rounded-2xl border border-dashed border-[#D8D0C4] bg-white p-6"><p className="font-bold">هنوز محتوایی برای نمایش در پنل اعضا منتشر نشده است.</p><p className="mt-2 text-sm leading-7 text-[#687783]">مدیر سایت می‌تواند هنگام ثبت خبر، پروژه، برنامه یا محتوای تخصصی، نمایش آن را برای اعضا فعال کند.</p></div>}
        </section>
 
        <section id="clubs" className="mt-8 scroll-mt-36">
