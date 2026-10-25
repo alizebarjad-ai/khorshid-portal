@@ -54,7 +54,7 @@ export async function GET(request: NextRequest) {
     const mergedEvents = [...new Map([
       ...entries.filter((entry) => entry.memberId === memberId),
       ...legacyEvents,
-    ].map((entry) => [entry.id, entry])).values()];
+    ].map((entry) => [entry.id, entry] as const)).values()];
     const pointEvents = mergedEvents
       .map((entry) => ({ ...entry, points: Number(entry.points) || 0, actor: entry.actor || entry.createdBy || "سامانه" }))
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
@@ -141,7 +141,7 @@ export async function POST(request: NextRequest) {
       const merged = [...new Map([
         ...currentEvents.filter((event) => event.memberId === memberId),
         ...legacyEvents,
-      ].map((event) => [event.id, event])).values()];
+      ].map((event) => [event.id, event] as const)).values()];
       const balance = merged.reduce((sum, event) => sum + (Number(event.points) || 0), 0);
       const synced = await updateRecord("member", memberId, {
         pointsBalance: balance,
@@ -155,7 +155,7 @@ export async function POST(request: NextRequest) {
     const mergedForMember = [...new Map([
       ...allEvents.filter((event) => event.memberId === memberId),
       ...legacyForMember,
-    ].map((event) => [event.id, event])).values()];
+    ].map((event) => [event.id, event] as const)).values()];
     const pointsBalance = mergedForMember.reduce((sum, event) => sum + (Number(event.points) || 0), 0);
     return NextResponse.json({
       success: true,
