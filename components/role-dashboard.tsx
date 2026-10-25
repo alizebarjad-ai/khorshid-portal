@@ -215,6 +215,15 @@ const CONFIG: Record<ManagementRole, DashboardConfig> = {
 
 const money = (value: number) => new Intl.NumberFormat("fa-IR").format(Math.max(0, Math.round(value)));
 const countByStatuses = (items: Opportunity[], statuses: string[]) => items.filter((item) => statuses.includes(item.status || "")).length;
+const membershipStatusLabel = (status?: string) => ({
+  pending: "در انتظار بررسی",
+  submitted: "ثبت‌شده",
+  in_review: "در حال بررسی",
+  needs_revision: "نیازمند تکمیل مدارک",
+  needs_info: "نیازمند تکمیل اطلاعات",
+  approved: "تأیید شده",
+  rejected: "رد شده",
+}[String(status || "")] || "ثبت‌شده");
 
 function StatusPill({ status }: { status: string }) {
   const isDone = ["ثبت پروژه", "ثبت‌شده", "قرارداد تنظیم شد"].includes(status);
@@ -534,7 +543,7 @@ export default function RoleDashboard({ role }: { role: ManagementRole }) {
             <div className="rounded-3xl border border-[#E3E0D8] bg-[#FFFEFA] p-5 md:p-6">
               <h3 className="text-lg font-extrabold">آخرین درخواست‌های عضویت</h3>
               <div className="mt-3 divide-y divide-[#E3E0D8]">
-                {(membershipOverview?.requests || []).slice(0, 6).map((request) => <div key={request.id} className="flex items-center justify-between gap-3 py-3 text-sm"><div><span className="block font-bold">{request.name || "متقاضی بدون نام"}</span><span className="mt-1 block text-xs text-[#687783]">{String(request.reviewStatus || request.status || "ثبت‌شده")}</span></div><span className="text-xs text-[#687783]">{request.createdAt ? new Date(request.createdAt).toLocaleDateString("fa-IR") : ""}</span></div>)}
+                {(membershipOverview?.requests || []).slice(0, 6).map((request) => <div key={request.id} className="flex items-center justify-between gap-3 py-3 text-sm"><div><span className="block font-bold">{request.name || "متقاضی بدون نام"}</span><span className="mt-1 block text-xs text-[#687783]">{membershipStatusLabel(request.reviewStatus || request.status)}</span></div><span className="text-xs text-[#687783]">{request.createdAt ? new Date(request.createdAt).toLocaleDateString("fa-IR") : ""}</span></div>)}
                 {(!membershipOverview || !membershipOverview.requests.length) && <p className="py-4 text-sm text-[#687783]">درخواست عضویتی برای نمایش وجود ندارد یا اتصال سایت در دسترس نیست.</p>}
               </div>
               <button type="button" onClick={() => router.push("/internal/membership-requests")} className="mt-4 rounded-xl bg-[#172F48] px-4 py-2 text-sm font-bold text-white">ورود به کارتابل درخواست‌ها</button>
