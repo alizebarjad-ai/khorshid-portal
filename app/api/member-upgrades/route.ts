@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
   if (!user) return NextResponse.json({ error: "برای ادامه وارد سامانه شوید." }, { status: 401 });
   if (user.role !== "member" || !user.memberId) return NextResponse.json({ error: "ثبت درخواست ارتقا فقط از حساب عضو امکان‌پذیر است." }, { status: 403 });
   try {
-    const body = await request.json() as { target?: Target; education?: string; educationField?: string; experience?: string; specialties?: string; portfolio?: string; resumeText?: string; biography?: string };
+    const body = await request.json() as { target?: Target; headline?: string; education?: string; educationField?: string; experience?: string; specialties?: string; portfolio?: string; resumeText?: string; biography?: string };
     const target = body.target;
     if (!target || !["artist", "expert", "consultant"].includes(target)) return NextResponse.json({ error: "مسیر ارتقا معتبر نیست." }, { status: 400 });
     const members = await readMembers();
