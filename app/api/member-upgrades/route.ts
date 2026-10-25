@@ -33,6 +33,43 @@ export async function GET(request: NextRequest) {
   }
 }
 
+export async function POST(request: NextRequest) {
+  const user = decodeSession(request.cookies.get(COOKIE_NAME)?.value);
+  if (!user) return NextResponse.json({ error: "برای ادامه وارد سامانه شوید." }, { status: 401 });
+  if (user.role !== "member" || !user.memberId) return NextResponse.json({ error: "ثبت درخواست ارتقا فقط از حساب عضو امکان‌پذیر است." }, { status: 403 });
+  try {
+    const body = await request.json() as { target?: Target; education?: string; educationField?: string; experience?: string; specialties?: string; portfolio?: string; resumeText?: string; biography?: string };
+    const target = body.target;
+    if (!target || !["artist", "expert", "consultant"].includes(target)) return NextResponse.json({ error: "مسیر ارتقا معتبر نیست." }, { status: 400 });
+    const members = await readMembers();
+    const member = members.find(item => item.id === user.memberId);
+    if (!member || member.status !== "active") return NextResponse.json({ error: "پرونده عضو فعال پیدا نشد." }, { status: 404 });
+    if ((member.upgradeRequests || []).some(item => item.target === target && (item.status === "pending" || item.status === "needs_info"))) {
+      return NextResponse.json({ error: "برای این مسیر، درخواست باز دارید. ابتدا همان درخواست را تکمیل کنید." }, { status: 409 });
+    }
+    const profile = {
+      ...(target === "artist" ? (member.artistProfile || {}) : (member.expertProfile || {})),
+      education: String(body.education || "").trim().slice(0, 160),
+      educationField: String(body.educationField || "").trim().slice(0, 160),
+      experience: String(body.experience || "").trim().slice(0, 5000),
+      specialties: String(body.specialties || "").split(/[،,\n]/).map(item => item.trim()).filter(Boolean).slice(0, 30),
+      portfolio: String(body.portfolio || "").trim().slice(0, 1500),
+      resumeText: String(body.resumeText || "").trim().slice(0, 8000),
+      biography: String(body.biography || member.biography || "").trim().slice(0, 3000),
+      submittedAt: new Date().toISOString(),
+      verified: false,
+    };
+    const item = { id: randomUUID(), target, status: "pending" as const, assignedRole: assignedRole(target), submittedAt: new Date().toISOString() };
+    const updated = await updateRecord("member", member.id, {
+      ...(target === "artist" ? { artistProfile: profile } : { expertProfile: profile }),
+      upgradeRequests: [...(member.upgradeRequests || []), item],
+    }, { username: user.username });
+    return NextResponse.json({ request: item, member: updated }, { status: 201, headers: { "Cache-Control": "private, no-store" } });
+  } catch (error) {
+    return NextResponse.json({ error: error instanceof Error ? error.message : "ثبت درخواست ارتقا انجام نشد." }, { status: 400 });
+  }
+}
+
 export async function PATCH(request: NextRequest) {
   const auth = session(request);
   if (!auth.user) return auth.response!;
