@@ -66,7 +66,9 @@ export async function POST(request: Request) {
       maxAge: 60 * 60 * 8,
     });
     return response;
-  } catch {
+  } catch (error) {
+    // Log only the server-side failure details; never log submitted credentials or request bodies.
+    console.error("[auth/login] request failed", error instanceof Error ? { name: error.name, message: error.message } : { name: "UnknownError" });
     return NextResponse.json({ error: "درخواست ورود معتبر نیست." }, { status: 400 });
   }
 }
