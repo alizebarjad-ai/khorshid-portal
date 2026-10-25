@@ -130,7 +130,7 @@ export default function MemberHomePage(){
  async function submitUpgrade(e:FormEvent){
    e.preventDefault();setError("");setNotice("");setUpgradeBusy(true);
    try{
-     const response=await fetch("/api/member-upgrades",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({target:upgradeTarget,education:professionalEducation,educationField:professionalHeadline,experience:professionalExperience,specialties:professionalSpecialties,portfolio:[professionalPortfolio,professionalWebsite?("وب‌سایت: "+professionalWebsite):""].filter(Boolean).join("\\n"),biography:professionalBio,resumeText:""})});
+     const response=await fetch("/api/member-upgrades",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({target:upgradeTarget,headline:professionalHeadline,education:professionalEducation,educationField:professionalHeadline,experience:professionalExperience,specialties:professionalSpecialties,portfolio:professionalPortfolio,website:professionalWebsite,biography:professionalBio,resumeText:""})});
      const data=await response.json();
      if(!response.ok)throw new Error(data.error||"ثبت درخواست ارتقا انجام نشد.");
      setMember(prev=>prev?{...prev,upgradeRequests:data.member?.upgradeRequests||prev.upgradeRequests,artistProfile:data.member?.artistProfile||prev.artistProfile,expertProfile:data.member?.expertProfile||prev.expertProfile}:prev);
