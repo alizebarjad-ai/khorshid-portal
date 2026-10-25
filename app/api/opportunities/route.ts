@@ -25,6 +25,19 @@ const managementRoles = [
   "members",
 ] as const;
 
+const ROUTE_LABELS: Record<string, string> = {
+  deputy: "قائم‌مقام و معاون راهبرد اجرایی",
+  economic: "معاونت مشارکت‌های اقتصادی",
+  csr: "معاونت اجتماعی و حمایتی",
+  media: "معاونت رسانه، برند و بین‌الملل",
+  artists: "معاونت هنری و امور هنرمندان",
+  education: "معاونت آموزش، پژوهش و نوآوری",
+  members: "معاونت مفاخر، اعضا و باشگاه‌ها",
+  finance: "معاونت مالی و اداری",
+};
+
+const SUBJECT_ROLES = ["deputy", "economic", "csr", "media", "artists", "education", "members"] as const;
+
 function today() {
   return new Intl.DateTimeFormat("fa-IR", {
     year: "numeric",
@@ -67,7 +80,11 @@ export async function GET() {
   }
 
   if (unitRoles.includes(user.role as (typeof unitRoles)[number])) {
-    return NextResponse.json({ items: all.filter((item) => (item.team || []).includes(user.role)) });
+    // Only the current owner and explicitly selected project-team members receive this queue.
+    // A topic-routed request is visible to its assigned unit before a team has been formed.
+    return NextResponse.json({
+      items: all.filter((item) => item.assignedTo === user.role || (item.team || []).includes(user.role)),
+    });
   }
 
   return NextResponse.json({ items: all });
@@ -89,10 +106,19 @@ export async function POST(request: Request) {
     );
   }
 
+  const requestedArea = String(body.subjectArea || "");
+  const fallbackArea = ["مشتری", "اسپانسر", "فرصت همکاری"].includes(String(body.type || "")) ? "economic" : "deputy";
+  const subjectArea = (SUBJECT_ROLES as readonly string[]).includes(requestedArea) ? requestedArea : fallbackArea;
+  const routedTo = user.role === "deputy" ? "ceo" : subjectArea;
+  const routedStatus = user.role === "deputy"
+    ? "ارسال به مدیرعامل"
+    : subjectArea === "deputy" ? "در حال بررسی قائم‌مقام" : "ارجاع به واحد تخصصی";
+
   const proposal: Opportunity = {
     id: uid(),
     code: `OP-${new Date().getFullYear()}-${String(Date.now()).slice(-6)}`,
     type: body.type || "پروژه",
+    subjectArea,
     title: String(body.title).trim(),
     clientName: String(body.clientName || "").trim(),
     clientContact: String(body.clientContact || "").trim(),
@@ -101,9 +127,9 @@ export async function POST(request: Request) {
     creator: user.username,
     creatorName: user.name,
     createdAt: today(),
-    status: user.role === "deputy" ? "ارسال به مدیرعامل" : "در حال بررسی قائم‌مقام",
-    assignedTo: user.role === "deputy" ? "ceo" : "deputy",
-    assignedToName: user.role === "deputy" ? "مدیرعامل" : "قائم‌مقام",
+    status: routedStatus,
+    assignedTo: routedTo,
+    assignedToName: routedTo === "ceo" ? "مدیرعامل" : (ROUTE_LABELS[routedTo] || "قائم‌مقام"),
     specialistBrief: "",
     proposalDetails: "",
     negotiationNote: "",
@@ -119,7 +145,11 @@ export async function POST(request: Request) {
         date: today(),
         actor: user.name,
         action: "ثبت پیشنهاد اولیه",
-        note: user.role === "deputy" ? "پیشنهاد توسط قائم‌مقام ثبت و برای تصمیم مدیرعامل ارسال شد." : "پیشنهاد برای بررسی قائم‌مقام ارسال شد.",
+        note: routedTo === "ceo"
+          ? "پیشنهاد توسط قائم‌مقام ثبت و برای تصمیم مدیرعامل ارسال شد."
+          : routedTo === "deputy"
+            ? "موضوع راهبردی برای بررسی قائم‌مقام ارسال شد."
+            : "درخواست مستقیماً به کارتابل حوزه تخصصی مسئول ارجاع شد: " + (ROUTE_LABELS[routedTo] || routedTo) + "؛ پس از بررسی اولیه به قائم‌مقام ارجاع می‌شود.",
       },
     ],
   };
@@ -178,6 +208,11 @@ export async function PATCH(request: Request) {
   const economicOrSpecialistPatch =
     ["economic","csr","media","artists","education","members"].includes(user.role) &&
     typeof patch.status === "string";
+  const specialistInitialHandoff =
+    ["economic","csr","media","artists","education","members"].includes(user.role) &&
+    existing.status === "ارجاع به واحد تخصصی" &&
+    existing.assignedTo === user.role &&
+    patch.status === "در حال بررسی قائم‌مقام";
 
   const financeRegistration =
     user.role === "finance" &&
@@ -211,8 +246,9 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: "این تغییر خارج از اختیارات قائم‌مقام در این مرحله است." }, { status: 403 });
     }
   } else if (economicOrSpecialistPatch) {
-    const allowedKeys =
-      user.role === "economic"
+    const allowedKeys = specialistInitialHandoff
+      ? ["status","specialistBrief","unitNote"]
+      : user.role === "economic"
         ? ["status","proposalDetails","negotiationNote","estimatedCost","proposedPrice","unitNote"]
         : ["status","specialistBrief","proposalDetails","unitNote"];
     if (!keySet(allowedKeys)) {
@@ -242,8 +278,8 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ item: updated });
   }
 
-  if (unitRoles.includes(user.role as (typeof unitRoles)[number]) && !(existing.team || []).includes(user.role)) {
-    return NextResponse.json({ error: "این پرونده به واحد شما ارجاع نشده است." }, { status: 403 });
+  if (unitRoles.includes(user.role as (typeof unitRoles)[number]) && existing.assignedTo !== user.role && !(existing.team || []).includes(user.role)) {
+    return NextResponse.json({ error: "این پرونده نه به حساب شما ارجاع شده و نه شما عضو تیم تعیین‌شده آن هستید." }, { status: 403 });
   }
 
   if (patch.status && patch.status !== existing.status) {
@@ -261,6 +297,7 @@ export async function PATCH(request: Request) {
         (body.action === "درخواست تکمیل" && fromStatus === "در حال بررسی قائم‌مقام" && nextStatus === "نیازمند تکمیل") ||
         (body.action === "رد پیشنهاد" && fromStatus === "در حال بررسی قائم‌مقام" && nextStatus === "رد توسط قائم‌مقام")
       )) ||
+      specialistInitialHandoff ||
       ceoInitialApproval ||
       (user.role === "ceo" && (
         (fromStatus === "ارسال طرح نهایی به مدیرعامل" && nextStatus === "تأیید نهایی مدیرعامل") ||
@@ -290,8 +327,32 @@ export async function PATCH(request: Request) {
   ];
 
   try {
+    const routingPatch: Partial<Opportunity> = {};
+    if (patch.status && patch.status !== existing.status) {
+      if (specialistInitialHandoff) {
+        routingPatch.assignedTo = "deputy";
+        routingPatch.assignedToName = ROUTE_LABELS.deputy;
+      } else if (patch.status === "ارسال به مدیرعامل") {
+        routingPatch.assignedTo = "ceo";
+        routingPatch.assignedToName = "مدیرعامل";
+      } else if (patch.status === "تشکیل تیم پروژه") {
+        const firstTeamRole = Array.isArray(patch.team) && patch.team.length ? String(patch.team[0]) : "deputy";
+        routingPatch.assignedTo = firstTeamRole;
+        routingPatch.assignedToName = Array.isArray(patch.team) && patch.team.length
+          ? patch.team.map((role) => ROUTE_LABELS[String(role)] || String(role)).join("، ")
+          : ROUTE_LABELS.deputy;
+      } else if (patch.status === "ارسال طرح نهایی به مدیرعامل") {
+        routingPatch.assignedTo = "ceo";
+        routingPatch.assignedToName = "مدیرعامل";
+      } else if (patch.status === "قرارداد تنظیم شد") {
+        routingPatch.assignedTo = "finance";
+        routingPatch.assignedToName = ROUTE_LABELS.finance;
+      }
+    }
+
     const updated = await updateOpportunity(id, {
       ...patch,
+      ...routingPatch,
       history,
     });
     if (!updated) {
