@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
     ]);
     const clubIds = new Set(member.clubIds || []);
     const now = Date.now();
-    const websiteBase = (process.env.KHORSHID_WEBSITE_BASE_URL || "https://www.khorshid-mafakher.ir").replace(/\\/$/, "");
+    const websiteBase = (process.env.KHORSHID_WEBSITE_BASE_URL || "https://www.khorshid-mafakher.ir").replace(/\/$/, "");
     const clubSlugsByName = [
       { match: "رسانه", slug: "media" },
       { match: "سینما", slug: "cinema" },
