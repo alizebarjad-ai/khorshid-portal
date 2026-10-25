@@ -4,6 +4,7 @@ import { list } from "@vercel/blob";
 type Item = { id: string };
 const url = process.env.PRISMA_DATABASE_URL || process.env.POSTGRES_URL || process.env.DATABASE_URL;
 let pool: Pool | undefined;
+let lockPool: Pool | undefined;
 let schema: Promise<void> | undefined;
 
 // pg-connection-string currently treats these legacy modes as verify-full.
@@ -96,4 +97,35 @@ export async function deletePostgresStored(collection: string, id: string): Prom
 export async function deletePostgresCollection(collection: string): Promise<void> {
   await importLegacy(collection);
   await db().query("DELETE FROM portal_records WHERE collection=$1", [collection]);
+}
+
+/** Atomically consumes a pending activation token so concurrent requests cannot activate it twice. */
+export async function consumeMemberActivationToken<T extends Item>(
+  item: T,
+  expectedTokenHash: string,
+  nowIso: string,
+): Promise<boolean> {
+  await importLegacy("member-accounts");
+  const result = await db().query(
+    "UPDATE portal_records SET data=$1::jsonb, updated_at=NOW() WHERE collection='member-accounts' AND id=$2 AND data->>'activationTokenHash'=$3 AND data->>'status'='pending_activation' AND data->>'activationExpiresAt' > $4",
+    [JSON.stringify(item), item.id, expectedTokenHash, nowIso],
+  );
+  return (result.rowCount || 0) === 1;
+}
+
+/** Serialize cross-instance workflows by a stable advisory-lock key. */
+export async function withPostgresAdvisoryLock<T>(key: string, action: () => Promise<T>): Promise<T> {
+  if (!url) throw new Error("اتصال پایگاه داده PostgreSQL تنظیم نشده است.");
+  if (!lockPool) lockPool = new Pool({ connectionString: normalizeSslMode(url), max: 5, idleTimeoutMillis: 10000, connectionTimeoutMillis: 10000, application_name: "khorshid-portal-locks" });
+  const client = await lockPool.connect();
+  const lockKey = "khorshid-workflow:" + key;
+  let locked = false;
+  try {
+    await client.query("SELECT pg_advisory_lock(hashtext($1))", [lockKey]);
+    locked = true;
+    return await action();
+  } finally {
+    if (locked) await client.query("SELECT pg_advisory_unlock(hashtext($1))", [lockKey]).catch(() => undefined);
+    client.release();
+  }
 }
