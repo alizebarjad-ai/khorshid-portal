@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState, type ChangeEvent, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 
-type Member = { id:string; fullName:string; memberType:string; membershipTier?:string; phone:string; email:string; city:string; expertise:string; biography:string; status:string; clubIds:string[] };
+type UpgradeRequest = { id:string; target:"artist"|"expert"|"consultant"; status:"pending"|"approved"|"rejected"|"needs_info"; assignedRole:"artists"|"csr"; submittedAt:string; reviewedAt?:string; reviewer?:string; note?:string };\ntype ProfessionalProfile = { headline?:string; specialties?:string; education?:string; experience?:string; portfolio?:string; biography?:string; website?:string };\ntype Member = { id:string; fullName:string; memberType:string; membershipTier?:string; membershipGrade?:string; phone:string; email:string; city:string; expertise:string; biography:string; status:string; clubIds:string[]; artistProfile?:ProfessionalProfile; expertProfile?:ProfessionalProfile; upgradeRequests?:UpgradeRequest[] };
 type Club = { id:string; name:string; clubType:string; city:string; description:string; status:string };
 type Program = { id:string; title:string; description:string; startsAt:string; location:string; clubName:string; format:string; href?:string };
 type ClubFeedItem = { id:string; kind:string; title:string; description?:string; dateLabel?:string; href?:string; clubIds?:string[]; showToMembers?:boolean };
@@ -38,6 +38,16 @@ export default function MemberHomePage(){
  const [city,setCity]=useState("");
  const [expertise,setExpertise]=useState("");
  const [biography,setBiography]=useState("");
+ const [upgradeTarget,setUpgradeTarget]=useState<"artist"|"expert"|"consultant">("artist");
+ const [professionalHeadline,setProfessionalHeadline]=useState("");
+ const [professionalSpecialties,setProfessionalSpecialties]=useState("");
+ const [professionalEducation,setProfessionalEducation]=useState("");
+ const [professionalExperience,setProfessionalExperience]=useState("");
+ const [professionalPortfolio,setProfessionalPortfolio]=useState("");
+ const [professionalBio,setProfessionalBio]=useState("");
+ const [professionalWebsite,setProfessionalWebsite]=useState("");
+ const [upgradeBusy,setUpgradeBusy]=useState(false);
+
  const [contentType,setContentType]=useState<"text"|"image"|"video">("text");
  const [contentTitle,setContentTitle]=useState("");
  const [contentText,setContentText]=useState("");
@@ -99,6 +109,18 @@ export default function MemberHomePage(){
    try{const r=await fetch("/api/member/profile",{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({city,expertise,biography})});const d=await r.json();if(!r.ok)throw new Error(d.error||"ذخیره پرونده انجام نشد.");setMember(d.member);setEditing(false);setNotice("اطلاعات پرونده ذخیره شد.");}
    catch(e){setError(e instanceof Error?e.message:"ذخیره پرونده انجام نشد.");}
    finally{setBusy(false);}
+ }
+
+ async function submitUpgrade(e:FormEvent){
+   e.preventDefault();setError("");setNotice("");setUpgradeBusy(true);
+   try{
+     const response=await fetch("/api/member/profile",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({target:upgradeTarget,headline:professionalHeadline,specialties:professionalSpecialties,education:professionalEducation,experience:professionalExperience,portfolio:professionalPortfolio,biography:professionalBio,website:professionalWebsite})});
+     const data=await response.json();
+     if(!response.ok)throw new Error(data.error||"ثبت درخواست ارتقا انجام نشد.");
+     setMember(prev=>prev?{...prev,upgradeRequests:data.member?.upgradeRequests||prev.upgradeRequests,artistProfile:data.member?.artistProfile||prev.artistProfile,expertProfile:data.member?.expertProfile||prev.expertProfile}:prev);
+     setNotice("درخواست شما ثبت شد و برای بررسی به کارتابل معاونت مربوطه ارسال شده است.");
+   }catch(err){setError(err instanceof Error?err.message:"ثبت درخواست ارتقا انجام نشد.");}
+   finally{setUpgradeBusy(false);}
  }
  function selectContentFile(e:ChangeEvent<HTMLInputElement>){
    const file=e.target.files?.[0]||null;setContentError("");setContentNotice("");setContentPrepared(false);
@@ -194,6 +216,23 @@ export default function MemberHomePage(){
              <div className="mt-4 grid grid-cols-2 gap-3">{[["نام",member.fullName],["رده عضویت",memberTier],["نوع عضو",memberType],["وضعیت","فعال"],["شماره تماس",member.phone],["ایمیل",member.email]].map(([label,value])=><div key={label} className="min-w-0 rounded-xl bg-[#F7F5F0] p-3"><p className="text-[11px] text-[#687783]">{label}</p><p className="mt-1 break-words text-sm font-bold">{value||"ثبت نشده"}</p></div>)}</div>
              {editing&&<form onSubmit={saveProfile} className="mt-4 grid gap-3"><label className="text-sm font-bold">شهر<input className={inputClass+" mt-2"} maxLength={120} value={city} onChange={e=>setCity(e.target.value)}/></label><label className="text-sm font-bold">حوزه تخصصی<input className={inputClass+" mt-2"} maxLength={240} value={expertise} onChange={e=>setExpertise(e.target.value)}/></label><label className="text-sm font-bold">معرفی کوتاه<textarea className={inputClass+" mt-2"} rows={4} maxLength={3000} value={biography} onChange={e=>setBiography(e.target.value)}/></label><button disabled={busy} className="rounded-xl bg-[#172F48] px-4 py-3 text-sm font-bold text-white disabled:opacity-50">{busy?"در حال ذخیره…":"ذخیره پرونده"}</button></form>}
              {!editing&&<div className="mt-3 grid gap-3 sm:grid-cols-2"><div className="rounded-xl bg-[#F7F5F0] p-3"><p className="text-[11px] text-[#687783]">شهر</p><p className="mt-1 text-sm font-semibold">{member.city||"ثبت نشده"}</p></div><div className="rounded-xl bg-[#F7F5F0] p-3"><p className="text-[11px] text-[#687783]">تخصص</p><p className="mt-1 text-sm font-semibold">{member.expertise||"ثبت نشده"}</p></div><div className="rounded-xl bg-[#F7F5F0] p-3 sm:col-span-2"><p className="text-[11px] text-[#687783]">معرفی کوتاه</p><p className="mt-1 whitespace-pre-wrap text-sm leading-6">{member.biography||"هنوز معرفی کوتاهی ثبت نشده است."}</p></div></div>}
+           </section>
+           <section className="rounded-2xl border border-[#E3E0D8] bg-white p-5 shadow-sm">
+             <h3 className="font-extrabold">پروفایل حرفه‌ای و درخواست ارتقا</h3>
+             <p className="mt-2 text-sm leading-6 text-[#687783]">اطلاعات حرفه‌ای را یک بار ثبت کنید. درخواست هنرمندی به معاونت امور هنرمندان و درخواست متخصص یا مشاور به معاونت اجتماعی برنامه‌های حمایتی ارجاع می‌شود. ثبت درخواست به‌تنهایی به معنی تأیید عنوان حرفه‌ای نیست.</p>
+             {(member.upgradeRequests||[]).length>0&&<div className="mt-4 space-y-2">{(member.upgradeRequests||[]).slice().reverse().map(req=><div key={req.id} className="rounded-xl border border-[#E3E0D8] bg-[#F7F5F0] p-3"><div className="flex flex-wrap items-center justify-between gap-2"><strong className="text-sm">{req.target==="artist"?"هنرمند":req.target==="expert"?"متخصص":"مشاور"}</strong><span className="rounded-full bg-white px-2.5 py-1 text-xs font-bold">{req.status==="pending"?"در انتظار بررسی":req.status==="approved"?"تأیید شده":req.status==="needs_info"?"نیازمند تکمیل اطلاعات":"رد شده"}</span></div><p className="mt-1 text-xs text-[#687783]">مسیر بررسی: {req.assignedRole==="artists"?"معاونت امور هنرمندان":"معاونت اجتماعی برنامه‌های حمایتی"} · {dateLabel(req.submittedAt)}</p>{req.note&&<p className="mt-2 text-sm leading-6">{req.note}</p>}</div>)}</div>}
+             <form onSubmit={submitUpgrade} className="mt-4 grid gap-3">
+               <label className="text-sm font-bold">عنوان مورد درخواست<select className={inputClass+" mt-2"} value={upgradeTarget} onChange={e=>setUpgradeTarget(e.target.value as "artist"|"expert"|"consultant")}><option value="artist">هنرمند</option><option value="expert">متخصص</option><option value="consultant">مشاور</option></select></label>
+               <label className="text-sm font-bold">عنوان حرفه‌ای / زمینه فعالیت<input className={inputClass+" mt-2"} value={professionalHeadline} onChange={e=>setProfessionalHeadline(e.target.value)} maxLength={160} placeholder="مثلاً نقاش، پژوهشگر هنر، مشاور مسئولیت اجتماعی" required/></label>
+               <label className="text-sm font-bold">تخصص‌ها و حوزه‌های کاری<textarea className={inputClass+" mt-2"} rows={3} value={professionalSpecialties} onChange={e=>setProfessionalSpecialties(e.target.value)} maxLength={1200} required/></label>
+               <label className="text-sm font-bold">تحصیلات و گواهی‌های مرتبط<textarea className={inputClass+" mt-2"} rows={3} value={professionalEducation} onChange={e=>setProfessionalEducation(e.target.value)} maxLength={1200} required/></label>
+               <label className="text-sm font-bold">سوابق کاری و حرفه‌ای<textarea className={inputClass+" mt-2"} rows={4} value={professionalExperience} onChange={e=>setProfessionalExperience(e.target.value)} maxLength={3000} required/></label>
+               <label className="text-sm font-bold">نمونه آثار، پروژه‌ها یا پیوند نمونه‌کارها<textarea className={inputClass+" mt-2"} rows={3} value={professionalPortfolio} onChange={e=>setProfessionalPortfolio(e.target.value)} maxLength={2000} placeholder="لینک یا شرح نمونه‌کارها (اختیاری)"/></label>
+               <label className="text-sm font-bold">معرفی حرفه‌ای<textarea className={inputClass+" mt-2"} rows={3} value={professionalBio} onChange={e=>setProfessionalBio(e.target.value)} maxLength={3000} placeholder="معرفی کوتاه برای پروفایل تخصصی (اختیاری)"/></label>
+               <label className="text-sm font-bold">وب‌سایت یا صفحه حرفه‌ای<input className={inputClass+" mt-2"} value={professionalWebsite} onChange={e=>setProfessionalWebsite(e.target.value)} maxLength={300} placeholder="https://…"/></label>
+               <p className="rounded-xl bg-[#F7F5F0] p-3 text-xs leading-6 text-[#687783]">در این مرحله اطلاعات متنی ذخیره می‌شود. بارگذاری امن فایل رزومه و مدارک، و ساخت بانک اطلاعاتی نهایی Art Connect، تا تکمیل زیرساخت دریافت و مدیریت مدارک فعال نمی‌شود.</p>
+               <button disabled={upgradeBusy} className="rounded-xl bg-[#172F48] px-4 py-3 text-sm font-bold text-white disabled:opacity-50">{upgradeBusy?"در حال ثبت…":"ثبت درخواست ارتقا و پروفایل حرفه‌ای"}</button>
+             </form>
            </section>
            <section className="rounded-2xl border border-[#E3E0D8] bg-white p-5 shadow-sm"><h3 className="font-extrabold">تغییر رمز عبور</h3><p className="mt-2 text-sm leading-6 text-[#687783]">برای امنیت حساب، رمز جدید حداقل ۱۲ نویسه داشته باشد و با رمز فعلی متفاوت باشد.</p><form onSubmit={changePassword} className="mt-4 grid gap-3"><label className="text-sm font-bold">رمز فعلی<input className={inputClass+" mt-2"} type="password" autoComplete="current-password" value={currentPassword} onChange={e=>setCurrentPassword(e.target.value)} required/></label><label className="text-sm font-bold">رمز جدید<input className={inputClass+" mt-2"} type="password" autoComplete="new-password" minLength={12} value={newPassword} onChange={e=>setNewPassword(e.target.value)} required/></label><label className="text-sm font-bold">تکرار رمز جدید<input className={inputClass+" mt-2"} type="password" autoComplete="new-password" minLength={12} value={confirm} onChange={e=>setConfirm(e.target.value)} required/></label><button disabled={busy} className="rounded-xl bg-[#172F48] px-4 py-3 text-sm font-bold text-white disabled:opacity-50">{busy?"در حال تغییر…":"تغییر رمز عبور"}</button></form></section>
          </div>
