@@ -18,7 +18,7 @@ const inputClass="w-full rounded-xl border border-[#D8D0C4] bg-white px-3 py-3 t
 const services = [
  {icon:"✦",title:"برنامه‌ها و نشست‌های اعضا",description:"دسترسی به برنامه‌های اعلام‌شده برای باشگاه‌ها و رده عضویت شما.",status:"قابل استفاده",ready:true},
  {icon:"◎",title:"باشگاه‌های تخصصی",description:"پیگیری باشگاه‌هایی که عضویت شما در آن‌ها ثبت شده است.",status:"قابل استفاده",ready:true},
- {icon:"↗",title:"ارسال اثر و محتوای تولیدی",description:"ثبت متن، تصویر یا ویدیو برای بررسی و انتشار توسط تیم مربوطه.",status:"فرم آماده؛ دریافت فایل در مرحله بعد",ready:false},
+ {icon:"↗",title:"ارسال اثر و محتوای تولیدی",description:"ثبت متن، تصویر یا ویدیو برای بررسی و انتشار توسط تیم مربوطه.",status:"ارسال به کارتابل معاون رسانه",ready:true},
  {icon:"◇",title:"فرصت‌های آموزشی و همکاری",description:"اطلاع‌رسانی فرصت‌های مرتبط پس از ثبت رسمی در سامانه.",status:"به‌تدریج فعال می‌شود",ready:false},
  {icon:"＋",title:"خدمات و مزایای ویژه اعضا",description:"نمایش مزایای فعال بر اساس رده عضویت و توافق‌های نهایی سازمان.",status:"در حال تکمیل",ready:false},
 ];
@@ -146,14 +146,25 @@ export default function MemberHomePage(){
    if(file.size>25*1024*1024){setContentError("حجم فایل باید حداکثر ۲۵ مگابایت باشد.");e.target.value="";setContentFile(null);return;}
    setContentFile(file);
  }
- function prepareContent(e:FormEvent){
+ async function prepareContent(e:FormEvent<HTMLFormElement>){
    e.preventDefault();setContentError("");setContentNotice("");
    if(!contentTitle.trim()){setContentError("عنوان محتوا را وارد کنید.");return;}
    if(contentType==="text"&&!contentText.trim()){setContentError("متن محتوای خود را وارد کنید.");return;}
    if(contentType!=="text"&&!contentFile){setContentError("ابتدا فایل موردنظر را انتخاب کنید.");return;}
-   // Intentionally no upload request is made until the organization configures its receiving server.
-   setContentPrepared(true);
-   setContentNotice("فرم و فایل بررسی شد و آماده اتصال است؛ هنوز چیزی ارسال یا بارگذاری نشده است. پس از اتصال سرویس دریافت، ارسال نهایی فعال می‌شود.");
+   if(contentFile&&contentFile.size>25*1024*1024){setContentError("حداکثر اندازه فایل ۲۵ مگابایت است.");return;}
+   setContentPrepared(false);setBusy(true);
+   try{
+     const form=new FormData();
+     form.set("kind",contentType);form.set("title",contentTitle.trim());form.set("description",contentDescription.trim());
+     if(contentType==="text")form.set("text",contentText);
+     else if(contentFile)form.set("file",contentFile);
+     const response=await fetch("/api/member-content",{method:"POST",body:form});
+     const data=await response.json();
+     if(!response.ok)throw new Error(data.error||"ارسال محتوا انجام نشد.");
+     setContentPrepared(true);setContentNotice("محتوا با موفقیت برای بررسی معاون رسانه ارسال شد. پس از بررسی، نتیجه و توضیحات در همین مسیر پیگیری می‌شود.");
+     setContentTitle("");setContentText("");setContentDescription("");setContentFile(null);setContentPreview("");
+   }catch(error){setContentError(error instanceof Error?error.message:"ارسال محتوا انجام نشد.");}
+   finally{setBusy(false);}
  }
  async function logout(){
    setLoggingOut(true);
@@ -210,18 +221,18 @@ export default function MemberHomePage(){
        </section>
 
        <section id="content" className="mt-8 scroll-mt-36">
-         <div className="mb-4"><p className="text-xs font-bold text-[#96763D]">رسانه و مشارکت</p><h2 className="mt-1 text-xl font-extrabold">ارسال محتوای تولیدی</h2><p className="mt-2 text-sm leading-7 text-[#687783]">متن، تصویر یا ویدیوی تولید خود را آماده کنید تا پس از اتصال سرویس دریافت، برای بررسی تیم رسانه ارسال شود.</p></div>
+         <div className="mb-4"><p className="text-xs font-bold text-[#96763D]">رسانه و مشارکت</p><h2 className="mt-1 text-xl font-extrabold">ارسال محتوای تولیدی</h2><p className="mt-2 text-sm leading-7 text-[#687783]">متن، تصویر یا ویدیوی تولید خود را ارسال کنید تا برای بررسی به کارتابل معاون رسانه برود. محتوای تأییدشده همراه با توضیحات انتشار به ادمین ارجاع می‌شود.</p></div>
          <form onSubmit={prepareContent} className="rounded-2xl border border-[#E3E0D8] bg-white p-5 shadow-sm md:p-6">
            <div className="grid gap-4 sm:grid-cols-2">
              <label className="text-sm font-bold">نوع محتوا<select className={inputClass+" mt-2"} value={contentType} onChange={e=>{setContentType(e.target.value as "text"|"image"|"video");setContentFile(null);setContentPreview("");setContentPrepared(false);setContentNotice("");setContentError("");}}><option value="text">متن / یادداشت</option><option value="image">تصویر / عکس</option><option value="video">ویدیو</option></select></label>
              <label className="text-sm font-bold">عنوان محتوا<input className={inputClass+" mt-2"} value={contentTitle} onChange={e=>setContentTitle(e.target.value)} maxLength={160} placeholder="عنوان کوتاه و روشن" required /></label>
            </div>
-           {contentType==="text"?<label className="mt-4 block text-sm font-bold">متن محتوا<textarea className={inputClass+" mt-2"} rows={6} value={contentText} onChange={e=>setContentText(e.target.value)} maxLength={12000} placeholder="متن یا یادداشت خود را بنویسید…" required/><span className="mt-1 block text-xs font-normal text-[#687783]">{money(contentText.length)} از ۱۲٬۰۰۰ نویسه</span></label>:<div className="mt-4"><label className="block text-sm font-bold">انتخاب فایل<input className={inputClass+" mt-2"} type="file" accept={contentType==="image"?"image/*":"video/*"} onChange={selectContentFile}/></label><p className="mt-2 text-xs leading-6 text-[#687783]">حداکثر اندازه فایل در این مرحله ۲۵ مگابایت است. فایل فقط برای پیش‌نمایش محلی انتخاب می‌شود و هنوز به سروری ارسال نمی‌شود.</p>{contentFile&&<div className="mt-4 rounded-xl border border-[#E3E0D8] bg-[#F7F5F0] p-3"><p className="break-all text-sm font-bold">{contentFile.name}</p><p className="mt-1 text-xs text-[#687783]">{(contentFile.size/1024/1024).toFixed(2)} مگابایت · پیش‌نمایش محلی</p>{contentPreview&&(contentType==="image"?<img src={contentPreview} alt="پیش‌نمایش محتوای انتخاب‌شده" className="mt-3 max-h-80 w-full rounded-lg object-contain"/>:<video src={contentPreview} controls className="mt-3 max-h-80 w-full rounded-lg bg-black"/> )}</div>}</div>}
+           {contentType==="text"?<label className="mt-4 block text-sm font-bold">متن محتوا<textarea className={inputClass+" mt-2"} rows={6} value={contentText} onChange={e=>setContentText(e.target.value)} maxLength={12000} placeholder="متن یا یادداشت خود را بنویسید…" required/><span className="mt-1 block text-xs font-normal text-[#687783]">{money(contentText.length)} از ۱۲٬۰۰۰ نویسه</span></label>:<div className="mt-4"><label className="block text-sm font-bold">انتخاب فایل<input className={inputClass+" mt-2"} type="file" accept={contentType==="image"?"image/*":"video/*"} onChange={selectContentFile}/></label><p className="mt-2 text-xs leading-6 text-[#687783]">حداکثر اندازه فایل ۲۵ مگابایت است. فایل پس از ثبت فرم در فضای ذخیره‌سازی سامانه بارگذاری می‌شود و برای انتشار مستقیم در سایت قرار نمی‌گیرد.</p>{contentFile&&<div className="mt-4 rounded-xl border border-[#E3E0D8] bg-[#F7F5F0] p-3"><p className="break-all text-sm font-bold">{contentFile.name}</p><p className="mt-1 text-xs text-[#687783]">{(contentFile.size/1024/1024).toFixed(2)} مگابایت · پیش‌نمایش محلی</p>{contentPreview&&(contentType==="image"?<img src={contentPreview} alt="پیش‌نمایش محتوای انتخاب‌شده" className="mt-3 max-h-80 w-full rounded-lg object-contain"/>:<video src={contentPreview} controls className="mt-3 max-h-80 w-full rounded-lg bg-black"/> )}</div>}</div>}
            <label className="mt-4 block text-sm font-bold">توضیح برای تیم بررسی <textarea className={inputClass+" mt-2"} rows={3} value={contentDescription} onChange={e=>setContentDescription(e.target.value)} maxLength={3000} placeholder="زمینه اثر، توضیحات یا منبع تصویر/ویدیو (اختیاری)"/></label>
            <p className="mt-3 rounded-xl bg-[#F7F5F0] p-3 text-xs leading-6 text-[#687783]">لطفاً فقط محتوایی را ارسال کنید که حق انتشار آن را دارید و در صورت حضور اشخاص دیگر، رضایت لازم برای انتشار را گرفته‌اید.</p>
            {contentError&&<p role="alert" className="mt-3 rounded-xl bg-red-50 p-3 text-sm text-red-800">{contentError}</p>}
            {contentNotice&&<p role="status" className="mt-3 rounded-xl border border-[#D9C48E] bg-[#FBF5E7] p-3 text-sm leading-6 text-[#72551C]">{contentNotice}</p>}
-           <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><p className="text-xs text-[#687783]">وضعیت: {contentPrepared?"آماده اتصال به سرویس دریافت":"پیش‌نویس"}</p><button className="rounded-xl bg-[#172F48] px-5 py-3 text-sm font-extrabold text-white transition hover:bg-[#28445D]">بررسی و آماده‌سازی فرم</button></div>
+           <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><p className="text-xs text-[#687783]">وضعیت: {contentPrepared?"ارسال شد":"پیش‌نویس"}</p><button disabled={busy} className="rounded-xl bg-[#172F48] px-5 py-3 text-sm font-extrabold text-white transition hover:bg-[#28445D] disabled:opacity-50">بررسی و آماده‌سازی فرم</button></div>
          </form>
        </section>
 
