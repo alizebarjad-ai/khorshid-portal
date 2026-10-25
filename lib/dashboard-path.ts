@@ -10,6 +10,7 @@ const DASHBOARD_PATHS: Record<Exclude<UserRole, "beneficiary">, string> = {
   artists: "/internal/roles/artists",
   education: "/internal/education-manager",
   members: "/internal/roles/members",
+  member: "/internal/member-home",
 };
 
 export function dashboardPathForRole(role?: string | null): string {
