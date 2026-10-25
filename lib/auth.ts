@@ -11,7 +11,8 @@ export type UserRole =
   | "artists"
   | "education"
   | "members"
-  | "member";
+  | "member"
+  | "owner";
 
 export type SessionUser = {
   username: string;
@@ -19,6 +20,7 @@ export type SessionUser = {
   role: UserRole;
   beneficiaryName?: string;
   memberId?: string;
+  mustChangePassword?: boolean;
 };
 
 export const ROLE_LABELS: Record<UserRole, string> = {
@@ -32,22 +34,31 @@ export const ROLE_LABELS: Record<UserRole, string> = {
   artists: "معاونت امور هنرمندان",
   education: "معاونت آموزش، پژوهش و نوآوری",
   members: "معاونت مفاخر و امور اعضا",
-  member: "عضو خورشید",
+  member: "عضو خورشید مفاخر",
+  owner: "مالک سامانه",
 };
 
 const COOKIE_NAME = "khorshid_session";
 
-function secret() {
-  return process.env.AUTH_SECRET || "CHANGE_ME_BEFORE_PRODUCTION";
+function secret(): string | null {
+  const configured = process.env.AUTH_SECRET;
+  if (process.env.NODE_ENV === "production") {
+    return configured && configured.length >= 32 ? configured : null;
+  }
+  return configured || "local-development-only-secret";
 }
 
-function sign(value: string) {
-  return createHmac("sha256", secret()).update(value).digest("base64url");
+function sign(value: string): string | null {
+  const key = secret();
+  if (!key) return null;
+  return createHmac("sha256", key).update(value).digest("base64url");
 }
 
 export function encodeSession(user: SessionUser) {
-  const payload = Buffer.from(JSON.stringify(user), "utf8").toString("base64url");
-  return payload + "." + sign(payload);
+  const payload = Buffer.from(JSON.stringify({ ...user, exp: Math.floor(Date.now() / 1000) + 8 * 60 * 60 }), "utf8").toString("base64url");
+  const signature = sign(payload);
+  if (!signature) throw new Error("AUTH_SECRET باید در محیط production با حداقل ۳۲ نویسه تنظیم شود.");
+  return payload + "." + signature;
 }
 
 export function decodeSession(value?: string | null): SessionUser | null {
@@ -55,13 +66,15 @@ export function decodeSession(value?: string | null): SessionUser | null {
   const [payload, signature] = value.split(".");
   if (!payload || !signature) return null;
   const expected = sign(payload);
+  if (!expected) return null;
   try {
     if (!timingSafeEqual(Buffer.from(signature), Buffer.from(expected))) return null;
   } catch {
     return null;
   }
   try {
-    const user = JSON.parse(Buffer.from(payload, "base64url").toString("utf8")) as SessionUser;
+    const user = JSON.parse(Buffer.from(payload, "base64url").toString("utf8")) as SessionUser & { exp?: number };
+    if (!user.exp || user.exp <= Math.floor(Date.now() / 1000)) return null;
     if (!user.username || !user.name || !ROLE_LABELS[user.role]) return null;
     return user;
   } catch {
@@ -69,10 +82,16 @@ export function decodeSession(value?: string | null): SessionUser | null {
   }
 }
 
-type ConfiguredUser = { username: string; password: string; name: string; role: UserRole; memberId?: string };
+type ConfiguredUser = { username: string; password: string; name: string; role: Exclude<UserRole, "member"> };
 
 export function getConfiguredUsers() {
   const managementUsers: ConfiguredUser[] = [
+    {
+      username: process.env.AUTH_OWNER_USERNAME || "owner",
+      password: process.env.AUTH_OWNER_PASSWORD || "",
+      name: process.env.AUTH_OWNER_NAME || "مالک سامانه",
+      role: "owner",
+    },
     {
       username: process.env.AUTH_FINANCE_USERNAME || "finance",
       password: process.env.AUTH_FINANCE_PASSWORD || "1234",
@@ -111,18 +130,19 @@ export function getConfiguredUsers() {
     beneficiaryUsers = parsed
       .filter((item) => item.username && item.password && item.name)
       .map((item) => ({ ...item, role: "beneficiary" }));
-    if (!beneficiaryUsers.some((item) => item.username === "user")) {
+    if (process.env.NODE_ENV !== "production" && !beneficiaryUsers.some((item) => item.username === "user")) {
       beneficiaryUsers.push({ username: "user", password: "1234", name: "ذی‌نفع آزمایشی", role: "beneficiary" });
     }
   } catch {}
-  let memberUsers: ConfiguredUser[] = [];
-  try {
-    const raw = process.env.AUTH_MEMBER_ACCOUNTS_JSON || "[]";
-    const parsed = JSON.parse(raw) as Array<{ username: string; password: string; name: string; memberId: string }>;
-    memberUsers = parsed.filter((item) => item.username && item.password && item.name && item.memberId)
-      .map((item) => ({ ...item, role: "member" }));
-  } catch {}
-  return [...managementUsers, ...unitUsers, ...beneficiaryUsers, ...memberUsers];
+  const allUsers = [...managementUsers, ...unitUsers, ...beneficiaryUsers];
+  if (process.env.NODE_ENV !== "production") return allUsers;
+  // Never expose sample/default credentials in production. Every staff account must be
+  // explicitly configured, and beneficiary accounts must come from the configured list.
+  return allUsers.filter((item) => {
+    if (item.role === "beneficiary") return Boolean(process.env.AUTH_BENEFICIARIES_JSON);
+    const prefix = "AUTH_" + item.role.toUpperCase();
+    return Boolean(process.env[prefix + "_USERNAME"] && process.env[prefix + "_PASSWORD"]);
+  });
 }
 
 export { COOKIE_NAME };
