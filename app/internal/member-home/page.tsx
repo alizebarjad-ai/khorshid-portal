@@ -180,6 +180,7 @@ export default function MemberHomePage(){
  const activeClubs=clubs.filter(c=>c.status==="active");
  const memberTier=tierLabels[member?.membershipTier||""]||"عضو خورشید";
  const memberType=typeLabels[member?.memberType||""]||member?.memberType||"عضو";
+ const memberGrade=gradeLabels[member?.membershipGrade||""]||"داوطلب";
  const sections=[["home","نمای کلی"],["programs","برنامه‌ها"],["clubs","باشگاه‌های من"],["services","خدمات و امتیاز"],["content","ارسال محتوا"],["profile","پرونده من"]];
 
  return <main className="internal-app min-h-screen pb-24 text-[#172F48]">
