@@ -198,20 +198,7 @@ const CONFIG: Record<ManagementRole, DashboardConfig> = {
     emptyTitle: "پرونده مرتبط با اعضا یا باشگاه‌ها وجود ندارد",
     emptyDescription: "پرونده‌های مرتبط با اعضا پس از ارجاع به واحد در اینجا نمایش داده می‌شوند.",
   },
-  member: {
-    title: "داشبورد عضو",
-    subtitle: "دسترسی به پرونده و خدمات شخصی عضویت",
-    welcome: "برای مدیریت پرونده شخصی و خدمات عضویت، از داشبورد اعضا استفاده کنید.",
-    priorities: ["تکمیل اطلاعات پرونده شخصی", "پیگیری برنامه‌های باشگاه‌ها", "ثبت درخواست ارتقای حرفه‌ای در صورت نیاز"],
-    actions: [
-      { label: "ورود به داشبورد اعضا", description: "مشاهده پرونده، برنامه‌ها و خدمات عضویت", href: "/internal/member-home", primary: true },
-    ],
-    attentionStatuses: [],
-    progressStatuses: [],
-    completedStatuses: [],
-    emptyTitle: "این بخش برای نقش عضو استفاده نمی‌شود",
-    emptyDescription: "برای خدمات شخصی، داشبورد اعضا را باز کنید.",
-  },
+
 };
 
 const money = (value: number) => new Intl.NumberFormat("fa-IR").format(Math.max(0, Math.round(value)));
@@ -280,7 +267,6 @@ export default function RoleDashboard({ role }: { role: ManagementRole }) {
           artists: "/internal/roles/artists",
           education: "/internal/education-manager",
           members: "/internal/roles/members",
-          member: "/internal/member-home",
         };
         router.replace(pathByRole[currentRole] || "/login");
         return;
