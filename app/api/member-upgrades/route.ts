@@ -1,19 +1,35 @@
 import { randomUUID } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { COOKIE_NAME, decodeSession } from "@/lib/auth";
+import { deleteStored, listStored, putStored } from "@/lib/persistent-store";
 import { readMembers, updateRecord, type MemberRecord } from "@/lib/records-store";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-type Target = "artist" | "expert" | "consultant";
+type Target = "artist" | "expert";
+type LegacyTarget = Target | "consultant";
 type Status = "pending" | "approved" | "rejected" | "needs_info";
-const assignedRole = (target: Target) => target === "artist" ? "artists" : "csr";
+type UpgradeDocument = { id: string; fileName: string; mimeType: string; size: number; uploadedAt: string };
+type StoredUpgradeDocument = UpgradeDocument & { memberId: string; requestId: string; dataBase64: string };
+const DOCUMENTS = "member-upgrade-documents";
+const assignedRole = (target: LegacyTarget) => target === "artist" ? "artists" : target === "expert" ? "education" : "csr";
+const allowedMimeTypes = new Set([
+  "application/pdf",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+]);
+const maxFileBytes = 2 * 1024 * 1024;
+const maxTotalBytes = 4 * 1024 * 1024;
+const maxFiles = 4;
 
 function session(request: NextRequest) {
   const user = decodeSession(request.cookies.get(COOKIE_NAME)?.value);
   if (!user) return { user: null, response: NextResponse.json({ error: "برای ادامه وارد سامانه شوید." }, { status: 401 }) };
-  if (!["artists", "csr", "members", "ceo", "deputy"].includes(user.role)) {
+  if (!["artists", "education", "csr", "members", "ceo", "deputy"].includes(user.role)) {
     return { user: null, response: NextResponse.json({ error: "دسترسی به درخواست‌های ارتقا مجاز نیست." }, { status: 403 }) };
   }
   return { user, response: null };
@@ -25,10 +41,18 @@ export async function GET(request: NextRequest) {
   try {
     const members: MemberRecord[] = await readMembers();
     const visible = members.flatMap(member => (member.upgradeRequests || [])
-      .filter(item => auth.user!.role === "ceo" || auth.user!.role === "deputy" || auth.user!.role === "members" || item.assignedRole === auth.user!.role)
-      .map(item => ({ ...item, member: { id: member.id, fullName: member.fullName, email: member.email, phone: member.phone, city: member.city, membershipTier: member.membershipTier || "affiliate", membershipGrade: member.membershipGrade || "volunteer", pointsBalance: member.pointsBalance || 0, expertise: member.expertise, biography: member.biography, artistProfile: member.artistProfile || {}, expertProfile: member.expertProfile || {} } })));
+      .filter(item => ["ceo", "deputy", "members"].includes(auth.user!.role) || item.assignedRole === auth.user!.role)
+      .map(item => ({ ...item, member: {
+        id: member.id, fullName: member.fullName, email: member.email, phone: member.phone,
+        city: member.city, membershipTier: member.membershipTier || "affiliate",
+        membershipGrade: member.membershipRank || member.membershipGrade || "volunteer",
+        membershipRank: member.membershipRank || member.membershipGrade || "volunteer",
+        professionalMemberships: member.professionalMemberships || [],
+        pointsBalance: member.pointsBalance || 0, expertise: member.expertise, biography: member.biography,
+        artistProfile: member.artistProfile || {}, expertProfile: member.expertProfile || {},
+      } })));
     visible.sort((a,b) => b.submittedAt.localeCompare(a.submittedAt));
-    return NextResponse.json({ items: visible });
+    return NextResponse.json({ items: visible }, { headers: { "Cache-Control": "private, no-store" } });
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : "دریافت درخواست‌ها ناموفق بود." }, { status: 503 });
   }
@@ -38,37 +62,98 @@ export async function POST(request: NextRequest) {
   const user = decodeSession(request.cookies.get(COOKIE_NAME)?.value);
   if (!user) return NextResponse.json({ error: "برای ادامه وارد سامانه شوید." }, { status: 401 });
   if (user.role !== "member" || !user.memberId) return NextResponse.json({ error: "ثبت درخواست ارتقا فقط از حساب عضو امکان‌پذیر است." }, { status: 403 });
+
+  const newlyStoredIds: string[] = [];
   try {
-    const body = await request.json() as { target?: Target; headline?: string; education?: string; educationField?: string; experience?: string; specialties?: string; portfolio?: string; resumeText?: string; biography?: string; website?: string };
-    const target = body.target;
-    if (!target || !["artist", "expert", "consultant"].includes(target)) return NextResponse.json({ error: "مسیر ارتقا معتبر نیست." }, { status: 400 });
+    const form = await request.formData();
+    const target = String(form.get("target") || "") as Target;
+    if (!["artist", "expert"].includes(target)) return NextResponse.json({ error: "مسیر ارتقا معتبر نیست. فقط هنرمند یا متخصص قابل درخواست است." }, { status: 400 });
+
     const members = await readMembers();
     const member = members.find(item => item.id === user.memberId);
     if (!member || member.status !== "active") return NextResponse.json({ error: "پرونده عضو فعال پیدا نشد." }, { status: 404 });
-    if ((member.upgradeRequests || []).some(item => item.target === target && (item.status === "pending" || item.status === "needs_info"))) {
-      return NextResponse.json({ error: "برای این مسیر، درخواست باز دارید. ابتدا همان درخواست را تکمیل کنید." }, { status: 409 });
+    const currentRank = member.membershipRank || member.membershipGrade || "volunteer";
+    if (currentRank !== "volunteer") {
+      return NextResponse.json({ error: "درخواست عنوان هنرمند یا متخصص فقط برای عضو وابسته در رده «داوطلب» فعال است. این مسیر از ارتقای رده عضویت جداست." }, { status: 409 });
     }
+
+    const headline = String(form.get("headline") || "").trim().slice(0, 160);
+    const education = String(form.get("education") || "").trim().slice(0, 1200);
+    const educationField = String(form.get("educationField") || "").trim().slice(0, 160);
+    const experience = String(form.get("experience") || "").trim().slice(0, 5000);
+    const specialtiesRaw = String(form.get("specialties") || "").trim().slice(0, 1200);
+    const portfolio = String(form.get("portfolio") || "").trim().slice(0, 2000);
+    const website = String(form.get("website") || "").trim().slice(0, 300);
+    const resumeText = String(form.get("resumeText") || "").trim().slice(0, 8000);
+    const biography = String(form.get("biography") || member.biography || "").trim().slice(0, 3000);
+    if (!headline || !education || !experience || !specialtiesRaw) {
+      return NextResponse.json({ error: "عنوان حرفه‌ای، حوزه تخصص، تحصیلات و سوابق کاری را کامل کنید." }, { status: 400 });
+    }
+    if (website && !/^https?:\/\//i.test(website)) {
+      return NextResponse.json({ error: "نشانی وب‌سایت باید با https:// یا http:// شروع شود." }, { status: 400 });
+    }
+
+    const existingRequests = member.upgradeRequests || [];
+    const open = existingRequests.find(item => item.target === target && (item.status === "pending" || item.status === "needs_info"));
+    if (open?.status === "pending") {
+      return NextResponse.json({ error: "درخواست شما در حال بررسی است؛ درخواست تکراری ثبت نکنید." }, { status: 409 });
+    }
+    const requestId = open?.id || randomUUID();
+    const assigned = assignedRole(target);
+    const files = form.getAll("documents").filter((value): value is File => value instanceof File && value.size > 0);
+    if (!files.length && !open?.documents?.length) return NextResponse.json({ error: "برای بررسی درخواست، دست‌کم یک فایل رزومه، مدرک یا نمونه‌کار پیوست کنید." }, { status: 400 });
+    if (files.length > maxFiles) return NextResponse.json({ error: "حداکثر ۴ فایل می‌توانید پیوست کنید." }, { status: 413 });
+    const totalBytes = files.reduce((sum, file) => sum + file.size, 0);
+    if (totalBytes > maxTotalBytes || files.some(file => file.size > maxFileBytes)) {
+      return NextResponse.json({ error: "حجم هر فایل حداکثر ۲ مگابایت و مجموع فایل‌ها حداکثر ۴ مگابایت است." }, { status: 413 });
+    }
+    for (const file of files) {
+      if (!allowedMimeTypes.has(file.type)) {
+        return NextResponse.json({ error: "فقط فایل‌های PDF، Word و تصویرهای JPG، PNG یا WEBP پذیرفته می‌شوند." }, { status: 415 });
+      }
+    }
+
+    const uploadedAt = new Date().toISOString();
+    const documents: UpgradeDocument[] = [];
+    for (const file of files) {
+      const id = randomUUID();
+      const document: StoredUpgradeDocument = {
+        id, memberId: member.id, requestId,
+        fileName: file.name.replace(/[\\/\\u0000-\\u001f]/g, "_").slice(0, 180) || "document",
+        mimeType: file.type, size: file.size, uploadedAt,
+        dataBase64: Buffer.from(await file.arrayBuffer()).toString("base64"),
+      };
+      await putStored(DOCUMENTS, document);
+      newlyStoredIds.push(id);
+      documents.push({ id, fileName: document.fileName, mimeType: document.mimeType, size: document.size, uploadedAt });
+    }
+
     const profile = {
       ...(target === "artist" ? (member.artistProfile || {}) : (member.expertProfile || {})),
-      headline: String(body.headline || "").trim().slice(0, 160),
-      education: String(body.education || "").trim().slice(0, 1200),
-      educationField: String(body.educationField || "").trim().slice(0, 160),
-      experience: String(body.experience || "").trim().slice(0, 5000),
-      specialties: String(body.specialties || "").split(/[،,\n]/).map(item => item.trim()).filter(Boolean).slice(0, 30),
-      portfolio: String(body.portfolio || "").trim().slice(0, 2000),
-      website: String(body.website || "").trim().slice(0, 300),
-      resumeText: String(body.resumeText || "").trim().slice(0, 8000),
-      biography: String(body.biography || member.biography || "").trim().slice(0, 3000),
-      submittedAt: new Date().toISOString(),
-      verified: false,
+      headline, education, educationField, experience,
+      specialties: specialtiesRaw.split(/[،,\n]/).map(item => item.trim()).filter(Boolean).slice(0, 30),
+      portfolio, website, resumeText, biography,
+      submittedAt: uploadedAt, verified: false,
     };
-    const item = { id: randomUUID(), target, status: "pending" as const, assignedRole: assignedRole(target), submittedAt: new Date().toISOString() };
+    const requestItem = {
+      ...(open || {}),
+      id: requestId, target, status: "pending" as const, assignedRole: assigned,
+      submittedAt: uploadedAt, documents: [...(open?.documents || []), ...documents],
+      reviewer: undefined, reviewedAt: undefined, note: undefined,
+    };
+    const updatedRequests = open
+      ? existingRequests.map(item => item.id === open.id ? requestItem : item)
+      : [...existingRequests, requestItem];
     const updated = await updateRecord("member", member.id, {
       ...(target === "artist" ? { artistProfile: profile } : { expertProfile: profile }),
-      upgradeRequests: [...(member.upgradeRequests || []), item],
+      upgradeRequests: updatedRequests,
+      membershipType: "affiliate",
+      membershipTier: "affiliate",
     }, { username: user.username });
-    return NextResponse.json({ request: item, member: updated }, { status: 201, headers: { "Cache-Control": "private, no-store" } });
+    if (!updated) throw new Error("ثبت پرونده حرفه‌ای انجام نشد.");
+    return NextResponse.json({ request: requestItem, member: updated }, { status: open ? 200 : 201, headers: { "Cache-Control": "private, no-store" } });
   } catch (error) {
+    await Promise.all(newlyStoredIds.map(id => deleteStored(DOCUMENTS, id).catch(() => undefined)));
     return NextResponse.json({ error: error instanceof Error ? error.message : "ثبت درخواست ارتقا انجام نشد." }, { status: 400 });
   }
 }
@@ -87,8 +172,8 @@ export async function PATCH(request: NextRequest) {
     const requests = member.upgradeRequests || [];
     const current = requests.find(item => item.id === body.requestId);
     if (!current) return NextResponse.json({ error: "درخواست ارتقا پیدا نشد." }, { status: 404 });
-    if (!["ceo", "deputy", "members"].includes(auth.user.role) && current.assignedRole !== auth.user.role) {
-      return NextResponse.json({ error: "این درخواست به کارتابل واحد شما ارجاع نشده است." }, { status: 403 });
+    if (!["ceo", "deputy"].includes(auth.user.role) && current.assignedRole !== auth.user.role) {
+      return NextResponse.json({ error: "این درخواست فقط در کارتابل معاونت ارجاع‌شده قابل تصمیم‌گیری است." }, { status: 403 });
     }
     if (current.status !== "pending" && current.status !== "needs_info") {
       return NextResponse.json({ error: "این درخواست قبلاً تعیین تکلیف شده است." }, { status: 409 });
@@ -97,12 +182,15 @@ export async function PATCH(request: NextRequest) {
     if (["rejected", "needs_info"].includes(body.status!) && !note) {
       return NextResponse.json({ error: "برای رد یا درخواست تکمیل، درج توضیح الزامی است." }, { status: 400 });
     }
-    const updatedRequests = requests.map(item => item.id === current.id ? { ...item, status: body.status!, reviewedAt: new Date().toISOString(), reviewer: auth.user!.name, note } : item);
-    const patch: Record<string, unknown> = { upgradeRequests: updatedRequests };
+    const reviewedAt = new Date().toISOString();
+    const updatedRequests = requests.map(item => item.id === current.id ? { ...item, status: body.status!, reviewedAt, reviewer: auth.user!.name, note } : item);
+    const patch: Record<string, unknown> = { upgradeRequests: updatedRequests, membershipType: "affiliate", membershipTier: "affiliate" };
     if (body.status === "approved" && current.target === "artist") {
-      patch.artistProfile = { ...(member.artistProfile || {}), verified: true, verifiedAt: new Date().toISOString(), verifiedBy: auth.user.name };
-    } else if (body.status === "approved" && (current.target === "expert" || current.target === "consultant")) {
-      patch.expertProfile = { ...(member.expertProfile || {}), designation: current.target, verified: true, verifiedAt: new Date().toISOString(), verifiedBy: auth.user.name };
+      patch.artistProfile = { ...(member.artistProfile || {}), verified: true, verifiedAt: reviewedAt, verifiedBy: auth.user.name };
+      patch.professionalMemberships = Array.from(new Set([...(member.professionalMemberships || []), "artist"]));
+    } else if (body.status === "approved" && current.target === "expert") {
+      patch.expertProfile = { ...(member.expertProfile || {}), designation: "expert", verified: true, verifiedAt: reviewedAt, verifiedBy: auth.user.name };
+      patch.professionalMemberships = Array.from(new Set([...(member.professionalMemberships || []), "expert"]));
     }
     const updated = await updateRecord("member", member.id, patch, { username: auth.user.username });
     const updatedMember = updated as MemberRecord | null;
