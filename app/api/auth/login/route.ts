@@ -31,13 +31,14 @@ export async function POST(request: Request) {
     }
 
     const response = NextResponse.json({
-      user: { username: user.username, name: user.name, role: user.role },
+      user: { username: user.username, name: user.name, role: user.role, ...(user.memberId ? { memberId: user.memberId } : {}) },
     });
 
     response.cookies.set(COOKIE_NAME, encodeSession({
       username: user.username,
       name: user.name,
       role: user.role,
+      ...(user.memberId ? { memberId: user.memberId } : {}),
     }), {
       httpOnly: true,
       sameSite: "lax",

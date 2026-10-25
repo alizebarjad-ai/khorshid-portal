@@ -10,13 +10,15 @@ export type UserRole =
   | "media"
   | "artists"
   | "education"
-  | "members";
+  | "members"
+  | "member";
 
 export type SessionUser = {
   username: string;
   name: string;
   role: UserRole;
   beneficiaryName?: string;
+  memberId?: string;
 };
 
 export const ROLE_LABELS: Record<UserRole, string> = {
@@ -30,6 +32,7 @@ export const ROLE_LABELS: Record<UserRole, string> = {
   artists: "معاونت امور هنرمندان",
   education: "معاونت آموزش، پژوهش و نوآوری",
   members: "معاونت مفاخر و امور اعضا",
+  member: "عضو خورشید",
 };
 
 const COOKIE_NAME = "khorshid_session";
@@ -66,7 +69,7 @@ export function decodeSession(value?: string | null): SessionUser | null {
   }
 }
 
-type ConfiguredUser = { username: string; password: string; name: string; role: UserRole };
+type ConfiguredUser = { username: string; password: string; name: string; role: UserRole; memberId?: string };
 
 export function getConfiguredUsers() {
   const managementUsers: ConfiguredUser[] = [
@@ -112,7 +115,14 @@ export function getConfiguredUsers() {
       beneficiaryUsers.push({ username: "user", password: "1234", name: "ذی‌نفع آزمایشی", role: "beneficiary" });
     }
   } catch {}
-  return [...managementUsers, ...unitUsers, ...beneficiaryUsers];
+  let memberUsers: ConfiguredUser[] = [];
+  try {
+    const raw = process.env.AUTH_MEMBER_ACCOUNTS_JSON || "[]";
+    const parsed = JSON.parse(raw) as Array<{ username: string; password: string; name: string; memberId: string }>;
+    memberUsers = parsed.filter((item) => item.username && item.password && item.name && item.memberId)
+      .map((item) => ({ ...item, role: "member" }));
+  } catch {}
+  return [...managementUsers, ...unitUsers, ...beneficiaryUsers, ...memberUsers];
 }
 
 export { COOKIE_NAME };

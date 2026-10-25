@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { COOKIE_NAME, decodeSession } from "@/lib/auth";
 import { createRecord, deleteRecord, readClubs, readMembers, updateRecord } from "@/lib/records-store";
+import { mergeClubCatalog } from "@/lib/club-catalog";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -20,7 +21,7 @@ export async function GET(request: NextRequest) {
   if (!auth.user) return auth.response!;
   try {
     const [members, clubs] = await Promise.all([readMembers(), readClubs()]);
-    return NextResponse.json({ members, clubs });
+    return NextResponse.json({ members, clubs: mergeClubCatalog(clubs as unknown as Array<Record<string, unknown>>) });
   } catch (error) {
     console.error("Records GET failed", error);
     return NextResponse.json({ error: error instanceof Error ? error.message : "دریافت اطلاعات انجام نشد." }, { status: 503 });
