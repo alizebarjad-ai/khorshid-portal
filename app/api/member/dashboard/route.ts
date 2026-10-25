@@ -43,21 +43,32 @@ export async function GET(request: NextRequest) {
     const clubIds = new Set(member.clubIds || []);
     const now = Date.now();
     const websiteBase = (process.env.KHORSHID_WEBSITE_BASE_URL || "https://www.khorshid-mafakher.ir").replace(/\/$/, "");
+    // Keep portal club records aligned with the eight canonical slugs used by the main website.
+    // Normalize Persian/Arabic spelling and zero-width joiners before matching older club names.
+    const normalizeClubName = (value: string) => value
+      .replace(/[\u200c\u200d\u200e\u200f\ufeff]/g, "")
+      .replace(/ي/g, "ی")
+      .replace(/ك/g, "ک")
+      .replace(/[ـ،؛:]/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
     const clubSlugsByName = [
-      { match: "رسانه", slug: "media" },
-      { match: "سینما", slug: "cinema" },
-      { match: "موسیقی", slug: "music" },
-      { match: "ادبیات", slug: "art" },
-      { match: "تجسمی", slug: "visual" },
-      { match: "مسئولیت اجتماعی", slug: "responsibility" },
-      { match: "آموزش", slug: "education" },
-      { match: "توسعه", slug: "partnership" },
-      { match: "شبکه‌سازی", slug: "partnership" },
+      { slug: "media", aliases: ["رسانه و تولید محتوا", "رسانه"] },
+      { slug: "cinema", aliases: ["سینما و تئاتر", "سینما", "تئاتر"] },
+      { slug: "music", aliases: ["موسیقی"] },
+      { slug: "art", aliases: ["ادبیات"] },
+      { slug: "visual", aliases: ["هنرهای تجسمی و طراحی", "هنرهای تجسمی", "تجسمی"] },
+      { slug: "responsibility", aliases: ["مسئولیت اجتماعی"] },
+      { slug: "education", aliases: ["آموزش"] },
+      { slug: "partnership", aliases: ["توسعه و شبکه سازی", "شبکه سازی", "توسعه"] },
     ];
     const memberClubSlugs = new Set(clubRecords
       .filter((club) => clubIds.has(club.id))
       .flatMap((club) => {
-        const found = clubSlugsByName.find((entry) => club.name.includes(entry.match));
+        const name = normalizeClubName(club.name);
+        const found = clubSlugsByName.find((entry) =>
+          entry.aliases.some((alias) => name.includes(normalizeClubName(alias)))
+        );
         return found ? [found.slug] : [];
       }));
     let siteContent: SiteContentItem[] = [];
