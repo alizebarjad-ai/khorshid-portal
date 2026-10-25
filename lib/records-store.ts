@@ -9,7 +9,7 @@ export type MemberRecord = {
   id: string;
   kind: "member";
   fullName: string;
-  memberType: "artist" | "figure" | "supporter" | "expert" | "organization";
+  memberType: "individual" | "artist" | "figure" | "supporter" | "expert" | "organization" | "media";
   membershipTier?: MembershipTier;
   membershipGrade?: MembershipGrade;
   pointsBalance?: number;
