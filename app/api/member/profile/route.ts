@@ -35,3 +35,55 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ error: error instanceof Error ? error.message : "ذخیره پروفایل انجام نشد." }, { status: 400 });
   }
 }
+
+
+export async function POST(request: NextRequest) {
+  const auth = currentMember(request);
+  if (!auth.user) return auth.response!;
+  try {
+    const body = await request.json() as {
+      target?: unknown; headline?: unknown; specialties?: unknown; education?: unknown;
+      experience?: unknown; portfolio?: unknown; biography?: unknown; website?: unknown;
+    };
+    const target = body.target;
+    if (target !== "artist" && target !== "expert" && target !== "consultant") {
+      return NextResponse.json({ error: "نوع درخواست ارتقا معتبر نیست." }, { status: 400 });
+    }
+    const text = (value: unknown, max: number) => typeof value === "string" ? value.trim().slice(0, max) : "";
+    const headline = text(body.headline, 160);
+    const specialties = text(body.specialties, 1200);
+    const education = text(body.education, 1200);
+    const experience = text(body.experience, 3000);
+    const portfolio = text(body.portfolio, 2000);
+    const biography = text(body.biography, 3000);
+    const website = text(body.website, 300);
+    if (!headline || !specialties || !education || !experience) {
+      return NextResponse.json({ error: "عنوان حرفه‌ای، تخصص‌ها، تحصیلات و سوابق کاری الزامی هستند." }, { status: 400 });
+    }
+    const members = await readMembers();
+    const member = members.find(item => item.id === auth.user!.memberId);
+    if (!member || member.status !== "active") return NextResponse.json({ error: "پرونده عضو فعال پیدا نشد." }, { status: 404 });
+    const requests = member.upgradeRequests || [];
+    if (requests.some(item => item.target === target && item.status === "pending")) {
+      return NextResponse.json({ error: "برای این عنوان، یک درخواست در حال بررسی دارید." }, { status: 409 });
+    }
+    const now = new Date().toISOString();
+    const assignedRole = target === "artist" ? "artists" as const : "csr" as const;
+    const requestItem = {
+      id: crypto.randomUUID(),
+      target,
+      status: "pending" as const,
+      assignedRole,
+      submittedAt: now,
+      note: ""
+    };
+    const profileData = { headline, specialties, education, experience, portfolio, biography, website, updatedAt: now };
+    const updated = await updateRecord("member", member.id, {
+      upgradeRequests: [...requests, requestItem],
+      ...(target === "artist" ? { artistProfile: profileData } : { expertProfile: profileData })
+    }, { username: auth.user.username });
+    return NextResponse.json({ member: updated ? { upgradeRequests: updated.upgradeRequests || [], artistProfile: updated.artistProfile || {}, expertProfile: updated.expertProfile || {} } : null }, { status: 201 });
+  } catch (error) {
+    return NextResponse.json({ error: error instanceof Error ? error.message : "ثبت درخواست ارتقا انجام نشد." }, { status: 400 });
+  }
+}
