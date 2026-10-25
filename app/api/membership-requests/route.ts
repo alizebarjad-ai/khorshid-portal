@@ -55,7 +55,23 @@ export async function PATCH(request: NextRequest) {
       const linked = members.find((m) => (m.sourceApplicationIds || []).includes(String(application.id)));
       const existing = linked;
       const inferredMemberType = application.audience === "media" ? "media" : application.audience === "organization" ? "organization" : application.audience === "individual" ? "individual" : application.type === "sponsor" ? "supporter" : "individual";
-      const profileData = { fullName: application.name, memberType: existing ? existing.memberType : inferredMemberType, membershipTier: application.membershipTier, supplementalData: application.supplementalData || {}, status: existing ? existing.status : "pending", phone: application.phone, email: application.email, city: application.city || "", expertise: application.artField || application.area || "", biography: application.message || "", sourceApplicationId: application.id, notes: "پرونده از درخواست عضویت سایت ایجاد/به‌روزرسانی شده است. شناسه درخواست: " + application.id + (application.supplementalData ? "؛ اطلاعات تکمیلی: " + JSON.stringify(application.supplementalData) : "") };
+      const applicationSupplemental = application.supplementalData && typeof application.supplementalData === "object" && !Array.isArray(application.supplementalData) ? application.supplementalData as Record<string, unknown> : {};
+      const { clubIds: selectedClubIds, clubNames: selectedClubNames, ...memberSupplementalData } = applicationSupplemental;
+      const profileData = {
+        fullName: application.name,
+        memberType: existing ? existing.memberType : inferredMemberType,
+        membershipTier: application.membershipTier,
+        supplementalData: memberSupplementalData as Record<string, string>,
+        clubIds: Array.isArray(selectedClubIds) ? selectedClubIds.map(String).slice(0, 50) : existing?.clubIds || [],
+        status: existing ? existing.status : "pending",
+        phone: application.phone,
+        email: application.email,
+        city: application.city || "",
+        expertise: application.artField || application.area || "",
+        biography: application.message || "",
+        sourceApplicationId: application.id,
+        notes: "پرونده از درخواست عضویت سایت ایجاد/به‌روزرسانی شده است. شناسه درخواست: " + application.id + (Array.isArray(selectedClubNames) && selectedClubNames.length ? "؛ باشگاه‌های انتخاب‌شده: " + selectedClubNames.map(String).join("، ") : "") + (Object.keys(memberSupplementalData).length ? "؛ اطلاعات تکمیلی: " + JSON.stringify(memberSupplementalData) : ""),
+      };
       if (existing) await updateRecord("member", existing.id, profileData, { username: checked.user.username });
       else await createRecord("member", profileData, { username: checked.user.username });
     }
