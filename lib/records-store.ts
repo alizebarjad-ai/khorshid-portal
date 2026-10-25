@@ -97,6 +97,7 @@ async function readRecords<T extends StoredRecord>(kind: "member" | "club"): Pro
       membershipType: "affiliate" as const,
       membershipTier: "affiliate" as const,
       membershipRank: isMembershipRank(member.membershipRank) ? member.membershipRank : (isMembershipGrade(member.membershipGrade) ? member.membershipGrade : "volunteer" as const),
+      membershipGrade: isMembershipGrade(member.membershipGrade) ? member.membershipGrade : (isMembershipRank(member.membershipRank) ? member.membershipRank : "volunteer" as const),
       rankHistory: Array.isArray(member.rankHistory) ? member.rankHistory : [],
     } as unknown as T;
   });
@@ -169,17 +170,23 @@ export async function updateRecord(kind: "member" | "club", id: string, data: Re
   const now = new Date().toISOString();
   if (kind === "member") {
     const old = existing as MemberRecord;
+    const requestedRank: MembershipRank | undefined = isMembershipRank(data.membershipRank)
+      ? data.membershipRank
+      : isMembershipGrade(data.membershipGrade) ? data.membershipGrade : undefined;
+    const oldRank: MembershipRank = isMembershipRank(old.membershipRank)
+      ? old.membershipRank
+      : isMembershipGrade(old.membershipGrade) ? old.membershipGrade : "volunteer";
     const next: MemberRecord = {
       ...old,
       fullName: String(data.fullName ?? old.fullName).trim(),
       memberType: (data.memberType ?? old.memberType) as MemberRecord["memberType"],
       membershipType: "affiliate",
       membershipTier: "affiliate",
-      ...(isMembershipGrade(data.membershipGrade) ? { membershipGrade: data.membershipGrade } : {}),
-      ...(isMembershipRank(data.membershipRank) ? {
-        membershipRank: data.membershipRank,
-        rankHistory: data.membershipRank !== old.membershipRank
-          ? [...(old.rankHistory || []), { from: isMembershipRank(old.membershipRank) ? old.membershipRank : null, to: data.membershipRank, at: now, actor: actor.username, reason: String(data.rankReason || "تغییر رده عضویت").slice(0, 500) }]
+      ...(requestedRank ? {
+        membershipRank: requestedRank,
+        membershipGrade: requestedRank,
+        rankHistory: requestedRank !== oldRank
+          ? [...(old.rankHistory || []), { from: oldRank, to: requestedRank, at: now, actor: actor.username, reason: String(data.rankReason || "تغییر رده عضویت").slice(0, 500) }]
           : (old.rankHistory || []),
       } : {}),
       ...(Number.isFinite(Number(data.pointsBalance)) && data.pointsBalance !== undefined ? { pointsBalance: Math.max(0, Number(data.pointsBalance)) } : {}),
