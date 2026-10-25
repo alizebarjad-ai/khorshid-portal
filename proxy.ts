@@ -9,14 +9,30 @@ const PASSWORD_ALLOWED = new Set([
   "/internal/change-password",
 ]);
 const OWNER_ALLOWED_PREFIXES = ["/internal/owner", "/api/owner/"];
+const MEMBER_ALLOWED_PATHS = new Set([
+  "/internal/member-home",
+  "/internal/change-password",
+  "/api/auth/me",
+  "/api/auth/logout",
+  "/api/auth/change-password",
+  "/api/member/profile",
+  "/api/member/dashboard",
+]);
 
 export async function proxy(request: NextRequest) {
   const path = request.nextUrl.pathname;
-  if (path === "/api/auth/login") return NextResponse.next();
+  if (path === "/api/auth/login" || path === "/api/auth/activate") return NextResponse.next();
 
   const token = request.cookies.get(COOKIE_NAME)?.value;
   const user = decodeSession(token);
   if (!user) return NextResponse.next();
+
+  if (user.role === "member" && !MEMBER_ALLOWED_PATHS.has(path)) {
+    const response = path.startsWith("/api/")
+      ? NextResponse.json({ error: "این بخش برای حساب عضو در دسترس نیست." }, { status: 403 })
+      : NextResponse.redirect(new URL("/internal/member-home", request.url));
+    return response;
+  }
 
   if (user.role !== "member" && user.role !== "beneficiary") {
     try {
