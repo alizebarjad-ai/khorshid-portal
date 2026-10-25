@@ -44,13 +44,12 @@ export async function GET(request: NextRequest) {
     const validMemberIds = new Set(members.map((member) => member.id));
     const filtered = entries
       .filter((entry) => validMemberIds.has(entry.memberId) && (!memberId || entry.memberId === memberId))
-      .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
-      .slice(0, memberId ? 200 : 3000);
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
     const pointsByMember: Record<string, { balance: number; events: PointEntry[] }> = {};
     for (const entry of filtered) {
       if (!pointsByMember[entry.memberId]) pointsByMember[entry.memberId] = { balance: 0, events: [] };
       pointsByMember[entry.memberId].balance += Number(entry.points) || 0;
-      pointsByMember[entry.memberId].events.push(entry);
+      if (pointsByMember[entry.memberId].events.length < 200) pointsByMember[entry.memberId].events.push(entry);
     }
     return NextResponse.json({ pointsByMember }, { headers: { "Cache-Control": "private, no-store, max-age=0" } });
   } catch (error) {
