@@ -107,6 +107,7 @@ const CONFIG: Record<ManagementRole, DashboardConfig> = {
     actions: [
       { label: "پرونده‌های اجتماعی", description: "پیگیری پروژه‌های ارجاع‌شده به واحد", href: "/internal/opportunities", primary: true },
       { label: "کارتابل ارتقای متخصصان و مشاوران", description: "بررسی درخواست‌های تخصص و مشاوره و تأیید پروفایل", href: "/internal/member-upgrades", primary: true },
+      { label: "بانک تخصص و مشاوران", description: "جست‌وجو در پروفایل متخصصان و مشاوران تأییدشده برای پروژه‌ها", href: "/internal/expertise-directory", primary: true },
       { label: "ثبت پیشنهاد اجتماعی", description: "ثبت نیاز یا ایده برای پروژه حمایتی", href: "/internal/submit-proposal" },
     ],
     attentionStatuses: ["تشکیل تیم پروژه", "در حال تدوین طرح و پروپوزال", "نیازمند تکمیل"],
@@ -122,6 +123,7 @@ const CONFIG: Record<ManagementRole, DashboardConfig> = {
     priorities: ["پیگیری پروژه‌های رسانه‌ای ارجاع‌شده", "تعیین خروجی، قالب، زمان‌بندی و نیازهای تولید", "هماهنگی انتشار و مستندسازی نتایج"],
     actions: [
       { label: "پرونده‌های رسانه‌ای", description: "پیگیری پروژه‌های ارجاع‌شده به واحد", href: "/internal/opportunities", primary: true },
+      { label: "کارتابل محتوای اعضا", description: "بررسی متن، تصویر و ویدیوی ارسالی و ارجاع محتوای تأییدشده به ادمین", href: "/internal/content-review", primary: true },
       { label: "ثبت پیشنهاد رسانه‌ای", description: "ثبت ایده تولید محتوا یا همکاری رسانه‌ای", href: "/internal/submit-proposal" },
     ],
     attentionStatuses: ["تشکیل تیم پروژه", "در حال تدوین طرح و پروپوزال", "نیازمند تکمیل"],
