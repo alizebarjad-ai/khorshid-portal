@@ -235,7 +235,9 @@ export default function RoleDashboard({ role }: { role: ManagementRole }) {
   const router = useRouter();
   const config = CONFIG[role];
   const [items, setItems] = useState<Opportunity[]>([]);
-  const [clubSummary, setClubSummary] = useState<ClubSummary | null>(null);\n  const [membershipOverview, setMembershipOverview] = useState<MembershipOverview | null>(null);\n  const [upgradeItems, setUpgradeItems] = useState<MembershipOverview["upgrades"]>([]);
+  const [clubSummary, setClubSummary] = useState<ClubSummary | null>(null);
+  const [membershipOverview, setMembershipOverview] = useState<MembershipOverview | null>(null);
+  const [upgradeItems, setUpgradeItems] = useState<MembershipOverview["upgrades"]>([]);
   const [userName, setUserName] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
