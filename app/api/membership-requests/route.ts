@@ -76,7 +76,13 @@ async function patchMembershipRequest(request: NextRequest) {
     // Email and phone are not unique identifiers: different members may share contact details.
     // Matching on either field silently overwrote a different member during approval.
     const linked = members.find((member) => (member.sourceApplicationIds || []).includes(sourceId));
-    const existing = linked;
+    const normalizeName = (value: unknown) => String(value || "").trim().replace(/\s+/g, " ").toLocaleLowerCase();
+    // Older versions could attach multiple applications to one profile by shared contact details.
+    // If the linked profile belongs to a different name, do not overwrite it again; create a
+    // separate profile for this application so retrying approval can recover the earlier member.
+    const existing = linked && normalizeName(linked.fullName) === normalizeName(application.name)
+      ? linked
+      : undefined;
     const inferredMemberType = application.audience === "artist"
       ? "artist"
       : (["company", "government"].includes(application.audience) || application.type === "organization")
