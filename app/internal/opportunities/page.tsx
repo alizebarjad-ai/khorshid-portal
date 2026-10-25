@@ -27,7 +27,11 @@ export default function OpportunitiesPage(){
     const response=await fetch("/api/opportunities",{cache:"no-store"});
     const data=await response.json();
     if(!response.ok)throw new Error(data.error||"خطا در دریافت کارتابل");
-    setItems((data.items||[]).map(normalize));
+    const normalizedItems = (data.items||[]).map(normalize) as Proposal[];
+    setItems(normalizedItems);
+    const requestedId = new URLSearchParams(window.location.search).get("id");
+    if (requestedId && normalizedItems.some((item) => item.id === requestedId)) setSelected(requestedId);
+    else if (normalizedItems.length) setSelected((current) => current && normalizedItems.some((item) => item.id === current) ? current : normalizedItems[0].id);
    }catch{location.href="/login";}
    finally{setLoading(false);}
   }

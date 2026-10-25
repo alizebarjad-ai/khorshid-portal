@@ -17,10 +17,24 @@ type Opportunity = {
   assignedToName?: string;
   creatorName?: string;
   expectedValue?: number;
+  proposedPrice?: number;
   contractValue?: number;
   team?: string[];
 };
 
+type ClubSummary = {
+  totals: { members: number; activeMembers: number; clubs: number; activeClubs: number };
+  clubs: Array<{ id: string; name: string; status: string; source: string; memberCount: number; activeMemberCount: number }>;
+  upcomingPrograms: Array<{ id: string; title: string; dateLabel: string; isoDate: string; clubNames: string[]; href: string; description: string }>;
+  feedAvailable: boolean;
+};
+
+type MembershipOverview = {
+  members: Array<{ id: string; fullName?: string; status?: string; clubIds?: string[] }>;
+  clubs: Array<{ id: string; name: string; status?: string }>;
+  requests: Array<{ id: string; name?: string; reviewStatus?: string; status?: string; createdAt?: string }>;
+  upgrades: Array<{ id: string; target?: string; status?: string; assignedRole?: string; member?: { fullName?: string } }>;
+};
 type Action = { label: string; description: string; href: string; primary?: boolean };
 type DashboardConfig = {
   title: string;
@@ -46,8 +60,9 @@ const CONFIG: Record<ManagementRole, DashboardConfig> = {
       { label: "ثبت پیشنهاد یا فرصت جدید", description: "ثبت فرصت همکاری، پروژه یا حامی جدید", href: "/internal/submit-proposal" },
       { label: "پرونده اعضا و باشگاه‌ها", description: "مدیریت اطلاعات اعضا، مفاخر و باشگاه‌های تخصصی", href: "/internal/members" },
       { label: "سامانه پرونده‌ها و پاداش", description: "مشاهده اطلاعات پروژه و پاداش‌های ثبت‌شده", href: "/internal/project-rewards" },
+      { label: "کارتابل محتوای تأییدشده", description: "دریافت محتوای ارجاع‌شده از معاون رسانه و ثبت نتیجه بارگذاری در سایت", href: "/internal/content-review", primary: true },
     ],
-    attentionStatuses: ["ارسال به مدیرعامل", "ارسال طرح نهایی به مدیرعامل", "تأیید نهایی مدیرعامل", "رد توسط مدیرعامل در مرحله اول"],
+    attentionStatuses: ["ارسال به مدیرعامل", "ارسال طرح نهایی به مدیرعامل", "تأیید نهایی مدیرعامل", "قرارداد تنظیم شد"],
     progressStatuses: ["تشکیل تیم پروژه", "در حال تدوین طرح و پروپوزال", "قیمت‌گذاری و بررسی مالی", "مذاکرات اولیه"],
     completedStatuses: ["قرارداد تنظیم شد", "ثبت پروژه"],
     emptyTitle: "پرونده‌ای برای تصمیم‌گیری ثبت نشده است",
@@ -63,7 +78,7 @@ const CONFIG: Record<ManagementRole, DashboardConfig> = {
       { label: "مدیریت اعضا و باشگاه‌ها", description: "دسترسی مدیریتی به پرونده اعضا و باشگاه‌های تخصصی", href: "/internal/members" },
       { label: "ثبت فرصت جدید", description: "ثبت فرصت‌های راهبردی و همکاری", href: "/internal/submit-proposal" },
     ],
-    attentionStatuses: ["در حال بررسی قائم‌مقام", "نیازمند تکمیل", "بازگشت به قائم‌مقام", "ثبت اولیه"],
+    attentionStatuses: ["در حال بررسی قائم‌مقام", "نیازمند تکمیل"],
     progressStatuses: ["ارسال به مدیرعامل", "تشکیل تیم پروژه", "در حال تدوین طرح و پروپوزال", "مذاکرات اولیه"],
     completedStatuses: ["قرارداد تنظیم شد", "ثبت پروژه"],
     emptyTitle: "کارتابل فعلاً خالی است",
@@ -106,6 +121,8 @@ const CONFIG: Record<ManagementRole, DashboardConfig> = {
     priorities: ["بررسی پرونده‌های اجتماعی ارجاع‌شده", "تعیین مسئله، گروه هدف و خروجی قابل سنجش", "هماهنگی با شرکا و تیم‌های اجرایی"],
     actions: [
       { label: "پرونده‌های اجتماعی", description: "پیگیری پروژه‌های ارجاع‌شده به واحد", href: "/internal/opportunities", primary: true },
+      { label: "کارتابل ارتقای متخصصان و مشاوران", description: "بررسی درخواست‌های تخصص و مشاوره و تأیید پروفایل", href: "/internal/member-upgrades", primary: true },
+      { label: "بانک تخصص و مشاوران", description: "جست‌وجو در پروفایل متخصصان و مشاوران تأییدشده برای پروژه‌ها", href: "/internal/expertise-directory", primary: true },
       { label: "ثبت پیشنهاد اجتماعی", description: "ثبت نیاز یا ایده برای پروژه حمایتی", href: "/internal/submit-proposal" },
     ],
     attentionStatuses: ["تشکیل تیم پروژه", "در حال تدوین طرح و پروپوزال", "نیازمند تکمیل"],
@@ -121,6 +138,7 @@ const CONFIG: Record<ManagementRole, DashboardConfig> = {
     priorities: ["پیگیری پروژه‌های رسانه‌ای ارجاع‌شده", "تعیین خروجی، قالب، زمان‌بندی و نیازهای تولید", "هماهنگی انتشار و مستندسازی نتایج"],
     actions: [
       { label: "پرونده‌های رسانه‌ای", description: "پیگیری پروژه‌های ارجاع‌شده به واحد", href: "/internal/opportunities", primary: true },
+      { label: "کارتابل محتوای اعضا", description: "بررسی متن، تصویر و ویدیوی ارسالی و ارجاع محتوای تأییدشده به ادمین", href: "/internal/content-review", primary: true },
       { label: "ثبت پیشنهاد رسانه‌ای", description: "ثبت ایده تولید محتوا یا همکاری رسانه‌ای", href: "/internal/submit-proposal" },
     ],
     attentionStatuses: ["تشکیل تیم پروژه", "در حال تدوین طرح و پروپوزال", "نیازمند تکمیل"],
@@ -136,6 +154,7 @@ const CONFIG: Record<ManagementRole, DashboardConfig> = {
     priorities: ["پیگیری پرونده‌های هنری و هنرمندان مرتبط", "تطبیق تخصص و ظرفیت هنرمندان با نیاز پروژه", "هماهنگی مشارکت‌ها و ثبت ملاحظات اجرایی"],
     actions: [
       { label: "پرونده‌های هنری", description: "پیگیری پرونده‌های ارجاع‌شده به واحد", href: "/internal/opportunities", primary: true },
+      { label: "کارتابل ارتقای هنرمندان", description: "بررسی درخواست‌های هنرمندی و تأیید پروفایل تخصصی", href: "/internal/member-upgrades", primary: true },
       { label: "ثبت پیشنهاد هنری", description: "ثبت ایده پروژه یا همکاری با هنرمندان", href: "/internal/submit-proposal" },
     ],
     attentionStatuses: ["تشکیل تیم پروژه", "در حال تدوین طرح و پروپوزال", "نیازمند تکمیل"],
@@ -166,6 +185,7 @@ const CONFIG: Record<ManagementRole, DashboardConfig> = {
     priorities: ["پیگیری پیشنهادها و پرونده‌های مرتبط با اعضا و مفاخر", "هماهنگی مشارکت اعضا در پروژه‌ها و برنامه‌ها", "آماده‌سازی اطلاعات موردنیاز برای مدیریت باشگاه‌ها"],
     actions: [
       { label: "مدیریت پرونده اعضا", description: "ثبت، جست‌وجو و به‌روزرسانی اطلاعات اعضا و مفاخر", href: "/internal/members", primary: true },
+      { label: "پیگیری درخواست‌های ارتقای تخصصی", description: "مشاهده وضعیت درخواست‌های هنرمندی، تخصص و مشاوره", href: "/internal/member-upgrades" },
       { label: "کارتابل درخواست‌های عضویت", description: "بررسی مدارک، تعیین نوع عضویت، درخواست تکمیل و تأیید متقاضیان سایت", href: "/internal/membership-requests", primary: true },
       { label: "مدیریت باشگاه‌ها", description: "تعریف باشگاه‌ها و مشاهده اعضای مرتبط", href: "/internal/clubs" },
       { label: "پرونده‌های مرتبط با اعضا", description: "پیگیری پرونده‌های ارجاع‌شده به واحد", href: "/internal/opportunities" },
@@ -177,9 +197,33 @@ const CONFIG: Record<ManagementRole, DashboardConfig> = {
     emptyTitle: "پرونده مرتبط با اعضا یا باشگاه‌ها وجود ندارد",
     emptyDescription: "پرونده‌های مرتبط با اعضا پس از ارجاع به واحد در اینجا نمایش داده می‌شوند.",
   },
+  member: {
+    title: "داشبورد عضو",
+    subtitle: "دسترسی به پرونده و خدمات شخصی عضویت",
+    welcome: "برای مدیریت پرونده شخصی و خدمات عضویت، از داشبورد اعضا استفاده کنید.",
+    priorities: ["تکمیل اطلاعات پرونده شخصی", "پیگیری برنامه‌های باشگاه‌ها", "ثبت درخواست ارتقای حرفه‌ای در صورت نیاز"],
+    actions: [
+      { label: "ورود به داشبورد اعضا", description: "مشاهده پرونده، برنامه‌ها و خدمات عضویت", href: "/internal/member-home", primary: true },
+    ],
+    attentionStatuses: [],
+    progressStatuses: [],
+    completedStatuses: [],
+    emptyTitle: "این بخش برای نقش عضو استفاده نمی‌شود",
+    emptyDescription: "برای خدمات شخصی، داشبورد اعضا را باز کنید.",
+  },
 };
 
 const money = (value: number) => new Intl.NumberFormat("fa-IR").format(Math.max(0, Math.round(value)));
+const countByStatuses = (items: Opportunity[], statuses: string[]) => items.filter((item) => statuses.includes(item.status || "")).length;
+const membershipStatusLabel = (status?: string) => ({
+  pending: "در انتظار بررسی",
+  submitted: "ثبت‌شده",
+  in_review: "در حال بررسی",
+  needs_revision: "نیازمند تکمیل مدارک",
+  needs_info: "نیازمند تکمیل اطلاعات",
+  approved: "تأیید شده",
+  rejected: "رد شده",
+}[String(status || "")] || "ثبت‌شده");
 
 function StatusPill({ status }: { status: string }) {
   const isDone = ["ثبت پروژه", "ثبت‌شده", "قرارداد تنظیم شد"].includes(status);
@@ -191,6 +235,9 @@ export default function RoleDashboard({ role }: { role: ManagementRole }) {
   const router = useRouter();
   const config = CONFIG[role];
   const [items, setItems] = useState<Opportunity[]>([]);
+  const [clubSummary, setClubSummary] = useState<ClubSummary | null>(null);
+  const [membershipOverview, setMembershipOverview] = useState<MembershipOverview | null>(null);
+  const [upgradeItems, setUpgradeItems] = useState<MembershipOverview["upgrades"]>([]);
   const [userName, setUserName] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -224,6 +271,7 @@ export default function RoleDashboard({ role }: { role: ManagementRole }) {
           artists: "/internal/roles/artists",
           education: "/internal/education-manager",
           members: "/internal/roles/members",
+          member: "/internal/member-home",
         };
         router.replace(pathByRole[currentRole] || "/login");
         return;
@@ -234,6 +282,45 @@ export default function RoleDashboard({ role }: { role: ManagementRole }) {
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "دریافت اطلاعات داشبورد انجام نشد.");
       setItems(Array.isArray(data.items) ? data.items : []);
+      if (["members", "ceo", "deputy"].includes(role)) {
+        try {
+          const recordsResponse = await fetch("/api/records", { cache: "no-store" });
+          const recordsData = await recordsResponse.json();
+          const requestResponse = await fetch("/api/membership-requests", { cache: "no-store" });
+          const requestData = await requestResponse.json();
+          const upgradeResponse = await fetch("/api/member-upgrades", { cache: "no-store" });
+          const upgradeData = await upgradeResponse.json();
+          if (recordsResponse.ok) {
+            setMembershipOverview({
+              members: Array.isArray(recordsData.members) ? recordsData.members : [],
+              clubs: Array.isArray(recordsData.clubs) ? recordsData.clubs : [],
+              requests: requestResponse.ok && Array.isArray(requestData.items) ? requestData.items : [],
+              upgrades: upgradeResponse.ok && Array.isArray(upgradeData.items) ? upgradeData.items : [],
+            });
+          } else setMembershipOverview(null);
+        } catch { setMembershipOverview(null); }
+      } else {
+        setMembershipOverview(null);
+      }
+      if (["members", "artists", "csr"].includes(role)) {
+        try {
+          const upgradeResponse = await fetch("/api/member-upgrades", { cache: "no-store" });
+          const upgradeData = await upgradeResponse.json();
+          setUpgradeItems(upgradeResponse.ok && Array.isArray(upgradeData.items) ? upgradeData.items : []);
+        } catch { setUpgradeItems([]); }
+      } else setUpgradeItems([]);
+      if (role === "ceo" || role === "deputy") {
+        try {
+          const summaryResponse = await fetch("/api/management/club-summary", { cache: "no-store" });
+          const summaryData = await summaryResponse.json();
+          if (summaryResponse.ok) setClubSummary(summaryData as ClubSummary);
+          else setClubSummary(null);
+        } catch {
+          setClubSummary(null);
+        }
+      } else {
+        setClubSummary(null);
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : "ارتباط با سامانه برقرار نشد.");
     } finally {
@@ -243,15 +330,126 @@ export default function RoleDashboard({ role }: { role: ManagementRole }) {
 
   useEffect(() => { void load(); }, [load]);
 
-  const metrics = useMemo(() => {
-    const count = (statuses: string[]) => items.filter((item) => statuses.includes(item.status || "")).length;
-    return {
-      total: items.length,
-      attention: count(config.attentionStatuses),
-      progress: count(config.progressStatuses),
-      completed: count(config.completedStatuses),
-    };
-  }, [config, items]);
+  const openItems = useMemo(
+    () => items.filter((item) => !["رد توسط قائم‌مقام", "رد توسط مدیرعامل در مرحله اول", "رد نهایی مدیرعامل", "ثبت پروژه", "قرارداد تنظیم شد"].includes(item.status || "")),
+    [items],
+  );
+  const openPipelineValue = useMemo(
+    () => openItems.reduce((sum, item) => sum + Math.max(0, Number(item.proposedPrice || item.expectedValue || 0)), 0),
+    [openItems],
+  );
+  const contractedValue = useMemo(
+    () => items.filter((item) => ["قرارداد تنظیم شد", "ثبت پروژه"].includes(item.status || "")).reduce((sum, item) => sum + Math.max(0, Number(item.contractValue || 0)), 0),
+    [items],
+  );
+  const metricCards = useMemo(() => {
+    if (role === "members") {
+      const members = membershipOverview?.members || [];
+      const clubs = membershipOverview?.clubs || [];
+      const requests = membershipOverview?.requests || [];
+      const pendingRequests = requests.filter((item) => !["approved", "rejected"].includes(String(item.reviewStatus || item.status || "")));
+      const pendingUpgrades = (membershipOverview?.upgrades || []).filter((item) => ["pending", "needs_info"].includes(String(item.status || "")));
+      return [
+        { label: "کل اعضا", value: money(members.length), hint: "پرونده‌های ثبت‌شده اعضا" },
+        { label: "اعضای فعال", value: money(members.filter((item) => item.status === "active").length), hint: "عضویت فعال در سامانه" },
+        { label: "باشگاه‌ها", value: money(clubs.filter((item) => item.status !== "closed").length), hint: "باشگاه‌های ثبت‌شده و قابل استفاده" },
+        { label: "درخواست‌های عضویت در انتظار", value: money(pendingRequests.length), hint: "نیازمند بررسی، تعیین نوع یا تکمیل" },
+        { label: "درخواست‌های ارتقا در جریان", value: money(pendingUpgrades.length), hint: "هنرمند، متخصص یا مشاور" },
+      ];
+    }
+    if (role === "ceo") return [
+      { label: "کل پرونده‌ها", value: money(items.length), hint: "کل سبد قابل مشاهده مدیرعامل" },
+      { label: "در انتظار تصمیم", value: money(countByStatuses(items, ["ارسال به مدیرعامل", "ارسال طرح نهایی به مدیرعامل"])), hint: "تأیید اولیه یا تصمیم نهایی" },
+      { label: "قرارداد در انتظار ثبت مالی", value: money(countByStatuses(items, ["قرارداد تنظیم شد"])), hint: "قرارداد ثبت شده، اطلاعات مالی نهایی نشده" },
+      { label: "ارزش برآوردی فرصت‌های باز", value: money(openPipelineValue), hint: "ریال · قیمت پیشنهادی یا برآورد اولیه" },
+    ];
+    if (role === "deputy") return [
+      { label: "کل پرونده‌ها", value: money(items.length), hint: "نمای کلی گردش کار" },
+      { label: "در انتظار بررسی اولیه", value: money(countByStatuses(items, ["در حال بررسی قائم‌مقام"])), hint: "تصمیم: تکمیل، رد یا ارجاع" },
+      { label: "نیازمند تکمیل", value: money(countByStatuses(items, ["نیازمند تکمیل"])), hint: "پرونده‌های برگشتی برای اصلاح" },
+      { label: "در مسیر اجرا", value: money(countByStatuses(items, ["تشکیل تیم پروژه", "در حال تدوین طرح و پروپوزال", "قیمت‌گذاری و بررسی مالی", "مذاکرات اولیه"])), hint: "پیگیری گلوگاه‌ها و هماهنگی واحدها" },
+    ];
+    if (role === "economic") return [
+      { label: "فرصت‌های ارجاع‌شده به واحد", value: money(items.length), hint: "فقط پرونده‌های تخصیص‌یافته به توسعه اقتصادی" },
+      { label: "در حال تدوین یا قیمت‌گذاری", value: money(countByStatuses(items, ["تشکیل تیم پروژه", "در حال تدوین طرح و پروپوزال", "قیمت‌گذاری و بررسی مالی"])), hint: "تکمیل پیشنهاد ارزش و برآورد مالی" },
+      { label: "در حال مذاکره", value: money(countByStatuses(items, ["مذاکرات اولیه"])), hint: "نیازمند ثبت نتیجه و گام بعدی" },
+      { label: "ارزش برآوردی فرصت‌های باز", value: money(openPipelineValue), hint: "ریال · قیمت پیشنهادی یا برآورد اولیه" },
+    ];
+    if (role === "finance") return [
+      { label: "پرونده‌های در دسترس مالی", value: money(items.length), hint: "پرونده‌های قرارداد و ثبت پروژه" },
+      { label: "آماده ثبت پروژه", value: money(countByStatuses(items, ["قرارداد تنظیم شد"])), hint: "نیازمند تکمیل ثبت مالی" },
+      { label: "پروژه‌های ثبت‌شده", value: money(countByStatuses(items, ["ثبت پروژه"])), hint: "پرونده‌های ثبت نهایی" },
+      { label: "مبلغ قراردادها", value: money(contractedValue), hint: "ریال · مبلغ ثبت‌شده در پرونده" },
+    ];
+    if (role === "artists" || role === "csr") {
+      const relevant = upgradeItems.filter((item) => role === "artists" ? item.assignedRole === "artists" || item.target === "artist" : item.assignedRole === "csr" || item.target === "expert" || item.target === "consultant");
+      return [
+        { label: "پرونده‌های ارجاع‌شده", value: money(items.length), hint: "پرونده‌های مرتبط با مأموریت واحد" },
+        { label: "درخواست‌های تخصصی در انتظار", value: money(relevant.filter((item) => ["pending", "needs_info"].includes(String(item.status || ""))).length), hint: role === "artists" ? "درخواست شناسایی و تأیید هنرمندان" : "درخواست تخصص و مشاوره" },
+        { label: "در حال پیگیری", value: money(countByStatuses(items, config.progressStatuses)), hint: "پرونده‌های فعال در مسیر اجرا" },
+        { label: "نیازمند اقدام", value: money(countByStatuses(items, config.attentionStatuses)), hint: "کارهای اولویت‌دار واحد" },
+      ];
+    }
+    const unitLabels = role === "media"
+      ? { all: "پرونده‌های رسانه‌ای", attention: "خروجی‌های نیازمند اقدام", progress: "پروژه‌های در حال تولید", completed: "پروژه‌های نهایی‌شده" }
+      : role === "education"
+        ? { all: "پرونده‌های آموزشی و پژوهشی", attention: "برنامه‌های نیازمند اقدام", progress: "برنامه‌های در حال اجرا", completed: "برنامه‌های تکمیل‌شده" }
+        : { all: "پرونده‌های در دسترس", attention: "نیازمند اقدام", progress: "در حال پیگیری", completed: "پرونده‌های نهایی‌شده" };
+    return [
+      { label: unitLabels.all, value: money(items.length), hint: "بر اساس پرونده‌های قابل مشاهده برای واحد" },
+      { label: unitLabels.attention, value: money(countByStatuses(items, config.attentionStatuses)), hint: "طبق مرحله گردش کار این نقش" },
+      { label: unitLabels.progress, value: money(countByStatuses(items, config.progressStatuses)), hint: "پرونده‌های فعال در مسیر اجرا" },
+      { label: unitLabels.completed, value: money(countByStatuses(items, config.completedStatuses)), hint: "پرونده‌های تکمیل‌شده یا ثبت نهایی" },
+    ];
+  }, [role, items, config, openPipelineValue, contractedValue, membershipOverview, upgradeItems]);
+  const reportRows = useMemo(() => {
+    if (role === "members") {
+      const requests = membershipOverview?.requests || [];
+      const upgrades = membershipOverview?.upgrades || [];
+      return [
+        { label: "در انتظار بررسی درخواست عضویت", value: requests.filter((item) => ["pending", "in_review", "needs_revision"].includes(String(item.reviewStatus || item.status || ""))).length },
+        { label: "درخواست‌های نیازمند تکمیل", value: requests.filter((item) => ["needs_revision", "needs_info"].includes(String(item.reviewStatus || item.status || ""))).length },
+        { label: "درخواست‌های تأییدشده", value: requests.filter((item) => ["approved"].includes(String(item.reviewStatus || item.status || ""))).length },
+        { label: "درخواست‌های ارتقای در انتظار بررسی", value: upgrades.filter((item) => ["pending", "needs_info"].includes(String(item.status || ""))).length },
+        { label: "درخواست‌های ارتقای تأییدشده", value: upgrades.filter((item) => item.status === "approved").length },
+      ];
+    }
+    if (role === "ceo") return [
+      { label: "منتظر تصمیم اولیه مدیرعامل", value: countByStatuses(items, ["ارسال به مدیرعامل"]) },
+      { label: "منتظر تأیید نهایی", value: countByStatuses(items, ["ارسال طرح نهایی به مدیرعامل"]) },
+      { label: "تأییدشده، در انتظار قرارداد", value: countByStatuses(items, ["تأیید نهایی مدیرعامل"]) },
+      { label: "قرارداد در انتظار تکمیل مالی", value: countByStatuses(items, ["قرارداد تنظیم شد"]) },
+      { label: "ردشده / بسته‌شده", value: countByStatuses(items, ["رد توسط قائم‌مقام", "رد توسط مدیرعامل در مرحله اول", "رد نهایی مدیرعامل"]) },
+    ];
+    if (role === "deputy") return [
+      { label: "بررسی اولیه", value: countByStatuses(items, ["در حال بررسی قائم‌مقام"]) },
+      { label: "برگشتی برای تکمیل", value: countByStatuses(items, ["نیازمند تکمیل"]) },
+      { label: "در انتظار تصمیم مدیرعامل", value: countByStatuses(items, ["ارسال به مدیرعامل", "ارسال طرح نهایی به مدیرعامل"]) },
+      { label: "طراحی و قیمت‌گذاری", value: countByStatuses(items, ["تشکیل تیم پروژه", "در حال تدوین طرح و پروپوزال", "قیمت‌گذاری و بررسی مالی"]) },
+      { label: "مذاکرات", value: countByStatuses(items, ["مذاکرات اولیه"]) },
+    ];
+    if (role === "economic") return [
+      { label: "در حال تدوین طرح", value: countByStatuses(items, ["تشکیل تیم پروژه", "در حال تدوین طرح و پروپوزال"]) },
+      { label: "قیمت‌گذاری", value: countByStatuses(items, ["قیمت‌گذاری و بررسی مالی"]) },
+      { label: "مذاکرات", value: countByStatuses(items, ["مذاکرات اولیه"]) },
+      { label: "ارسال‌شده برای تصمیم نهایی", value: countByStatuses(items, ["ارسال طرح نهایی به مدیرعامل"]) },
+      { label: "قرارداد / ثبت نهایی", value: countByStatuses(items, ["قرارداد تنظیم شد", "ثبت پروژه"]) },
+    ];
+    const unitReportLabels = role === "media"
+      ? { attention: "محتوای/پروژه رسانه‌ای نیازمند اقدام", progress: "تولید و هماهنگی انتشار", completed: "خروجی‌های نهایی‌شده" }
+      : role === "education"
+        ? { attention: "برنامه آموزشی نیازمند اقدام", progress: "برنامه‌های در حال طراحی یا اجرا", completed: "برنامه‌های تکمیل‌شده" }
+        : role === "artists"
+          ? { attention: "پرونده‌های هنری نیازمند اقدام", progress: "پرونده‌های هنری در حال پیگیری", completed: "پرونده‌های هنری نهایی‌شده" }
+          : role === "csr"
+            ? { attention: "پرونده‌های اجتماعی نیازمند اقدام", progress: "پروژه‌های اجتماعی در حال پیگیری", completed: "پروژه‌های اجتماعی نهایی‌شده" }
+            : { attention: "نیازمند اقدام", progress: "در حال پیگیری", completed: "پرونده‌های نهایی‌شده" };
+    return [
+      { label: unitReportLabels.attention, value: countByStatuses(items, config.attentionStatuses) },
+      { label: unitReportLabels.progress, value: countByStatuses(items, config.progressStatuses) },
+      { label: unitReportLabels.completed, value: countByStatuses(items, config.completedStatuses) },
+    ];
+  }, [role, items, config, membershipOverview]);
 
   const attentionItems = useMemo(
     () => items.filter((item) => config.attentionStatuses.includes(item.status || "")),
@@ -296,21 +494,136 @@ export default function RoleDashboard({ role }: { role: ManagementRole }) {
           <p className="text-sm font-bold text-[#D8B56E]">نمای اختصاصی شما</p>
           <h2 className="mt-2 text-2xl font-extrabold md:text-3xl">{config.subtitle}</h2>
           <p className="mt-3 max-w-4xl text-sm leading-7 text-[#E6EAF0]">{config.welcome}</p>
-          <div className="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
-            {[
-              { label: "پرونده‌های در دسترس", value: metrics.total, hint: "بر اساس سطح دسترسی شما" },
-              { label: "نیازمند اقدام", value: metrics.attention, hint: "طبق مرحله گردش کار" },
-              { label: "در حال پیگیری", value: metrics.progress, hint: "پرونده‌های فعال در مسیر اجرا" },
-              { label: "قرارداد / ثبت نهایی", value: metrics.completed, hint: "پرونده‌های نهایی‌شده" },
-            ].map((metric) => (
+          <div className="mt-5 grid grid-cols-2 gap-3 xl:grid-cols-4">
+            {metricCards.map((metric) => (
               <div key={metric.label} className="rounded-2xl border border-white/10 bg-white/10 p-4">
                 <div className="text-xs text-white/75">{metric.label}</div>
-                <div className="mt-2 text-2xl font-extrabold">{money(metric.value)}</div>
+                <div className="mt-2 text-2xl font-extrabold tabular-nums">{metric.value}</div>
                 <div className="mt-1 text-[11px] leading-5 text-white/65">{metric.hint}</div>
               </div>
             ))}
           </div>
         </section>
+
+        <section className={`mt-6 grid gap-5 ${role === "members" ? "lg:grid-cols-1" : "lg:grid-cols-[minmax(0,1fr)_minmax(320px,0.8fr)]"}`}>
+          <div className="rounded-3xl border border-[#E3E0D8] bg-[#FFFEFA] p-5 md:p-6">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div><h3 className="text-lg font-extrabold">{role === "members" ? "وضعیت درخواست‌های عضویت و ارتقا" : "گزارش مدیریتی سبد پرونده‌ها"}</h3><p className="mt-1 text-sm leading-6 text-[#687783]">{role === "members" ? "صف درخواست‌های عضویت، تکمیل مدارک و ارتقای رده تخصصی اعضا." : role === "ceo" ? "تمرکز بر تصمیم‌های معطل، قراردادها و تصویر کلان فرصت‌ها." : role === "deputy" ? "تمرکز بر صف ورودی، پرونده‌های برگشتی و مراحل ایجاد گلوگاه." : role === "economic" ? "تمرکز بر پیشرفت فرصت‌های تخصیص‌یافته، قیمت‌گذاری و مذاکره." : "توزیع پرونده‌ها بر اساس مرحله گردش کار."}</p></div>
+              <span className="rounded-full bg-[#F0DFB8] px-3 py-1.5 text-xs font-bold text-[#6A531B]">بر پایه داده‌های ثبت‌شده</span>
+            </div>
+            <div className="mt-4 divide-y divide-[#E3E0D8]">
+              {reportRows.map((row) => <div key={row.label} className="flex items-center justify-between gap-4 py-3 text-sm">
+                <span className="text-[#526173]">{row.label}</span><strong className="min-w-8 rounded-lg bg-[#F7F5F0] px-2 py-1 text-center tabular-nums">{money(row.value)}</strong>
+              </div>)}
+            </div>
+          </div>
+          {role !== "members" && !["csr", "media", "artists", "education"].includes(role) && <div className="rounded-3xl border border-[#E3E0D8] bg-[#FFFEFA] p-5 md:p-6">
+            <h3 className="text-lg font-extrabold">نمای مالی فرصت‌ها</h3>
+            <p className="mt-1 text-sm leading-6 text-[#687783]">مبالغ از فیلدهای ثبت‌شده پرونده‌ها محاسبه شده‌اند؛ این اعداد جایگزین گزارش حسابداری یا مانده وصولی نیستند.</p>
+            <div className="mt-4 space-y-3">
+              <div className="rounded-2xl bg-[#F7F5F0] p-4"><div className="text-xs text-[#687783]">ارزش برآوردی فرصت‌های باز</div><div className="mt-2 text-xl font-extrabold tabular-nums">{money(openPipelineValue)} <span className="text-xs font-bold text-[#687783]">ریال</span></div></div>
+              <div className="rounded-2xl bg-[#F7F5F0] p-4"><div className="text-xs text-[#687783]">مبلغ قراردادهای ثبت‌شده در پرونده</div><div className="mt-2 text-xl font-extrabold tabular-nums">{money(contractedValue)} <span className="text-xs font-bold text-[#687783]">ریال</span></div></div>
+              <div className="rounded-2xl border border-[#E3E0D8] p-4 text-xs leading-6 text-[#687783]">{role === "economic" ? "مبنای محاسبه فقط پرونده‌هایی است که به واحد توسعه مشارکت‌های اقتصادی تخصیص یافته‌اند." : "این نمای مالی از داده‌های فرصت‌ها و قراردادها ساخته شده است؛ وصول واقعی، هزینه قطعی و سود نهایی تا اتصال داده‌های مالی به‌صورت مستقل قابل گزارش نیست."}</div>
+            </div>
+          </div>}
+        </section>
+
+        {role === "members" && (
+          <section className="mt-6 grid gap-5 lg:grid-cols-2">
+            <div className="rounded-3xl border border-[#E3E0D8] bg-[#FFFEFA] p-5 md:p-6">
+              <h3 className="text-lg font-extrabold">باشگاه‌ها و تعداد اعضا</h3>
+              <p className="mt-1 text-sm text-[#687783]">تعداد اعضا بر اساس ارتباط ثبت‌شده در پرونده‌ها محاسبه می‌شود.</p>
+              <div className="mt-3 divide-y divide-[#E3E0D8]">
+                {(membershipOverview?.clubs || []).filter((club) => club.status !== "closed").map((club) => {
+                  const count = (membershipOverview?.members || []).filter((member) => (member.clubIds || []).includes(club.id)).length;
+                  return <div key={club.id} className="flex items-center justify-between gap-3 py-3 text-sm"><span>{club.name}</span><strong className="rounded-lg bg-[#F0DFB8] px-3 py-1.5 tabular-nums">{money(count)}</strong></div>;
+                })}
+                {(!membershipOverview || !membershipOverview.clubs.length) && <p className="py-4 text-sm text-[#687783]">اطلاعات باشگاه‌ها در دسترس نیست.</p>}
+              </div>
+              <button type="button" onClick={() => router.push("/internal/clubs")} className="mt-4 rounded-xl border border-[#E3E0D8] px-4 py-2 text-sm font-bold">مدیریت باشگاه‌ها</button>
+            </div>
+            <div className="rounded-3xl border border-[#E3E0D8] bg-[#FFFEFA] p-5 md:p-6">
+              <h3 className="text-lg font-extrabold">آخرین درخواست‌های عضویت</h3>
+              <div className="mt-3 divide-y divide-[#E3E0D8]">
+                {(membershipOverview?.requests || []).slice(0, 6).map((request) => <div key={request.id} className="flex items-center justify-between gap-3 py-3 text-sm"><div><span className="block font-bold">{request.name || "متقاضی بدون نام"}</span><span className="mt-1 block text-xs text-[#687783]">{membershipStatusLabel(request.reviewStatus || request.status)}</span></div><span className="text-xs text-[#687783]">{request.createdAt ? new Date(request.createdAt).toLocaleDateString("fa-IR") : ""}</span></div>)}
+                {(!membershipOverview || !membershipOverview.requests.length) && <p className="py-4 text-sm text-[#687783]">درخواست عضویتی برای نمایش وجود ندارد یا اتصال سایت در دسترس نیست.</p>}
+              </div>
+              <button type="button" onClick={() => router.push("/internal/membership-requests")} className="mt-4 rounded-xl bg-[#172F48] px-4 py-2 text-sm font-bold text-white">ورود به کارتابل درخواست‌ها</button>
+            </div>
+          </section>
+        )}
+
+        {(role === "ceo" || role === "deputy") && (
+          <section className="mt-6 rounded-3xl border border-[#E3E0D8] bg-[#FFFEFA] p-5 md:p-6">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <h3 className="text-lg font-extrabold">نمای مدیریتی اعضا و باشگاه‌ها</h3>
+                <p className="mt-1 text-sm leading-6 text-[#687783]">آمار از پرونده‌های اعضا و باشگاه‌های ثبت‌شده در سامانه محاسبه می‌شود. تعداد اعضای هر باشگاه بر اساس ارتباط ثبت‌شده در پرونده عضو است.</p>
+              </div>
+              <button type="button" onClick={() => void load()} className="rounded-xl border border-[#E3E0D8] bg-white px-3 py-2 text-sm font-bold">به‌روزرسانی گزارش</button>
+            </div>
+            {clubSummary ? (
+              <>
+                <div className="mt-4 grid grid-cols-2 gap-3 xl:grid-cols-4">
+                  {[
+                    { label: "کل اعضا", value: clubSummary.totals.members, hint: "تمام پرونده‌های اعضا" },
+                    { label: "اعضای فعال", value: clubSummary.totals.activeMembers, hint: "وضعیت عضویت فعال" },
+                    { label: "کل باشگاه‌ها", value: clubSummary.totals.clubs, hint: "باشگاه‌های پایه و ثبت‌شده" },
+                    { label: "باشگاه‌های فعال", value: clubSummary.totals.activeClubs, hint: "وضعیت فعال در سامانه" },
+                  ].map((metric) => (
+                    <div key={metric.label} className="rounded-2xl bg-[#F7F5F0] p-4">
+                      <div className="text-xs text-[#687783]">{metric.label}</div>
+                      <div className="mt-2 text-2xl font-extrabold tabular-nums">{money(metric.value)}</div>
+                      <div className="mt-1 text-[11px] text-[#687783]">{metric.hint}</div>
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-5 grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+                  <div>
+                    <h4 className="font-extrabold">تعداد اعضا به تفکیک باشگاه</h4>
+                    <div className="mt-3 divide-y divide-[#E3E0D8]">
+                      {clubSummary.clubs.map((club) => (
+                        <div key={club.id} className="flex items-center justify-between gap-4 py-3 text-sm">
+                          <div>
+                            <span className="block font-bold">{club.name}</span>
+                            <span className="mt-1 block text-xs text-[#687783]">{club.status === "active" ? "فعال" : club.status === "planning" ? "در حال شکل‌گیری" : club.status === "paused" ? "متوقف موقت" : club.status === "closed" ? "خاتمه‌یافته" : "باشگاه پایه"} · اعضای فعال: {money(club.activeMemberCount)}</span>
+                          </div>
+                          <strong className="min-w-10 rounded-lg bg-[#F0DFB8] px-3 py-2 text-center tabular-nums">{money(club.memberCount)}</strong>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <h4 className="font-extrabold">برنامه‌های آتی باشگاه‌ها</h4>
+                    <p className="mt-1 text-xs leading-6 text-[#687783]">فقط اطلاعیه‌های تاریخ‌دار آینده که در سایت اصلی به باشگاه مشخصی مرتبط شده‌اند نمایش داده می‌شوند.</p>
+                    {clubSummary.upcomingPrograms.length ? (
+                      <div className="mt-3 space-y-3">
+                        {clubSummary.upcomingPrograms.map((program) => (
+                          <a key={program.id} href={program.href} target="_blank" rel="noreferrer" className="block rounded-2xl border border-[#E3E0D8] p-4 transition hover:bg-[#F7F5F0]">
+                            <span className="block font-bold">{program.title}</span>
+                            <span className="mt-1 block text-xs text-[#96763D]">{program.dateLabel}</span>
+                            <span className="mt-1 block text-xs leading-5 text-[#687783]">{program.clubNames.join("، ")}</span>
+                            {program.description && <span className="mt-2 block text-sm leading-6 text-[#526173]">{program.description}</span>}
+                          </a>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="mt-3 rounded-2xl bg-[#F7F5F0] p-5 text-sm leading-6 text-[#687783]">
+                        {clubSummary.feedAvailable ? "فعلاً برنامه تاریخ‌دار آینده‌ای برای باشگاه‌ها در سایت ثبت نشده است. برنامه‌ای که تاریخ یا ارتباط باشگاهی نداشته باشد، به‌اشتباه به‌عنوان برنامه آتی نمایش داده نمی‌شود." : "فهرست برنامه‌های سایت اصلی فعلاً دریافت نشد؛ آمار اعضا و باشگاه‌ها همچنان در دسترس است."}
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div className="mt-4 flex flex-wrap gap-3 border-t border-[#E3E0D8] pt-4">
+                  <a href="/internal/members" className="rounded-xl bg-[#172F48] px-4 py-2.5 text-sm font-bold text-white">بازکردن پرونده اعضا</a>
+                  <a href="/internal/clubs" className="rounded-xl border border-[#E3E0D8] bg-white px-4 py-2.5 text-sm font-bold">مدیریت باشگاه‌ها</a>
+                </div>
+              </>
+            ) : (
+              <p className="mt-4 rounded-2xl bg-[#F7F5F0] p-5 text-sm text-[#687783]">گزارش اعضا و باشگاه‌ها فعلاً دریافت نشد. اطلاعات این بخش از API مستقل خوانده می‌شود و خطای آن روی کارتابل فرصت‌ها اثری ندارد.</p>
+            )}
+          </section>
+        )}
 
         {error && <div role="alert" className="mt-5 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">{error} <button type="button" className="mr-3 font-bold underline" onClick={() => void load()}>تلاش مجدد</button></div>}
 
@@ -324,7 +637,7 @@ export default function RoleDashboard({ role }: { role: ManagementRole }) {
               {attentionItems.length ? (
                 <div className="mt-4 space-y-3">
                   {attentionItems.slice(0, 5).map((item) => (
-                    <button type="button" key={item.id} onClick={() => router.push("/internal/opportunities")} className="flex w-full flex-col gap-2 rounded-2xl border border-[#E3E0D8] p-4 text-right transition hover:bg-[#F7F5F0] sm:flex-row sm:items-center sm:justify-between">
+                    <button type="button" key={item.id} onClick={() => router.push(`/internal/opportunities?id=${encodeURIComponent(item.id)}`)} className="flex w-full flex-col gap-2 rounded-2xl border border-[#E3E0D8] p-4 text-right transition hover:bg-[#F7F5F0] sm:flex-row sm:items-center sm:justify-between">
                       <span><span className="block font-bold">{item.title || "بدون عنوان"}</span><span className="mt-1 block text-xs text-[#687783]">{item.code || "بدون کد"}{item.clientName ? ` · ${item.clientName}` : ""}</span></span>
                       <StatusPill status={item.status || "در جریان"} />
                     </button>
@@ -339,10 +652,10 @@ export default function RoleDashboard({ role }: { role: ManagementRole }) {
               <h3 className="text-lg font-extrabold">آخرین پرونده‌های مرتبط</h3>
               <p className="mt-1 text-sm text-[#687783]">فقط پرونده‌هایی که API بر اساس نقش فعلی در اختیار این حساب قرار داده است.</p>
               {recentItems.length ? <div className="mt-4 divide-y divide-[#E3E0D8]">
-                {recentItems.map((item) => <div key={item.id} className="flex flex-col gap-2 py-4 sm:flex-row sm:items-center sm:justify-between">
+                {recentItems.map((item) => <button type="button" key={item.id} onClick={() => router.push(`/internal/opportunities?id=${encodeURIComponent(item.id)}`)} className="flex w-full flex-col gap-2 py-4 text-right transition hover:bg-[#F7F5F0] sm:flex-row sm:items-center sm:justify-between">
                   <div><p className="font-bold">{item.title || "بدون عنوان"}</p><p className="mt-1 text-xs text-[#687783]">{item.clientName || "طرف همکاری مشخص نشده"} · {item.code || "بدون کد"}</p></div>
                   <StatusPill status={item.status || "در جریان"} />
-                </div>)}
+                </button>)}
               </div> : <p className="mt-4 rounded-2xl bg-[#F7F5F0] p-6 text-center text-sm text-[#687783]">هنوز پرونده‌ای برای نمایش وجود ندارد.</p>}
             </div>
           </div>
