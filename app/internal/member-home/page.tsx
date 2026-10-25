@@ -181,6 +181,7 @@ export default function MemberHomePage(){
  const memberTier=tierLabels[member?.membershipTier||""]||"عضو خورشید";
  const memberType=typeLabels[member?.memberType||""]||member?.memberType||"عضو";
  const memberGrade=gradeLabels[member?.membershipGrade||""]||"داوطلب";
+ const latestUpgradeDecision=useMemo(()=>[...(member?.upgradeRequests||[])].filter(req=>req.status!=="pending").sort((a,b)=>String(b.reviewedAt||b.submittedAt).localeCompare(String(a.reviewedAt||a.submittedAt)))[0],[member?.upgradeRequests]);
  const sections=[["home","نمای کلی"],["programs","برنامه‌ها"],["clubs","باشگاه‌های من"],["services","خدمات و امتیاز"],["content","ارسال محتوا"],["profile","پرونده من"]];
 
  return <main className="internal-app min-h-screen pb-24 text-[#172F48]">
@@ -196,6 +197,7 @@ export default function MemberHomePage(){
    <div className="container-site pt-5 md:pt-8">
      {error&&<p role="alert" className="mb-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800">{error}</p>}
      {notice&&<p role="status" className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">{notice}</p>}
+     {latestUpgradeDecision&&<section role="status" aria-live="polite" className="mb-4 rounded-2xl border border-[#D9C48E] bg-[#FBF5E7] p-4 text-sm text-[#72551C]"><p className="font-extrabold">آخرین نتیجه بررسی درخواست تخصصی: {latestUpgradeDecision.target==="artist"?"هنرمند":latestUpgradeDecision.target==="expert"?"متخصص":"مشاور"} · {latestUpgradeDecision.status==="approved"?"تأیید شده":latestUpgradeDecision.status==="needs_info"?"نیازمند تکمیل اطلاعات":"رد شده"}</p>{latestUpgradeDecision.note&&<p className="mt-2 whitespace-pre-wrap leading-6">{latestUpgradeDecision.note}</p>}{latestUpgradeDecision.reviewedAt&&<p className="mt-2 text-xs">{dateLabel(latestUpgradeDecision.reviewedAt)}</p>}</section>}
      {loading?<div className="rounded-3xl border border-[#E3E0D8] bg-white p-8 text-center">در حال دریافت پرونده شما…</div>:member?<>
        <section id="home" className="scroll-mt-36 overflow-hidden rounded-[28px] bg-[#172F48] p-5 text-white shadow-lg md:p-8">
          <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
