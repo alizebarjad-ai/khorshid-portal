@@ -406,7 +406,7 @@ export default function RoleDashboard({ role }: { role: ManagementRole }) {
               {attentionItems.length ? (
                 <div className="mt-4 space-y-3">
                   {attentionItems.slice(0, 5).map((item) => (
-                    <button type="button" key={item.id} onClick={() => router.push("/internal/opportunities")} className="flex w-full flex-col gap-2 rounded-2xl border border-[#E3E0D8] p-4 text-right transition hover:bg-[#F7F5F0] sm:flex-row sm:items-center sm:justify-between">
+                    <button type="button" key={item.id} onClick={() => router.push(`/internal/opportunities?id=${encodeURIComponent(item.id)}`)} className="flex w-full flex-col gap-2 rounded-2xl border border-[#E3E0D8] p-4 text-right transition hover:bg-[#F7F5F0] sm:flex-row sm:items-center sm:justify-between">
                       <span><span className="block font-bold">{item.title || "بدون عنوان"}</span><span className="mt-1 block text-xs text-[#687783]">{item.code || "بدون کد"}{item.clientName ? ` · ${item.clientName}` : ""}</span></span>
                       <StatusPill status={item.status || "در جریان"} />
                     </button>
@@ -421,10 +421,10 @@ export default function RoleDashboard({ role }: { role: ManagementRole }) {
               <h3 className="text-lg font-extrabold">آخرین پرونده‌های مرتبط</h3>
               <p className="mt-1 text-sm text-[#687783]">فقط پرونده‌هایی که API بر اساس نقش فعلی در اختیار این حساب قرار داده است.</p>
               {recentItems.length ? <div className="mt-4 divide-y divide-[#E3E0D8]">
-                {recentItems.map((item) => <div key={item.id} className="flex flex-col gap-2 py-4 sm:flex-row sm:items-center sm:justify-between">
+                {recentItems.map((item) => <button type="button" key={item.id} onClick={() => router.push(`/internal/opportunities?id=${encodeURIComponent(item.id)}`)} className="flex w-full flex-col gap-2 py-4 text-right transition hover:bg-[#F7F5F0] sm:flex-row sm:items-center sm:justify-between">
                   <div><p className="font-bold">{item.title || "بدون عنوان"}</p><p className="mt-1 text-xs text-[#687783]">{item.clientName || "طرف همکاری مشخص نشده"} · {item.code || "بدون کد"}</p></div>
                   <StatusPill status={item.status || "در جریان"} />
-                </div>)}
+                </button>)}
               </div> : <p className="mt-4 rounded-2xl bg-[#F7F5F0] p-6 text-center text-sm text-[#687783]">هنوز پرونده‌ای برای نمایش وجود ندارد.</p>}
             </div>
           </div>
