@@ -3,14 +3,17 @@
 import { useEffect, useMemo, useState, type ChangeEvent, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 
-type UpgradeRequest = { id:string; target:"artist"|"expert"|"consultant"; status:"pending"|"approved"|"rejected"|"needs_info"; assignedRole:"artists"|"csr"; submittedAt:string; reviewedAt?:string; reviewer?:string; note?:string };\ntype ProfessionalProfile = { headline?:string; specialties?:string|string[]; education?:string; educationField?:string; experience?:string; portfolio?:string; biography?:string; website?:string; resumeText?:string; submittedAt?:string; verified?:boolean };\ntype Member = { id:string; fullName:string; memberType:string; membershipTier?:string; membershipGrade?:string; phone:string; email:string; city:string; expertise:string; biography:string; status:string; clubIds:string[]; artistProfile?:ProfessionalProfile; expertProfile?:ProfessionalProfile; upgradeRequests?:UpgradeRequest[] };
+type UpgradeRequest = { id:string; target:"artist"|"expert"|"consultant"; status:"pending"|"approved"|"rejected"|"needs_info"; assignedRole:"artists"|"csr"; submittedAt:string; reviewedAt?:string; reviewer?:string; note?:string };
+type ProfessionalProfile = { headline?:string; specialties?:string|string[]; education?:string; educationField?:string; experience?:string; portfolio?:string; biography?:string; website?:string; resumeText?:string; submittedAt?:string; verified?:boolean };
+type Member = { id:string; fullName:string; memberType:string; membershipTier?:string; membershipGrade?:string; phone:string; email:string; city:string; expertise:string; biography:string; status:string; clubIds:string[]; artistProfile?:ProfessionalProfile; expertProfile?:ProfessionalProfile; upgradeRequests?:UpgradeRequest[] };
 type Club = { id:string; name:string; clubType:string; city:string; description:string; status:string };
 type Program = { id:string; title:string; description:string; startsAt:string; location:string; clubName:string; format:string; href?:string };
 type ClubFeedItem = { id:string; kind:string; title:string; description?:string; dateLabel?:string; href?:string; clubIds?:string[]; showToMembers?:boolean };
 type PointEvent = { id:string; title:string; points:number; createdAt:string; note:string };
 type DashboardData = { pointsBalance:number; pointEvents:PointEvent[]; programs:Program[] };
 const tierLabels:Record<string,string>={affiliate:"عضو وابسته",professional:"عضو حرفه‌ای / تخصصی",supporter_partner:"حامی مالی / شریک سازمانی"};
-const typeLabels:Record<string,string>={individual:"شخص حقیقی",artist:"هنرمند",figure:"چهره و صاحب‌نظر",supporter:"حامی",expert:"متخصص",organization:"شخصیت حقوقی",media:"رسانه"};\nconst gradeLabels:Record<string,string>={volunteer:"داوطلب",professional:"حرفه‌ای",club_manager:"مدیر باشگاه"};
+const typeLabels:Record<string,string>={individual:"شخص حقیقی",artist:"هنرمند",figure:"چهره و صاحب‌نظر",supporter:"حامی",expert:"متخصص",organization:"شخصیت حقوقی",media:"رسانه"};
+const gradeLabels:Record<string,string>={volunteer:"داوطلب",professional:"حرفه‌ای",club_manager:"مدیر باشگاه"};
 const inputClass="w-full rounded-xl border border-[#D8D0C4] bg-white px-3 py-3 text-sm text-[#18304A] outline-none focus:border-[#B99450]";
 const services = [
  {icon:"✦",title:"برنامه‌ها و نشست‌های اعضا",description:"دسترسی به برنامه‌های اعلام‌شده برای باشگاه‌ها و رده عضویت شما.",status:"قابل استفاده",ready:true},
