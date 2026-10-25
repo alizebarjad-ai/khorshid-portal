@@ -42,8 +42,14 @@ export async function GET(request: NextRequest) {
       listStored<PointEntry>("member-points"),
     ]);
     const validMemberIds = new Set(members.map((member) => member.id));
-    const filtered = entries
-      .filter((entry) => validMemberIds.has(entry.memberId) && (!memberId || entry.memberId === memberId))
+    const legacyEntries: PointEntry[] = members.flatMap((member) => (member.pointEvents || []).map((event) => ({
+      id: event.id, memberId: member.id, points: event.points, title: event.title, note: event.note,
+      createdAt: event.createdAt, createdBy: event.actor || "سامانه",
+    })));
+    const filtered = [...new Map([
+      ...entries.filter((entry) => validMemberIds.has(entry.memberId) && (!memberId || entry.memberId === memberId)),
+      ...legacyEntries.filter((entry) => !memberId || entry.memberId === memberId),
+    ].map((entry) => [entry.id, entry])).values()]
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
     const pointsByMember: Record<string, { balance: number; events: PointEntry[] }> = {};
     for (const entry of filtered) {
@@ -93,8 +99,15 @@ export async function POST(request: NextRequest) {
       };
       await putStored("member-points", entry);
       const all = await listStored<PointEntry>("member-points");
-      const balance = all.filter((item) => item.memberId === memberId).reduce((sum, item) => sum + (Number(item.points) || 0), 0);
-      return NextResponse.json({ success: true, item: entry, pointsBalance: balance });
+      const legacy = (member.pointEvents || []).map((event) => ({ id: event.id, memberId, points: event.points, title: event.title, note: event.note, createdAt: event.createdAt, createdBy: event.actor || "سامانه" }));
+      const merged = [...new Map([...all.filter((item) => item.memberId === memberId), ...legacy].map((item) => [item.id, item])).values()];
+      const balance = merged.reduce((sum, item) => sum + (Number(item.points) || 0), 0);
+      const synced = await updateRecord("member", member.id, {
+        pointsBalance: balance,
+        pointEvents: merged.slice(-300).map((item) => ({ id: item.id, points: item.points, title: item.title, note: item.note, createdAt: item.createdAt, actor: item.createdBy })),
+      }, { username: checked.user.username });
+      if (!synced || synced.kind !== "member") return NextResponse.json({ error: "رویداد ثبت شد اما همگام‌سازی پرونده انجام نشد." }, { status: 503 });
+      return NextResponse.json({ success: true, item: entry, member: synced, pointsBalance: balance }, { headers: { "Cache-Control": "private, no-store" } });
     }
 
     if (body.action === "promote-tier") {
@@ -112,7 +125,8 @@ export async function POST(request: NextRequest) {
         membershipType: "affiliate",
         membershipTier: "affiliate",
         membershipRank: nextRank,
-        membershipRankReason: reason,
+        membershipGrade: nextRank,
+        rankReason: reason,
       }, { username: checked.user.username });
       if (!updated || updated.kind !== "member") return NextResponse.json({ error: "ثبت ارتقای رده انجام نشد." }, { status: 500 });
       return NextResponse.json({
