@@ -58,7 +58,7 @@ export async function GET(request: NextRequest) {
             dateLabel: String(item.dateLabel || new Date(String(item.isoDate)).toLocaleDateString("fa-IR")),
             isoDate: String(item.isoDate),
             clubNames: clubs.filter((club) => (item.clubIds || []).includes(club.id)).map((club) => club.name),
-            href: String(item.href || "https://www.khorshid-mafakher.ir/"),
+            href: new URL(String(item.href || "/"), base).toString(),
             description: String(item.description || ""),
           }))
           .filter((item) => item.clubNames.length > 0)
