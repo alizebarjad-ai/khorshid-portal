@@ -108,8 +108,6 @@ async function writeRecord<T extends StoredRecord>(record: T): Promise<T> {
   return putStored(collection, record);
 }
 
-function isMembershipTier(value: unknown): value is MembershipTier { return value === "affiliate" || value === "professional" || value === "supporter_partner"; }
-
 export const readMembers = () => readRecords<MemberRecord>("member");
 export const readClubs = () => readRecords<ClubRecord>("club");
 
@@ -122,7 +120,7 @@ export async function createRecord(kind: "member" | "club", data: Record<string,
       memberType: (data.memberType || "artist") as MemberRecord["memberType"],
       membershipType: "affiliate",
       membershipTier: "affiliate",
-      membershipRank: isMembershipRank(data.membershipRank) ? data.membershipRank : "volunteer",
+      membershipRank: "volunteer",
       rankHistory: [],
       ...(data.supplementalData && typeof data.supplementalData === "object" && !Array.isArray(data.supplementalData) ? { supplementalData: data.supplementalData as Record<string, string> } : {}),
       sourceApplicationIds: typeof data.sourceApplicationId === "string" && data.sourceApplicationId ? [data.sourceApplicationId] : [],
