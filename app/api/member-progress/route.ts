@@ -68,7 +68,7 @@ export async function GET(request: NextRequest) {
         rankHistory: member.rankHistory || [],
       },
       pointEvents,
-      pointsBalance: pointEvents.reduce((sum, event) => sum + event.points, 0),
+      pointsBalance: entries.filter((entry) => entry.memberId === memberId).reduce((sum, event) => sum + (Number(event.points) || 0), 0),
     }, { headers: { "Cache-Control": "private, no-store, max-age=0" } });
   } catch (error) {
     console.error("Member progress could not be loaded", error);
