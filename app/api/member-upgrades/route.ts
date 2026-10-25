@@ -98,10 +98,8 @@ export async function PATCH(request: NextRequest) {
     const updatedRequests = requests.map(item => item.id === current.id ? { ...item, status: body.status!, reviewedAt: new Date().toISOString(), reviewer: auth.user!.name, note } : item);
     const patch: Record<string, unknown> = { upgradeRequests: updatedRequests };
     if (body.status === "approved" && current.target === "artist") {
-      patch.memberType = "artist";
       patch.artistProfile = { ...(member.artistProfile || {}), verified: true, verifiedAt: new Date().toISOString(), verifiedBy: auth.user.name };
     } else if (body.status === "approved" && (current.target === "expert" || current.target === "consultant")) {
-      patch.memberType = "expert";
       patch.expertProfile = { ...(member.expertProfile || {}), designation: current.target, verified: true, verifiedAt: new Date().toISOString(), verifiedBy: auth.user.name };
     }
     const updated = await updateRecord("member", member.id, patch, { username: auth.user.username });
