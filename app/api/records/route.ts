@@ -37,7 +37,10 @@ export async function POST(request: NextRequest) {
     if (!kind || !body.data || typeof body.data !== "object") {
       return NextResponse.json({ error: "نوع پرونده یا اطلاعات ارسالی معتبر نیست." }, { status: 400 });
     }
-    const item = await createRecord(kind, body.data, { username: auth.user.username });
+    const safeData = { ...body.data } as Record<string, unknown>;
+    delete safeData.membershipRank;
+    delete safeData.membershipRankReason;
+    const item = await createRecord(kind, safeData, { username: auth.user.username });
     return NextResponse.json({ item }, { status: 201 });
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : "ثبت پرونده انجام نشد." }, { status: 400 });
@@ -52,7 +55,10 @@ export async function PATCH(request: NextRequest) {
     if (!["member", "club"].includes(body.kind) || typeof body.id !== "string" || !body.data || typeof body.data !== "object") {
       return NextResponse.json({ error: "درخواست ویرایش معتبر نیست." }, { status: 400 });
     }
-    const item = await updateRecord(body.kind, body.id, body.data, { username: auth.user.username });
+    const safeData = { ...body.data } as Record<string, unknown>;
+    delete safeData.membershipRank;
+    delete safeData.membershipRankReason;
+    const item = await updateRecord(body.kind, body.id, safeData, { username: auth.user.username });
     if (!item) return NextResponse.json({ error: "پرونده موردنظر پیدا نشد." }, { status: 404 });
     return NextResponse.json({ item });
   } catch (error) {
