@@ -23,6 +23,7 @@ export type Opportunity = {
   status: string;
   assignedTo: string;
   assignedToName: string;
+  subjectArea?: string;
   specialistBrief: string;
   proposalDetails: string;
   negotiationNote: string;
