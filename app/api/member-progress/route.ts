@@ -48,13 +48,15 @@ export async function GET(request: NextRequest) {
     const member = members.find((item) => item.id === memberId);
     if (!member) return NextResponse.json({ error: "پرونده عضو پیدا نشد." }, { status: 404 });
 
-    const pointEvents = entries
-      .filter((entry) => entry.memberId === memberId)
-      .map((entry) => ({
-        ...entry,
-        points: Number(entry.points) || 0,
-        actor: entry.actor || entry.createdBy || "سامانه",
-      }))
+    const legacyEvents: PointEvent[] = (member.pointEvents || []).map((entry) => ({
+      ...entry, memberId, memberName: member.fullName, createdBy: entry.actor, actor: entry.actor,
+    }));
+    const mergedEvents = [...new Map([
+      ...entries.filter((entry) => entry.memberId === memberId),
+      ...legacyEvents,
+    ].map((entry) => [entry.id, entry])).values()];
+    const pointEvents = mergedEvents
+      .map((entry) => ({ ...entry, points: Number(entry.points) || 0, actor: entry.actor || entry.createdBy || "سامانه" }))
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
       .slice(0, 100);
 
@@ -64,11 +66,12 @@ export async function GET(request: NextRequest) {
         fullName: member.fullName,
         status: member.status,
         membershipType: "affiliate",
-        membershipRank: member.membershipRank || "volunteer",
+        membershipRank: member.membershipRank || member.membershipGrade || "volunteer",
+        membershipGrade: member.membershipGrade || member.membershipRank || "volunteer",
         rankHistory: member.rankHistory || [],
       },
       pointEvents,
-      pointsBalance: entries.filter((entry) => entry.memberId === memberId).reduce((sum, event) => sum + (Number(event.points) || 0), 0),
+      pointsBalance: mergedEvents.reduce((sum, event) => sum + (Number(event.points) || 0), 0),
     }, { headers: { "Cache-Control": "private, no-store, max-age=0" } });
   } catch (error) {
     console.error("Member progress could not be loaded", error);
@@ -112,7 +115,8 @@ export async function POST(request: NextRequest) {
         membershipType: "affiliate",
         membershipTier: "affiliate",
         membershipRank: body.membershipRank,
-        membershipRankReason: note,
+        membershipGrade: body.membershipRank,
+        rankReason: note,
       }, { username: checked.user.username });
       if (!updated || updated.kind !== "member") return NextResponse.json({ error: "ثبت رده جدید انجام نشد." }, { status: 500 });
       updatedMember = updated;
@@ -132,10 +136,27 @@ export async function POST(request: NextRequest) {
         actor: checked.user.username,
       };
       await putStored("member-points", pointEvent);
+      const currentEvents = await listStored<PointEvent>("member-points");
+      const legacyEvents: PointEvent[] = (updatedMember.pointEvents || []).map((event) => ({ ...event, memberId, memberName: updatedMember.fullName, createdBy: event.actor, actor: event.actor }));
+      const merged = [...new Map([
+        ...currentEvents.filter((event) => event.memberId === memberId),
+        ...legacyEvents,
+      ].map((event) => [event.id, event])).values()];
+      const balance = merged.reduce((sum, event) => sum + (Number(event.points) || 0), 0);
+      const synced = await updateRecord("member", memberId, {
+        pointsBalance: balance,
+        pointEvents: merged.slice(-300).map(({ id, points, title, note, createdAt, actor, createdBy }) => ({ id, points, title, note, createdAt, actor: actor || createdBy || "سامانه" })),
+      }, { username: checked.user.username });
+      if (synced && synced.kind === "member") updatedMember = synced;
     }
 
     const allEvents = await listStored<PointEvent>("member-points");
-    const pointsBalance = allEvents.filter((event) => event.memberId === memberId).reduce((sum, event) => sum + (Number(event.points) || 0), 0);
+    const legacyForMember: PointEvent[] = (updatedMember.pointEvents || []).map((event) => ({ ...event, memberId, memberName: updatedMember.fullName, createdBy: event.actor, actor: event.actor }));
+    const mergedForMember = [...new Map([
+      ...allEvents.filter((event) => event.memberId === memberId),
+      ...legacyForMember,
+    ].map((event) => [event.id, event])).values()];
+    const pointsBalance = mergedForMember.reduce((sum, event) => sum + (Number(event.points) || 0), 0);
     return NextResponse.json({
       success: true,
       pointEvent,
@@ -143,7 +164,8 @@ export async function POST(request: NextRequest) {
         id: updatedMember.id,
         fullName: updatedMember.fullName,
         membershipType: "affiliate",
-        membershipRank: updatedMember.membershipRank || "volunteer",
+        membershipRank: updatedMember.membershipRank || updatedMember.membershipGrade || "volunteer",
+        membershipGrade: updatedMember.membershipGrade || updatedMember.membershipRank || "volunteer",
         rankHistory: updatedMember.rankHistory || [],
       },
       pointsBalance,
