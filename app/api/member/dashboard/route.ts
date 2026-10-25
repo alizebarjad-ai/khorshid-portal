@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { COOKIE_NAME, decodeSession } from "@/lib/auth";
-import { readMembers } from "@/lib/records-store";
+import { readMembers, readClubs } from "@/lib/records-store";
 import { listStored } from "@/lib/persistent-store";
 
 export const runtime = "nodejs";
@@ -11,6 +11,17 @@ type StoredItem = Record<string, unknown>;
 const text = (value: unknown) => typeof value === "string" ? value : "";
 const number = (value: unknown) => Number.isFinite(Number(value)) ? Number(value) : 0;
 const strings = (value: unknown) => Array.isArray(value) ? value.map(String) : [];
+const clubKeyForName = (name: string): string | null => {
+  if (name.includes("رسانه")) return "media";
+  if (name.includes("سینما") || name.includes("تئاتر")) return "cinema";
+  if (name.includes("موسیقی")) return "music";
+  if (name.includes("ادبیات")) return "art";
+  if (name.includes("تجسمی") || name.includes("طراحی")) return "visual";
+  if (name.includes("مسئولیت اجتماعی")) return "responsibility";
+  if (name.includes("آموزش")) return "education";
+  if (name.includes("توسعه") || name.includes("شبکه")) return "partnership";
+  return null;
+};
 
 export async function GET(request: NextRequest) {
   const user = decodeSession(request.cookies.get(COOKIE_NAME)?.value);
@@ -24,11 +35,22 @@ export async function GET(request: NextRequest) {
     const member = members.find((item) => item.id === user.memberId && item.status === "active");
     if (!member) return NextResponse.json({ error: "پرونده عضو فعال پیدا نشد." }, { status: 404 });
 
-    const [programRows, pointRows] = await Promise.all([
+    const [programRows, pointRows, allClubs] = await Promise.all([
       listStored<StoredItem>("club-programs"),
       listStored<StoredItem>("member-points"),
+      readClubs(),
     ]);
     const clubIds = new Set(member.clubIds || []);
+    const memberClubKeys = new Set(allClubs.filter((club) => clubIds.has(club.id)).map((club) => clubKeyForName(club.name)).filter((key): key is string => Boolean(key)));
+    const siteBase = (process.env.KHORSHID_WEBSITE_URL || "https://www.khorshid-mafakher.ir").replace(/\\/$/, "");
+    const siteContent = await fetch(siteBase + "/api/club-feed", { cache: "no-store", signal: AbortSignal.timeout(3500) })
+      .then(async (response) => response.ok ? (await response.json()).items as StoredItem[] : [])
+      .catch(() => [] as StoredItem[]);
+    const memberContent = siteContent.filter((item) => {
+      if (item.showToMembers !== true) return false;
+      const targeted = strings(item.clubIds);
+      return targeted.length === 0 || targeted.some((key) => memberClubKeys.has(key));
+    }).map((item) => ({ id: text(item.id), title: text(item.title), kind: text(item.kind), description: text(item.description), image: text(item.image), dateLabel: text(item.dateLabel), href: text(item.href), linkLabel: text(item.linkLabel) })).filter((item) => item.id && item.title);
     const now = Date.now();
 
     const programs = programRows.flatMap((item) => {
@@ -75,6 +97,7 @@ export async function GET(request: NextRequest) {
       pointsBalance: pointEvents.reduce((sum, event) => sum + event.points, 0),
       pointEvents,
       programs,
+      siteContent: memberContent,
     }, { headers: { "Cache-Control": "private, no-store, max-age=0" } });
   } catch (error) {
     console.error("Member dashboard data could not be loaded", error);
