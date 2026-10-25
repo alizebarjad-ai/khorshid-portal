@@ -103,7 +103,7 @@ export async function POST(request: NextRequest) {
     if (!member) return NextResponse.json({ error: "پرونده عضو پیدا نشد." }, { status: 404 });
     if (member.status !== "active") return NextResponse.json({ error: "ثبت امتیاز یا ارتقای رده فقط برای عضو فعال امکان‌پذیر است." }, { status: 409 });
 
-    const currentRank = ranks.includes(member.membershipRank as MembershipRank) ? member.membershipRank as MembershipRank : "volunteer";
+    const currentRank = ranks.includes(member.membershipRank as MembershipRank) ? member.membershipRank as MembershipRank : (ranks.includes(member.membershipGrade as MembershipRank) ? member.membershipGrade as MembershipRank : "volunteer");
     let updatedMember = member;
     if (hasRank && body.membershipRank !== currentRank) {
       const currentIndex = ranks.indexOf(currentRank);
