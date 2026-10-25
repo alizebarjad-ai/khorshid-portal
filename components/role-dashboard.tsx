@@ -106,6 +106,7 @@ const CONFIG: Record<ManagementRole, DashboardConfig> = {
     priorities: ["بررسی پرونده‌های اجتماعی ارجاع‌شده", "تعیین مسئله، گروه هدف و خروجی قابل سنجش", "هماهنگی با شرکا و تیم‌های اجرایی"],
     actions: [
       { label: "پرونده‌های اجتماعی", description: "پیگیری پروژه‌های ارجاع‌شده به واحد", href: "/internal/opportunities", primary: true },
+      { label: "کارتابل ارتقای متخصصان و مشاوران", description: "بررسی درخواست‌های تخصص و مشاوره و تأیید پروفایل", href: "/internal/member-upgrades", primary: true },
       { label: "ثبت پیشنهاد اجتماعی", description: "ثبت نیاز یا ایده برای پروژه حمایتی", href: "/internal/submit-proposal" },
     ],
     attentionStatuses: ["تشکیل تیم پروژه", "در حال تدوین طرح و پروپوزال", "نیازمند تکمیل"],
@@ -136,6 +137,7 @@ const CONFIG: Record<ManagementRole, DashboardConfig> = {
     priorities: ["پیگیری پرونده‌های هنری و هنرمندان مرتبط", "تطبیق تخصص و ظرفیت هنرمندان با نیاز پروژه", "هماهنگی مشارکت‌ها و ثبت ملاحظات اجرایی"],
     actions: [
       { label: "پرونده‌های هنری", description: "پیگیری پرونده‌های ارجاع‌شده به واحد", href: "/internal/opportunities", primary: true },
+      { label: "کارتابل ارتقای هنرمندان", description: "بررسی درخواست‌های هنرمندی و تأیید پروفایل تخصصی", href: "/internal/member-upgrades", primary: true },
       { label: "ثبت پیشنهاد هنری", description: "ثبت ایده پروژه یا همکاری با هنرمندان", href: "/internal/submit-proposal" },
     ],
     attentionStatuses: ["تشکیل تیم پروژه", "در حال تدوین طرح و پروپوزال", "نیازمند تکمیل"],
@@ -166,6 +168,7 @@ const CONFIG: Record<ManagementRole, DashboardConfig> = {
     priorities: ["پیگیری پیشنهادها و پرونده‌های مرتبط با اعضا و مفاخر", "هماهنگی مشارکت اعضا در پروژه‌ها و برنامه‌ها", "آماده‌سازی اطلاعات موردنیاز برای مدیریت باشگاه‌ها"],
     actions: [
       { label: "مدیریت پرونده اعضا", description: "ثبت، جست‌وجو و به‌روزرسانی اطلاعات اعضا و مفاخر", href: "/internal/members", primary: true },
+      { label: "پیگیری درخواست‌های ارتقای تخصصی", description: "مشاهده وضعیت درخواست‌های هنرمندی، تخصص و مشاوره", href: "/internal/member-upgrades" },
       { label: "کارتابل درخواست‌های عضویت", description: "بررسی مدارک، تعیین نوع عضویت، درخواست تکمیل و تأیید متقاضیان سایت", href: "/internal/membership-requests", primary: true },
       { label: "مدیریت باشگاه‌ها", description: "تعریف باشگاه‌ها و مشاهده اعضای مرتبط", href: "/internal/clubs" },
       { label: "پرونده‌های مرتبط با اعضا", description: "پیگیری پرونده‌های ارجاع‌شده به واحد", href: "/internal/opportunities" },
