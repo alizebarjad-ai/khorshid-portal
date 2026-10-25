@@ -2,9 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { randomUUID } from "node:crypto";
 import { COOKIE_NAME, decodeSession } from "@/lib/auth";
 import { readMembers, updateRecord } from "@/lib/records-store";
+import { listStored, putStored } from "@/lib/persistent-store";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+type PointEvent = { id: string; memberId: string; memberName?: string; points: number; title: string; note: string; createdAt: string; createdBy?: string; actor?: string };
 
 export async function POST(request: NextRequest) {
   const user = decodeSession(request.cookies.get(COOKIE_NAME)?.value);
@@ -22,12 +25,19 @@ export async function POST(request: NextRequest) {
     if (points < 0 && !note) return NextResponse.json({ error: "برای کسر امتیاز، درج دلیل الزامی است." }, { status: 400 });
     const member = (await readMembers()).find(item => item.id === memberId);
     if (!member) return NextResponse.json({ error: "پرونده عضو پیدا نشد." }, { status: 404 });
-    const currentBalance = Math.max(0, Number(member.pointsBalance) || 0);
+    if (member.status !== "active") return NextResponse.json({ error: "ثبت امتیاز فقط برای عضو فعال امکان‌پذیر است." }, { status: 409 });
+    const existingEvents = await listStored<PointEvent>("member-points");
+    const legacyEvents: PointEvent[] = (member.pointEvents || []).map(event => ({ ...event, memberId, memberName: member.fullName, createdBy: event.actor, actor: event.actor }));
+    const merged = [...new Map([...existingEvents.filter(event => event.memberId === memberId), ...legacyEvents].map(event => [event.id, event])).values()];
+    const currentBalance = merged.reduce((sum, event) => sum + (Number(event.points) || 0), 0);
     if (currentBalance + points < 0) return NextResponse.json({ error: "امتیاز قابل کسر از موجودی فعلی بیشتر است." }, { status: 409 });
-    const event = { id: randomUUID(), points, title, note, createdAt: new Date().toISOString(), actor: user.name };
-    const pointEvents = [...(member.pointEvents || []), event].slice(-300);
-    const updated = await updateRecord("member", member.id, { pointsBalance: currentBalance + points, pointEvents }, { username: user.username });
-    return NextResponse.json({ member: updated, event }, { status: 200 });
+    const event: PointEvent = { id: randomUUID(), memberId, memberName: member.fullName, points, title, note, createdAt: new Date().toISOString(), createdBy: user.username, actor: user.name || user.username };
+    await putStored("member-points", event);
+    const nextEvents = [...merged, event].slice(-300);
+    const nextBalance = currentBalance + points;
+    const updated = await updateRecord("member", member.id, { pointsBalance: nextBalance, pointEvents: nextEvents.map(({ id, points: value, title: label, note: details, createdAt, actor }) => ({ id, points: value, title: label, note: details, createdAt, actor: actor || user.username })) }, { username: user.username });
+    if (!updated || updated.kind !== "member") return NextResponse.json({ error: "رویداد ثبت شد اما همگام‌سازی پرونده انجام نشد؛ برای جلوگیری از ثبت تکراری، صفحه را تازه‌سازی کنید." }, { status: 503 });
+    return NextResponse.json({ member: updated, event, pointsBalance: nextBalance }, { status: 200, headers: { "Cache-Control": "private, no-store" } });
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : "ثبت امتیاز انجام نشد." }, { status: 400 });
   }
