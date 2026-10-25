@@ -10,7 +10,8 @@ type Role =
   | "media"
   | "artists"
   | "education"
-  | "members";
+  | "members"
+  | "owner";
 
 const ROLE_LABEL: Record<Role, string> = {
   ceo: "مدیرعامل",
@@ -21,6 +22,7 @@ const ROLE_LABEL: Record<Role, string> = {
   artists: "معاونت هنری و امور هنرمندان",
   education: "معاونت آموزش، پژوهش و نوآوری",
   members: "معاونت مفاخر، اعضا و باشگاه‌ها",
+  owner: "مالک سامانه",
 };
 
 export default function InternalHomePage() {
@@ -33,6 +35,7 @@ export default function InternalHomePage() {
         const response = await fetch("/api/auth/me", { cache: "no-store" });
         if (!response.ok) throw new Error();
         const data = await response.json();
+        if (data.user?.role === "owner") { location.href = "/internal/owner"; return; }
         if (!data.user || data.user.role === "finance" || data.user.role === "beneficiary") {
           location.href = data.user?.role === "finance" ? "/internal/project-rewards" : "/login";
           return;
@@ -74,7 +77,7 @@ export default function InternalHomePage() {
                 {user.name} · {ROLE_LABEL[user.role]}
               </p>
             </div>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2"><a href="/internal/change-password" className="rounded-xl border border-white/20 px-4 py-2.5 text-sm font-extrabold text-white hover:bg-white/10">تغییر رمز عبور</a><a href="/internal/requests" className="rounded-xl border border-white/20 px-4 py-2.5 text-sm font-extrabold text-white hover:bg-white/10">کارتابل درخواست‌ها</a>
               <a href="https://www.khorshid-mafakher.ir/" target="_blank" rel="noreferrer" className="rounded-xl border border-white/20 bg-white px-4 py-2.5 text-sm font-extrabold text-[#18304A] hover:bg-[#EEECE6]">
                 وب‌سایت خورشید ↗
               </a>

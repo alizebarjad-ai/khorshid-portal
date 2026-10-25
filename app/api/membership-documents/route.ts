@@ -8,12 +8,21 @@ export async function GET(request: NextRequest) {
   const user = decodeSession(request.cookies.get(COOKIE_NAME)?.value);
   if (!user) return NextResponse.json({ error: "برای ادامه وارد سامانه شوید." }, { status: 401 });
   if (!["members", "ceo", "deputy"].includes(user.role)) return NextResponse.json({ error: "دسترسی به مدارک عضویت مجاز نیست." }, { status: 403 });
-  const base = process.env.WEBSITE_MEMBERSHIP_DOCUMENTS_URL;
+
+  const apiBase = process.env.WEBSITE_MEMBERSHIP_API_URL;
   const key = process.env.PORTAL_MEMBERSHIP_API_KEY;
   const documentId = request.nextUrl.searchParams.get("documentId");
-  if (!base || !key || !documentId) return NextResponse.json({ error: "تنظیمات اتصال یا شناسه مدرک معتبر نیست." }, { status: 400 });
+  if (!apiBase || !key || !documentId) return NextResponse.json({ error: "تنظیمات اتصال یا شناسه مدرک معتبر نیست." }, { status: 400 });
+
   try {
-    const response = await fetch(base + "?documentId=" + encodeURIComponent(documentId), { headers: { "x-portal-membership-key": key }, cache: "no-store" });
+    // Derive the document endpoint from the existing website API base so deployments
+    // do not silently fail when a second, undocumented URL variable is missing.
+    const endpoint = new URL("/api/portal/membership-documents", apiBase);
+    endpoint.searchParams.set("documentId", documentId);
+    const response = await fetch(endpoint, {
+      headers: { "x-portal-membership-key": key },
+      cache: "no-store",
+    });
     if (!response.ok) {
       const data = await response.json().catch(() => ({}));
       return NextResponse.json(data, { status: response.status });

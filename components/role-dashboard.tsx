@@ -5,13 +5,14 @@ import { useRouter } from "next/navigation";
 import type { UserRole } from "@/lib/auth";
 import { dashboardPathForRole } from "@/lib/dashboard-path";
 
-type ManagementRole = Exclude<UserRole, "beneficiary">;
+type ManagementRole = Exclude<UserRole, "beneficiary" | "member" | "owner">;
 type Opportunity = {
   id: string;
   code?: string;
   title?: string;
   clientName?: string;
   type?: string;
+  subjectArea?: string;
   status?: string;
   createdAt?: string;
   assignedToName?: string;
@@ -108,7 +109,7 @@ const CONFIG: Record<ManagementRole, DashboardConfig> = {
       { label: "فرصت‌ها و پرونده‌های مشارکت", description: "پیگیری فرصت‌های ارجاع‌شده به واحد", href: "/internal/opportunities", primary: true },
       { label: "ثبت فرصت یا حامی جدید", description: "ثبت اطلاعات اولیه شریک یا فرصت همکاری", href: "/internal/submit-proposal" },
     ],
-    attentionStatuses: ["تشکیل تیم پروژه", "در حال تدوین طرح و پروپوزال", "مذاکرات اولیه", "نیازمند تکمیل"],
+    attentionStatuses: ["ارجاع به واحد تخصصی", "تشکیل تیم پروژه", "در حال تدوین طرح و پروپوزال", "مذاکرات اولیه", "نیازمند تکمیل"],
     progressStatuses: ["قیمت‌گذاری و بررسی مالی", "ارسال طرح نهایی به مدیرعامل"],
     completedStatuses: ["قرارداد تنظیم شد", "ثبت پروژه"],
     emptyTitle: "فرصت مشارکتی ارجاع‌شده‌ای وجود ندارد",
@@ -125,7 +126,7 @@ const CONFIG: Record<ManagementRole, DashboardConfig> = {
       { label: "بانک تخصص و مشاوران", description: "جست‌وجو در پروفایل متخصصان و مشاوران تأییدشده برای پروژه‌ها", href: "/internal/expertise-directory", primary: true },
       { label: "ثبت پیشنهاد اجتماعی", description: "ثبت نیاز یا ایده برای پروژه حمایتی", href: "/internal/submit-proposal" },
     ],
-    attentionStatuses: ["تشکیل تیم پروژه", "در حال تدوین طرح و پروپوزال", "نیازمند تکمیل"],
+    attentionStatuses: ["ارجاع به واحد تخصصی", "تشکیل تیم پروژه", "در حال تدوین طرح و پروپوزال", "نیازمند تکمیل"],
     progressStatuses: ["قیمت‌گذاری و بررسی مالی", "مذاکرات اولیه", "ارسال طرح نهایی به مدیرعامل"],
     completedStatuses: ["قرارداد تنظیم شد", "ثبت پروژه"],
     emptyTitle: "پرونده اجتماعی ارجاع‌شده‌ای وجود ندارد",
@@ -141,7 +142,7 @@ const CONFIG: Record<ManagementRole, DashboardConfig> = {
       { label: "کارتابل محتوای اعضا", description: "بررسی متن، تصویر و ویدیوی ارسالی و ارجاع محتوای تأییدشده به ادمین", href: "/internal/content-review", primary: true },
       { label: "ثبت پیشنهاد رسانه‌ای", description: "ثبت ایده تولید محتوا یا همکاری رسانه‌ای", href: "/internal/submit-proposal" },
     ],
-    attentionStatuses: ["تشکیل تیم پروژه", "در حال تدوین طرح و پروپوزال", "نیازمند تکمیل"],
+    attentionStatuses: ["ارجاع به واحد تخصصی", "تشکیل تیم پروژه", "در حال تدوین طرح و پروپوزال", "نیازمند تکمیل"],
     progressStatuses: ["قیمت‌گذاری و بررسی مالی", "مذاکرات اولیه", "ارسال طرح نهایی به مدیرعامل"],
     completedStatuses: ["قرارداد تنظیم شد", "ثبت پروژه"],
     emptyTitle: "پرونده رسانه‌ای ارجاع‌شده‌ای وجود ندارد",
@@ -157,7 +158,7 @@ const CONFIG: Record<ManagementRole, DashboardConfig> = {
       { label: "کارتابل ارتقای هنرمندان", description: "بررسی درخواست‌های هنرمندی و تأیید پروفایل تخصصی", href: "/internal/member-upgrades", primary: true },
       { label: "ثبت پیشنهاد هنری", description: "ثبت ایده پروژه یا همکاری با هنرمندان", href: "/internal/submit-proposal" },
     ],
-    attentionStatuses: ["تشکیل تیم پروژه", "در حال تدوین طرح و پروپوزال", "نیازمند تکمیل"],
+    attentionStatuses: ["ارجاع به واحد تخصصی", "تشکیل تیم پروژه", "در حال تدوین طرح و پروپوزال", "نیازمند تکمیل"],
     progressStatuses: ["قیمت‌گذاری و بررسی مالی", "مذاکرات اولیه", "ارسال طرح نهایی به مدیرعامل"],
     completedStatuses: ["قرارداد تنظیم شد", "ثبت پروژه"],
     emptyTitle: "پرونده هنری ارجاع‌شده‌ای وجود ندارد",
@@ -172,7 +173,7 @@ const CONFIG: Record<ManagementRole, DashboardConfig> = {
       { label: "پرونده‌های آموزشی و پژوهشی", description: "پیگیری پرونده‌های ارجاع‌شده به واحد", href: "/internal/opportunities", primary: true },
       { label: "ثبت پیشنهاد آموزشی", description: "ثبت ایده آموزشی، پژوهشی یا نوآورانه", href: "/internal/submit-proposal" },
     ],
-    attentionStatuses: ["تشکیل تیم پروژه", "در حال تدوین طرح و پروپوزال", "نیازمند تکمیل"],
+    attentionStatuses: ["ارجاع به واحد تخصصی", "تشکیل تیم پروژه", "در حال تدوین طرح و پروپوزال", "نیازمند تکمیل"],
     progressStatuses: ["قیمت‌گذاری و بررسی مالی", "مذاکرات اولیه", "ارسال طرح نهایی به مدیرعامل"],
     completedStatuses: ["قرارداد تنظیم شد", "ثبت پروژه"],
     emptyTitle: "پرونده آموزشی یا پژوهشی ارجاع‌شده‌ای وجود ندارد",
@@ -191,26 +192,13 @@ const CONFIG: Record<ManagementRole, DashboardConfig> = {
       { label: "پرونده‌های مرتبط با اعضا", description: "پیگیری پرونده‌های ارجاع‌شده به واحد", href: "/internal/opportunities" },
       { label: "ثبت پیشنهاد اعضا یا باشگاه", description: "ثبت ایده یا فرصت همکاری مرتبط با اعضا", href: "/internal/submit-proposal" },
     ],
-    attentionStatuses: ["تشکیل تیم پروژه", "در حال تدوین طرح و پروپوزال", "نیازمند تکمیل"],
+    attentionStatuses: ["ارجاع به واحد تخصصی", "تشکیل تیم پروژه", "در حال تدوین طرح و پروپوزال", "نیازمند تکمیل"],
     progressStatuses: ["قیمت‌گذاری و بررسی مالی", "مذاکرات اولیه", "ارسال طرح نهایی به مدیرعامل"],
     completedStatuses: ["قرارداد تنظیم شد", "ثبت پروژه"],
     emptyTitle: "پرونده مرتبط با اعضا یا باشگاه‌ها وجود ندارد",
     emptyDescription: "پرونده‌های مرتبط با اعضا پس از ارجاع به واحد در اینجا نمایش داده می‌شوند.",
   },
-  member: {
-    title: "داشبورد عضو",
-    subtitle: "دسترسی به پرونده و خدمات شخصی عضویت",
-    welcome: "برای مدیریت پرونده شخصی و خدمات عضویت، از داشبورد اعضا استفاده کنید.",
-    priorities: ["تکمیل اطلاعات پرونده شخصی", "پیگیری برنامه‌های باشگاه‌ها", "ثبت درخواست ارتقای حرفه‌ای در صورت نیاز"],
-    actions: [
-      { label: "ورود به داشبورد اعضا", description: "مشاهده پرونده، برنامه‌ها و خدمات عضویت", href: "/internal/member-home", primary: true },
-    ],
-    attentionStatuses: [],
-    progressStatuses: [],
-    completedStatuses: [],
-    emptyTitle: "این بخش برای نقش عضو استفاده نمی‌شود",
-    emptyDescription: "برای خدمات شخصی، داشبورد اعضا را باز کنید.",
-  },
+
 };
 
 const money = (value: number) => new Intl.NumberFormat("fa-IR").format(Math.max(0, Math.round(value)));
@@ -260,6 +248,14 @@ export default function RoleDashboard({ role }: { role: ManagementRole }) {
         router.replace("/internal/my-reward");
         return;
       }
+      if (currentRole === "member") {
+        router.replace("/internal/member-home");
+        return;
+      }
+      if (currentRole === "owner") {
+        router.replace("/internal/owner");
+        return;
+      }
       if (currentRole !== role) {
         const pathByRole: Record<ManagementRole, string> = {
           ceo: "/internal/roles/ceo",
@@ -271,7 +267,6 @@ export default function RoleDashboard({ role }: { role: ManagementRole }) {
           artists: "/internal/roles/artists",
           education: "/internal/education-manager",
           members: "/internal/roles/members",
-          member: "/internal/member-home",
         };
         router.replace(pathByRole[currentRole] || "/login");
         return;

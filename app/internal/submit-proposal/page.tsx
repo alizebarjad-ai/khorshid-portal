@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { dashboardPathForRole } from "@/lib/dashboard-path";
 
 type ProposalType = "پروژه" | "مشتری" | "اسپانسر" | "فرصت همکاری";
+type SubjectArea = "deputy" | "economic" | "csr" | "media" | "artists" | "education" | "members";
 
 type Proposal = {
   id: string;
@@ -52,6 +53,7 @@ export default function SubmitProposalPage() {
   const [user, setUser] = useState<{ username: string; name: string; role: string } | null>(null);
   const [checking, setChecking] = useState(true);
   const [type, setType] = useState<ProposalType>("پروژه");
+  const [subjectArea, setSubjectArea] = useState<SubjectArea | "">("");
   const [title, setTitle] = useState("");
   const [client, setClient] = useState("");
   const [contact, setContact] = useState("");
@@ -82,8 +84,8 @@ export default function SubmitProposalPage() {
   }, []);
 
   async function submit() {
-    if (!user || !title.trim() || !description.trim()) {
-      alert("عنوان پیشنهاد و شرح کوتاه را تکمیل کنید.");
+    if (!user || !title.trim() || !description.trim() || !subjectArea) {
+      alert("حوزه مسئول بررسی، عنوان پیشنهاد و شرح کوتاه را تکمیل کنید.");
       return;
     }
 
@@ -94,6 +96,7 @@ export default function SubmitProposalPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           type,
+          subjectArea,
           title: title.trim(),
           clientName: client.trim(),
           clientContact: contact.trim(),
@@ -134,7 +137,7 @@ export default function SubmitProposalPage() {
           <p className="text-sm font-bold text-[#B99450]">سامانه داخلی خورشید</p>
           <h1 className="mt-2 text-3xl font-extrabold md:text-4xl">ثبت پیشنهاد اولیه</h1>
           <p className="mt-3 max-w-3xl text-sm leading-7 text-[#E6EAF0]">
-            پیشنهاد شما ابتدا برای بررسی قائم‌مقام ثبت می‌شود و در صورت تأیید، وارد مسیر تدوین، مذاکره، قرارداد و ثبت مالی خواهد شد.
+            درخواست مستقیماً به کارتابل حوزه مسئول می‌رود. پس از بررسی تخصصی، پرونده برای تصمیم‌گیری راهبردی به قائم‌مقام ارجاع می‌شود.
           </p>
         </div>
 
@@ -149,6 +152,21 @@ export default function SubmitProposalPage() {
                   <option>اسپانسر</option>
                   <option>فرصت همکاری</option>
                 </select>
+              </label>
+
+              <label className="block text-sm font-bold text-[#172F48]">
+                حوزه مسئول بررسی *
+                <select required value={subjectArea} onChange={(e) => setSubjectArea(e.target.value as SubjectArea | "")} className="mt-2 min-h-12 w-full rounded-xl border border-[#BFB4A4] bg-white px-3 text-[#172F48] outline-none focus:border-[#B99450]">
+                  <option value="" disabled>حوزه مسئول بررسی را انتخاب کنید</option>
+                  <option value="economic">مشارکت‌های اقتصادی، مشتری و حامی مالی</option>
+                  <option value="csr">پروژه‌های اجتماعی و حمایتی</option>
+                  <option value="media">رسانه، برند و بین‌الملل</option>
+                  <option value="artists">هنر و امور هنرمندان</option>
+                  <option value="education">آموزش، پژوهش و نوآوری</option>
+                  <option value="members">مفاخر، اعضا و باشگاه‌ها</option>
+                  <option value="deputy">موضوع راهبردی یا بین‌بخشی</option>
+                </select>
+                <span className="mt-1 block text-xs font-normal leading-6 text-[#687783]">فقط واحد انتخاب‌شده پرونده را در کارتابل تخصصی خود می‌بیند؛ سپس در صورت نیاز آن را به قائم‌مقام ارجاع می‌دهد.</span>
               </label>
 
               <label className="block text-sm font-bold text-[#172F48]">
@@ -183,7 +201,7 @@ export default function SubmitProposalPage() {
 
             <div className="mt-5 flex flex-wrap gap-3">
               <button type="button" onClick={submit} disabled={saving} className="rounded-xl bg-[#B99450] px-6 py-3 font-extrabold text-[#172F48] hover:bg-[#96763D] disabled:opacity-60">
-                {saving ? "در حال ثبت..." : "ارسال برای قائم‌مقام"}
+                {saving ? "در حال ثبت..." : "ارسال به کارتابل مسئول"}
               </button>
               <a href="/internal/my-reward" className="rounded-xl bg-[#E9E2D6] px-6 py-3 font-bold text-[#172F48] hover:bg-[#DED5C7]">
                 بازگشت
