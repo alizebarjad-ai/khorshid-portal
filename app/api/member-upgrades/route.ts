@@ -50,11 +50,13 @@ export async function POST(request: NextRequest) {
     }
     const profile = {
       ...(target === "artist" ? (member.artistProfile || {}) : (member.expertProfile || {})),
-      education: String(body.education || "").trim().slice(0, 160),
+      headline: String(body.headline || "").trim().slice(0, 160),
+      education: String(body.education || "").trim().slice(0, 1200),
       educationField: String(body.educationField || "").trim().slice(0, 160),
       experience: String(body.experience || "").trim().slice(0, 5000),
       specialties: String(body.specialties || "").split(/[،,\n]/).map(item => item.trim()).filter(Boolean).slice(0, 30),
-      portfolio: String(body.portfolio || "").trim().slice(0, 1500),
+      portfolio: String(body.portfolio || "").trim().slice(0, 2000),
+      website: String(body.website || "").trim().slice(0, 300),
       resumeText: String(body.resumeText || "").trim().slice(0, 8000),
       biography: String(body.biography || member.biography || "").trim().slice(0, 3000),
       submittedAt: new Date().toISOString(),
