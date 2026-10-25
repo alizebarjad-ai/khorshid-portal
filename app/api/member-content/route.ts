@@ -91,6 +91,7 @@ export async function PATCH(request: NextRequest) {
         if (!note) return jsonError("برای رد محتوا، توضیح لازم است.", 400);
         status = "rejected_media";
       } else if (body.action === "forward" && current.status === "approved_media") {
+        if (note.length < 20) return jsonError("برای ارجاع به ادمین، توضیح انتشار دست‌کم ۲۰ نویسه‌ای لازم است.", 400);
         status = "forwarded_admin";
       } else return jsonError("این اقدام با وضعیت فعلی محتوا سازگار نیست.", 409);
     } else {
