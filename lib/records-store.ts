@@ -3,6 +3,8 @@ import { randomUUID } from "node:crypto";
 
 export type MembershipTier = "affiliate" | "professional" | "supporter_partner";
 export type MembershipGrade = "volunteer" | "professional" | "club_manager";
+export type MembershipRank = "volunteer" | "professional" | "club_manager";
+export type MembershipRankHistory = { from: MembershipRank | null; to: MembershipRank; at: string; actor: string; reason: string };
 export type MemberPointEvent = { id: string; points: number; title: string; note: string; createdAt: string; actor: string };
 
 export type MemberRecord = {
@@ -10,8 +12,11 @@ export type MemberRecord = {
   kind: "member";
   fullName: string;
   memberType: "individual" | "artist" | "figure" | "supporter" | "expert" | "organization" | "media";
+  membershipType?: "affiliate";
   membershipTier?: MembershipTier;
   membershipGrade?: MembershipGrade;
+  membershipRank?: MembershipRank;
+  rankHistory?: MembershipRankHistory[];
   pointsBalance?: number;
   pointEvents?: MemberPointEvent[];
   artistProfile?: Record<string, unknown>;
@@ -84,7 +89,18 @@ export async function readRecordAudit(limit = 200): Promise<RecordAudit[]> {
 async function readRecords<T extends StoredRecord>(kind: "member" | "club"): Promise<T[]> {
   const collection = kind === "member" ? "members" : "clubs";
   const records = await listStored<T>(collection);
-  return records.filter((item) => item.kind === kind).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+  const normalized = records.filter((item) => item.kind === kind).map((item) => {
+    if (item.kind !== "member") return item;
+    const member = item as unknown as MemberRecord;
+    return {
+      ...member,
+      membershipType: "affiliate" as const,
+      membershipTier: "affiliate" as const,
+      membershipRank: isMembershipRank(member.membershipRank) ? member.membershipRank : (isMembershipGrade(member.membershipGrade) ? member.membershipGrade : "volunteer" as const),
+      rankHistory: Array.isArray(member.rankHistory) ? member.rankHistory : [],
+    } as unknown as T;
+  });
+  return normalized.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
 }
 
 async function writeRecord<T extends StoredRecord>(record: T): Promise<T> {
@@ -94,6 +110,7 @@ async function writeRecord<T extends StoredRecord>(record: T): Promise<T> {
 
 function isMembershipTier(value: unknown): value is MembershipTier { return value === "affiliate" || value === "professional" || value === "supporter_partner"; }
 function isMembershipGrade(value: unknown): value is MembershipGrade { return value === "volunteer" || value === "professional" || value === "club_manager"; }
+function isMembershipRank(value: unknown): value is MembershipRank { return value === "volunteer" || value === "professional" || value === "club_manager"; }
 function validPointEvents(value: unknown): MemberPointEvent[] { return Array.isArray(value) ? value.filter((x): x is MemberPointEvent => !!x && typeof x === "object" && typeof x.id === "string" && Number.isFinite(Number(x.points)) && typeof x.title === "string").slice(-300) : []; }
 
 export const readMembers = () => readRecords<MemberRecord>("member");
@@ -106,8 +123,11 @@ export async function createRecord(kind: "member" | "club", data: Record<string,
     const item: MemberRecord = {
       ...base, kind, fullName: String(data.fullName || "").trim(),
       memberType: (data.memberType || "artist") as MemberRecord["memberType"],
+      membershipType: "affiliate",
       membershipTier: "affiliate",
       membershipGrade: isMembershipGrade(data.membershipGrade) ? data.membershipGrade : "volunteer",
+      membershipRank: isMembershipRank(data.membershipRank) ? data.membershipRank : "volunteer",
+      rankHistory: [],
       pointsBalance: Math.max(0, Number(data.pointsBalance) || 0),
       pointEvents: validPointEvents(data.pointEvents),
       ...(data.artistProfile && typeof data.artistProfile === "object" ? { artistProfile: data.artistProfile as Record<string, unknown> } : {}),
@@ -115,7 +135,7 @@ export async function createRecord(kind: "member" | "club", data: Record<string,
       upgradeRequests: Array.isArray(data.upgradeRequests) ? data.upgradeRequests as MemberRecord["upgradeRequests"] : [],
       ...(data.supplementalData && typeof data.supplementalData === "object" && !Array.isArray(data.supplementalData) ? { supplementalData: data.supplementalData as Record<string, string> } : {}),
       sourceApplicationIds: typeof data.sourceApplicationId === "string" && data.sourceApplicationId ? [data.sourceApplicationId] : [],
-      membershipHistory: [],
+      membershipHistory: [{ from: null, to: "affiliate", at: now, actor: actor.username, ...(typeof data.sourceApplicationId === "string" && data.sourceApplicationId ? { applicationId: data.sourceApplicationId } : {}) }],
       status: (data.status || "pending") as MemberRecord["status"],
       phone: String(data.phone || "").trim(), email: String(data.email || "").trim(),
       city: String(data.city || "").trim(), expertise: String(data.expertise || "").trim(),
@@ -153,8 +173,15 @@ export async function updateRecord(kind: "member" | "club", id: string, data: Re
       ...old,
       fullName: String(data.fullName ?? old.fullName).trim(),
       memberType: (data.memberType ?? old.memberType) as MemberRecord["memberType"],
+      membershipType: "affiliate",
       membershipTier: "affiliate",
       ...(isMembershipGrade(data.membershipGrade) ? { membershipGrade: data.membershipGrade } : {}),
+      ...(isMembershipRank(data.membershipRank) ? {
+        membershipRank: data.membershipRank,
+        rankHistory: data.membershipRank !== old.membershipRank
+          ? [...(old.rankHistory || []), { from: isMembershipRank(old.membershipRank) ? old.membershipRank : null, to: data.membershipRank, at: now, actor: actor.username, reason: String(data.rankReason || "تغییر رده عضویت").slice(0, 500) }]
+          : (old.rankHistory || []),
+      } : {}),
       ...(Number.isFinite(Number(data.pointsBalance)) && data.pointsBalance !== undefined ? { pointsBalance: Math.max(0, Number(data.pointsBalance)) } : {}),
       ...(data.pointEvents !== undefined ? { pointEvents: validPointEvents(data.pointEvents) } : {}),
       ...(data.artistProfile && typeof data.artistProfile === "object" ? { artistProfile: data.artistProfile as Record<string, unknown> } : {}),
