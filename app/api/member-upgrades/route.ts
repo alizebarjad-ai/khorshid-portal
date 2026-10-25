@@ -119,7 +119,7 @@ export async function POST(request: NextRequest) {
       const id = randomUUID();
       const document: StoredUpgradeDocument = {
         id, memberId: member.id, requestId,
-        fileName: file.name.replace(/[\\/\\u0000-\\u001f]/g, "_").slice(0, 180) || "document",
+        fileName: file.name.replace(/[\/\u0000-\u001f]/g, "_").slice(0, 180) || "document",
         mimeType: file.type, size: file.size, uploadedAt,
         dataBase64: Buffer.from(await file.arrayBuffer()).toString("base64"),
       };
