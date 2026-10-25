@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { COOKIE_NAME, decodeSession } from "@/lib/auth";
 import { createRecord, readMembers, updateRecord } from "@/lib/records-store";
-import { normalizeMemberUsername, prepareMemberActivation } from "@/lib/member-accounts";
+import { prepareMemberActivation } from "@/lib/member-accounts";
 import { withPersistentAdvisoryLock } from "@/lib/persistent-store";
 
 export const runtime = "nodejs";
@@ -71,23 +71,12 @@ async function patchMembershipRequest(request: NextRequest) {
     // Synchronize only after the authoritative approval succeeded. Retrying is safe because
     // the source application ID is checked before creating another member profile.
     const members = await readMembers();
-    const email = String(application.email || "").trim().toLowerCase();
-    const phone = normalizeMemberUsername(String(application.phone || ""));
     const sourceId = String(application.id);
+    // Only reuse a profile when this exact application is already linked to it.
+    // Email and phone are not unique identifiers: different members may share contact details.
+    // Matching on either field silently overwrote a different member during approval.
     const linked = members.find((member) => (member.sourceApplicationIds || []).includes(sourceId));
-    const emailMatch = members.find((member) => email && String(member.email || "").trim().toLowerCase() === email);
-    const phoneMatch = members.find((member) => phone && normalizeMemberUsername(String(member.phone || "")) === phone);
-    const matches = [linked, emailMatch, phoneMatch].filter(Boolean);
-    const uniqueMatches = new Set(matches.map((member) => member!.id));
-    if (uniqueMatches.size > 1) {
-      return NextResponse.json({
-        error: "درخواست تأیید شده است، اما اطلاعات هویتی به چند پرونده متصل است. برای جلوگیری از ادغام اشتباه، همگام‌سازی پرونده متوقف شد.",
-        approved: true,
-        needsManualMerge: true,
-      }, { status: 409 });
-    }
-
-    const existing = linked || emailMatch || phoneMatch;
+    const existing = linked;
     const inferredMemberType = application.audience === "artist"
       ? "artist"
       : (["company", "government"].includes(application.audience) || application.type === "organization")
