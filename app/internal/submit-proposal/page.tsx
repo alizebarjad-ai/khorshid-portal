@@ -53,7 +53,7 @@ export default function SubmitProposalPage() {
   const [user, setUser] = useState<{ username: string; name: string; role: string } | null>(null);
   const [checking, setChecking] = useState(true);
   const [type, setType] = useState<ProposalType>("پروژه");
-  const [subjectArea, setSubjectArea] = useState<SubjectArea>("economic");
+  const [subjectArea, setSubjectArea] = useState<SubjectArea | "">("");
   const [title, setTitle] = useState("");
   const [client, setClient] = useState("");
   const [contact, setContact] = useState("");
@@ -84,8 +84,8 @@ export default function SubmitProposalPage() {
   }, []);
 
   async function submit() {
-    if (!user || !title.trim() || !description.trim()) {
-      alert("عنوان پیشنهاد و شرح کوتاه را تکمیل کنید.");
+    if (!user || !title.trim() || !description.trim() || !subjectArea) {
+      alert("حوزه مسئول بررسی، عنوان پیشنهاد و شرح کوتاه را تکمیل کنید.");
       return;
     }
 
@@ -156,7 +156,8 @@ export default function SubmitProposalPage() {
 
               <label className="block text-sm font-bold text-[#172F48]">
                 حوزه مسئول بررسی *
-                <select value={subjectArea} onChange={(e) => setSubjectArea(e.target.value as SubjectArea)} className="mt-2 min-h-12 w-full rounded-xl border border-[#BFB4A4] bg-white px-3 text-[#172F48] outline-none focus:border-[#B99450]">
+                <select required value={subjectArea} onChange={(e) => setSubjectArea(e.target.value as SubjectArea | "")} className="mt-2 min-h-12 w-full rounded-xl border border-[#BFB4A4] bg-white px-3 text-[#172F48] outline-none focus:border-[#B99450]">
+                  <option value="" disabled>حوزه مسئول بررسی را انتخاب کنید</option>
                   <option value="economic">مشارکت‌های اقتصادی، مشتری و حامی مالی</option>
                   <option value="csr">پروژه‌های اجتماعی و حمایتی</option>
                   <option value="media">رسانه، برند و بین‌الملل</option>
