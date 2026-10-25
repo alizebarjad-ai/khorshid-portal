@@ -3,13 +3,14 @@
 import { useEffect, useMemo, useState, type ChangeEvent, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 
-type Member = { id:string; fullName:string; memberType:string; membershipTier?:string; phone:string; email:string; city:string; expertise:string; biography:string; status:string; clubIds:string[] };
+type Member = { id:string; fullName:string; memberType:string; membershipTier?:string; memberRank?:string; phone:string; email:string; city:string; expertise:string; biography:string; status:string; clubIds:string[] };
 type Club = { id:string; name:string; clubType:string; city:string; description:string; status:string };
 type Program = { id:string; title:string; description:string; startsAt:string; location:string; clubName:string; format:string };
 type PointEvent = { id:string; title:string; points:number; createdAt:string; note:string };
 type SiteContent = {id:string;title:string;kind:string;description:string;image:string;dateLabel:string;href:string;linkLabel:string};
 type DashboardData = { pointsBalance:number; pointEvents:PointEvent[]; programs:Program[]; siteContent:SiteContent[] };
 const tierLabels:Record<string,string>={affiliate:"عضو وابسته",professional:"عضو حرفه‌ای / تخصصی",supporter_partner:"حامی مالی / شریک سازمانی"};
+const rankLabels:Record<string,string>={volunteer:"داوطلب",professional:"حرفه‌ای",club_manager:"مدیر باشگاه"};
 const typeLabels:Record<string,string>={artist:"هنرمند",figure:"چهره و صاحب‌نظر",supporter:"حامی",expert:"متخصص",organization:"شخصیت حقوقی"};
 const inputClass="w-full rounded-xl border border-[#D8D0C4] bg-white px-3 py-3 text-sm text-[#18304A] outline-none focus:border-[#B99450]";
 const services = [
@@ -118,7 +119,8 @@ export default function MemberHomePage(){
 
  const upcomingPrograms=useMemo(()=>dashboard.programs.filter(p=>!p.startsAt||new Date(p.startsAt).getTime()>=Date.now()),[dashboard.programs]);
  const activeClubs=clubs.filter(c=>c.status==="active");
- const memberTier=tierLabels[member?.membershipTier||""]||"عضو خورشید";
+ const memberTier=tierLabels[member?.membershipTier||"affiliate"]||"عضو وابسته";
+ const memberRank=rankLabels[member?.memberRank||"volunteer"]||"داوطلب";
  const memberType=typeLabels[member?.memberType||""]||member?.memberType||"عضو";
  const sections=[["home","نمای کلی"],["programs","برنامه‌ها"],["clubs","باشگاه‌های من"],["services","خدمات و امتیاز"],["content","ارسال محتوا"],["profile","پرونده من"]];
 
@@ -138,7 +140,7 @@ export default function MemberHomePage(){
      {loading?<div className="rounded-3xl border border-[#E3E0D8] bg-white p-8 text-center">در حال دریافت پرونده شما…</div>:member?<>
        <section id="home" className="scroll-mt-36 overflow-hidden rounded-[28px] bg-[#172F48] p-5 text-white shadow-lg md:p-8">
          <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
-           <div className="min-w-0"><p className="text-xs font-bold tracking-wide text-[#D7B978]">جامعه اعضای خورشید مفاخر</p><h1 className="mt-2 text-2xl font-extrabold md:text-3xl">سلام {member.fullName}</h1><p className="mt-2 max-w-2xl text-sm leading-7 text-[#E6EAF0]">اینجا مرکز شخصی شما برای برنامه‌های باشگاهی، خدمات عضویت، امتیازها و ارسال آثار است.</p><div className="mt-4 flex flex-wrap gap-2"><span className="rounded-full bg-white/10 px-3 py-1.5 text-xs font-bold">{memberType}</span><span className="rounded-full bg-[#F0DFB8] px-3 py-1.5 text-xs font-bold text-[#172F48]">{memberTier}</span><span className="rounded-full bg-emerald-100 px-3 py-1.5 text-xs font-bold text-emerald-800">عضویت فعال</span></div></div>
+           <div className="min-w-0"><p className="text-xs font-bold tracking-wide text-[#D7B978]">جامعه اعضای خورشید مفاخر</p><h1 className="mt-2 text-2xl font-extrabold md:text-3xl">سلام {member.fullName}</h1><p className="mt-2 max-w-2xl text-sm leading-7 text-[#E6EAF0]">اینجا مرکز شخصی شما برای برنامه‌های باشگاهی، خدمات عضویت، امتیازها و ارسال آثار است.</p><div className="mt-4 flex flex-wrap gap-2"><span className="rounded-full bg-white/10 px-3 py-1.5 text-xs font-bold">{memberType}</span><span className="rounded-full bg-[#F0DFB8] px-3 py-1.5 text-xs font-bold text-[#172F48]">نوع عضویت: {memberTier}</span><span className="rounded-full border border-white/20 px-3 py-1.5 text-xs font-bold">رده: {memberRank}</span><span className="rounded-full bg-emerald-100 px-3 py-1.5 text-xs font-bold text-emerald-800">عضویت فعال</span></div></div>
            <div className="grid w-full grid-cols-2 gap-3 sm:max-w-[270px]"><div className="rounded-2xl border border-white/10 bg-white/10 p-4"><span className="text-xs text-[#E6EAF0]">باشگاه‌های فعال</span><strong className="mt-1 block text-2xl">{money(activeClubs.length)}</strong></div><div className="rounded-2xl border border-white/10 bg-white/10 p-4"><span className="text-xs text-[#E6EAF0]">امتیاز ثبت‌شده</span><strong className="mt-1 block text-2xl">{money(dashboard.pointsBalance)}</strong></div></div>
          </div>
        </section>
@@ -190,7 +192,7 @@ export default function MemberHomePage(){
          <div className="mb-4"><p className="text-xs font-bold text-[#96763D]">حساب و اطلاعات شخصی</p><h2 className="mt-1 text-xl font-extrabold">پرونده من</h2></div>
          <div className="grid gap-4 lg:grid-cols-2">
            <section className="rounded-2xl border border-[#E3E0D8] bg-white p-5 shadow-sm"><div className="flex items-start justify-between gap-3"><div><h3 className="font-extrabold">اطلاعات عضویت</h3><p className="mt-1 text-xs text-[#687783]">برای تغییر نام و اطلاعات هویتی، با معاونت اعضا هماهنگ کنید.</p></div><button type="button" onClick={()=>setEditing(v=>!v)} className="shrink-0 rounded-xl border border-[#D8D0C4] px-3 py-2 text-xs font-bold">{editing?"لغو":"ویرایش"}</button></div>
-             <div className="mt-4 grid grid-cols-2 gap-3">{[["نام",member.fullName],["رده عضویت",memberTier],["نوع عضو",memberType],["وضعیت","فعال"],["شماره تماس",member.phone],["ایمیل",member.email]].map(([label,value])=><div key={label} className="min-w-0 rounded-xl bg-[#F7F5F0] p-3"><p className="text-[11px] text-[#687783]">{label}</p><p className="mt-1 break-words text-sm font-bold">{value||"ثبت نشده"}</p></div>)}</div>
+             <div className="mt-4 grid grid-cols-2 gap-3">{[["نام",member.fullName],["نوع عضویت",memberTier],["رده عضویت",memberRank],["نوع عضو",memberType],["وضعیت","فعال"],["شماره تماس",member.phone],["ایمیل",member.email]].map(([label,value])=><div key={label} className="min-w-0 rounded-xl bg-[#F7F5F0] p-3"><p className="text-[11px] text-[#687783]">{label}</p><p className="mt-1 break-words text-sm font-bold">{value||"ثبت نشده"}</p></div>)}</div>
              {editing&&<form onSubmit={saveProfile} className="mt-4 grid gap-3"><label className="text-sm font-bold">شهر<input className={inputClass+" mt-2"} maxLength={120} value={city} onChange={e=>setCity(e.target.value)}/></label><label className="text-sm font-bold">حوزه تخصصی<input className={inputClass+" mt-2"} maxLength={240} value={expertise} onChange={e=>setExpertise(e.target.value)}/></label><label className="text-sm font-bold">معرفی کوتاه<textarea className={inputClass+" mt-2"} rows={4} maxLength={3000} value={biography} onChange={e=>setBiography(e.target.value)}/></label><button disabled={busy} className="rounded-xl bg-[#172F48] px-4 py-3 text-sm font-bold text-white disabled:opacity-50">{busy?"در حال ذخیره…":"ذخیره پرونده"}</button></form>}
              {!editing&&<div className="mt-3 grid gap-3 sm:grid-cols-2"><div className="rounded-xl bg-[#F7F5F0] p-3"><p className="text-[11px] text-[#687783]">شهر</p><p className="mt-1 text-sm font-semibold">{member.city||"ثبت نشده"}</p></div><div className="rounded-xl bg-[#F7F5F0] p-3"><p className="text-[11px] text-[#687783]">تخصص</p><p className="mt-1 text-sm font-semibold">{member.expertise||"ثبت نشده"}</p></div><div className="rounded-xl bg-[#F7F5F0] p-3 sm:col-span-2"><p className="text-[11px] text-[#687783]">معرفی کوتاه</p><p className="mt-1 whitespace-pre-wrap text-sm leading-6">{member.biography||"هنوز معرفی کوتاهی ثبت نشده است."}</p></div></div>}
            </section>
