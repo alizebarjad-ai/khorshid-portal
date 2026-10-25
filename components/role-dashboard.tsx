@@ -186,6 +186,7 @@ const CONFIG: Record<ManagementRole, DashboardConfig> = {
 };
 
 const money = (value: number) => new Intl.NumberFormat("fa-IR").format(Math.max(0, Math.round(value)));
+const countByStatuses = (items: Opportunity[], statuses: string[]) => items.filter((item) => statuses.includes(item.status || "")).length;
 
 function StatusPill({ status }: { status: string }) {
   const isDone = ["ثبت پروژه", "ثبت‌شده", "قرارداد تنظیم شد"].includes(status);
@@ -249,7 +250,6 @@ export default function RoleDashboard({ role }: { role: ManagementRole }) {
 
   useEffect(() => { void load(); }, [load]);
 
-  const countStatuses = (statuses: string[]) => items.filter((item) => statuses.includes(item.status || "")).length;
   const openItems = useMemo(
     () => items.filter((item) => !["رد توسط قائم‌مقام", "رد توسط مدیرعامل در مرحله اول", "رد نهایی مدیرعامل", "ثبت پروژه", "قرارداد تنظیم شد"].includes(item.status || "")),
     [items],
@@ -265,21 +265,21 @@ export default function RoleDashboard({ role }: { role: ManagementRole }) {
   const metricCards = useMemo(() => {
     if (role === "ceo") return [
       { label: "کل پرونده‌ها", value: money(items.length), hint: "کل سبد قابل مشاهده مدیرعامل" },
-      { label: "در انتظار تصمیم", value: money(countStatuses(["ارسال به مدیرعامل", "ارسال طرح نهایی به مدیرعامل"])), hint: "تأیید اولیه یا تصمیم نهایی" },
-      { label: "قرارداد در انتظار ثبت مالی", value: money(countStatuses(["قرارداد تنظیم شد"])), hint: "قرارداد ثبت شده، اطلاعات مالی نهایی نشده" },
+      { label: "در انتظار تصمیم", value: money(countByStatuses(items, ["ارسال به مدیرعامل", "ارسال طرح نهایی به مدیرعامل"])), hint: "تأیید اولیه یا تصمیم نهایی" },
+      { label: "قرارداد در انتظار ثبت مالی", value: money(countByStatuses(items, ["قرارداد تنظیم شد"])), hint: "قرارداد ثبت شده، اطلاعات مالی نهایی نشده" },
       { label: "ارزش برآوردی فرصت‌های باز", value: money(openPipelineValue), hint: "ریال · قیمت پیشنهادی یا برآورد اولیه" },
     ];
     if (role === "deputy") return [
       { label: "کل پرونده‌ها", value: money(items.length), hint: "نمای کلی گردش کار" },
-      { label: "در انتظار بررسی اولیه", value: money(countStatuses(["در حال بررسی قائم‌مقام"])), hint: "تصمیم: تکمیل، رد یا ارجاع" },
-      { label: "نیازمند تکمیل", value: money(countStatuses(["نیازمند تکمیل"])), hint: "پرونده‌های برگشتی برای اصلاح" },
-      { label: "در مسیر اجرا", value: money(countStatuses(["تشکیل تیم پروژه", "در حال تدوین طرح و پروپوزال", "قیمت‌گذاری و بررسی مالی", "مذاکرات اولیه"])), hint: "پیگیری گلوگاه‌ها و هماهنگی واحدها" },
+      { label: "در انتظار بررسی اولیه", value: money(countByStatuses(items, ["در حال بررسی قائم‌مقام"])), hint: "تصمیم: تکمیل، رد یا ارجاع" },
+      { label: "نیازمند تکمیل", value: money(countByStatuses(items, ["نیازمند تکمیل"])), hint: "پرونده‌های برگشتی برای اصلاح" },
+      { label: "در مسیر اجرا", value: money(countByStatuses(items, ["تشکیل تیم پروژه", "در حال تدوین طرح و پروپوزال", "قیمت‌گذاری و بررسی مالی", "مذاکرات اولیه"])), hint: "پیگیری گلوگاه‌ها و هماهنگی واحدها" },
     ];
     if (role === "economic") return [
       { label: "فرصت‌های ارجاع‌شده به واحد", value: money(items.length), hint: "فقط پرونده‌های تخصیص‌یافته به توسعه اقتصادی" },
-      { label: "در حال تدوین یا قیمت‌گذاری", value: money(countStatuses(["تشکیل تیم پروژه", "در حال تدوین طرح و پروپوزال", "قیمت‌گذاری و بررسی مالی"])), hint: "تکمیل پیشنهاد ارزش و برآورد مالی" },
-      { label: "در حال مذاکره", value: money(countStatuses(["مذاکرات اولیه"])), hint: "نیازمند ثبت نتیجه و گام بعدی" },
-      { label: "ارزش برآوردی فرصت‌های باز", money: true, value: money(openPipelineValue), hint: "ریال · قیمت پیشنهادی یا برآورد اولیه" },
+      { label: "در حال تدوین یا قیمت‌گذاری", value: money(countByStatuses(items, ["تشکیل تیم پروژه", "در حال تدوین طرح و پروپوزال", "قیمت‌گذاری و بررسی مالی"])), hint: "تکمیل پیشنهاد ارزش و برآورد مالی" },
+      { label: "در حال مذاکره", value: money(countByStatuses(items, ["مذاکرات اولیه"])), hint: "نیازمند ثبت نتیجه و گام بعدی" },
+      { label: "ارزش برآوردی فرصت‌های باز", value: money(openPipelineValue), hint: "ریال · قیمت پیشنهادی یا برآورد اولیه" },
     ];
     return [
       { label: "پرونده‌های در دسترس", value: money(items.length), hint: "بر اساس سطح دسترسی شما" },
@@ -290,25 +290,25 @@ export default function RoleDashboard({ role }: { role: ManagementRole }) {
   }, [role, items, config, openPipelineValue, contractedValue]);
   const reportRows = useMemo(() => {
     if (role === "ceo") return [
-      { label: "منتظر تصمیم اولیه مدیرعامل", value: countStatuses(["ارسال به مدیرعامل"]) },
-      { label: "منتظر تأیید نهایی", value: countStatuses(["ارسال طرح نهایی به مدیرعامل"]) },
-      { label: "تأییدشده، در انتظار قرارداد", value: countStatuses(["تأیید نهایی مدیرعامل"]) },
-      { label: "قرارداد در انتظار تکمیل مالی", value: countStatuses(["قرارداد تنظیم شد"]) },
-      { label: "ردشده / بسته‌شده", value: countStatuses(["رد توسط قائم‌مقام", "رد توسط مدیرعامل در مرحله اول", "رد نهایی مدیرعامل"]) },
+      { label: "منتظر تصمیم اولیه مدیرعامل", value: countByStatuses(items, ["ارسال به مدیرعامل"]) },
+      { label: "منتظر تأیید نهایی", value: countByStatuses(items, ["ارسال طرح نهایی به مدیرعامل"]) },
+      { label: "تأییدشده، در انتظار قرارداد", value: countByStatuses(items, ["تأیید نهایی مدیرعامل"]) },
+      { label: "قرارداد در انتظار تکمیل مالی", value: countByStatuses(items, ["قرارداد تنظیم شد"]) },
+      { label: "ردشده / بسته‌شده", value: countByStatuses(items, ["رد توسط قائم‌مقام", "رد توسط مدیرعامل در مرحله اول", "رد نهایی مدیرعامل"]) },
     ];
     if (role === "deputy") return [
-      { label: "بررسی اولیه", value: countStatuses(["در حال بررسی قائم‌مقام"]) },
-      { label: "برگشتی برای تکمیل", value: countStatuses(["نیازمند تکمیل"]) },
-      { label: "در انتظار تصمیم مدیرعامل", value: countStatuses(["ارسال به مدیرعامل", "ارسال طرح نهایی به مدیرعامل"]) },
-      { label: "طراحی و قیمت‌گذاری", value: countStatuses(["تشکیل تیم پروژه", "در حال تدوین طرح و پروپوزال", "قیمت‌گذاری و بررسی مالی"]) },
-      { label: "مذاکرات", value: countStatuses(["مذاکرات اولیه"]) },
+      { label: "بررسی اولیه", value: countByStatuses(items, ["در حال بررسی قائم‌مقام"]) },
+      { label: "برگشتی برای تکمیل", value: countByStatuses(items, ["نیازمند تکمیل"]) },
+      { label: "در انتظار تصمیم مدیرعامل", value: countByStatuses(items, ["ارسال به مدیرعامل", "ارسال طرح نهایی به مدیرعامل"]) },
+      { label: "طراحی و قیمت‌گذاری", value: countByStatuses(items, ["تشکیل تیم پروژه", "در حال تدوین طرح و پروپوزال", "قیمت‌گذاری و بررسی مالی"]) },
+      { label: "مذاکرات", value: countByStatuses(items, ["مذاکرات اولیه"]) },
     ];
     if (role === "economic") return [
-      { label: "در حال تدوین طرح", value: countStatuses(["تشکیل تیم پروژه", "در حال تدوین طرح و پروپوزال"]) },
-      { label: "قیمت‌گذاری", value: countStatuses(["قیمت‌گذاری و بررسی مالی"]) },
-      { label: "مذاکرات", value: countStatuses(["مذاکرات اولیه"]) },
-      { label: "ارسال‌شده برای تصمیم نهایی", value: countStatuses(["ارسال طرح نهایی به مدیرعامل"]) },
-      { label: "قرارداد / ثبت نهایی", value: countStatuses(["قرارداد تنظیم شد", "ثبت پروژه"]) },
+      { label: "در حال تدوین طرح", value: countByStatuses(items, ["تشکیل تیم پروژه", "در حال تدوین طرح و پروپوزال"]) },
+      { label: "قیمت‌گذاری", value: countByStatuses(items, ["قیمت‌گذاری و بررسی مالی"]) },
+      { label: "مذاکرات", value: countByStatuses(items, ["مذاکرات اولیه"]) },
+      { label: "ارسال‌شده برای تصمیم نهایی", value: countByStatuses(items, ["ارسال طرح نهایی به مدیرعامل"]) },
+      { label: "قرارداد / ثبت نهایی", value: countByStatuses(items, ["قرارداد تنظیم شد", "ثبت پروژه"]) },
     ];
     return [
       { label: "نیازمند اقدام", value: countStatuses(config.attentionStatuses) },
