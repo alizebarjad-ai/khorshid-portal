@@ -189,6 +189,7 @@ export async function updateRecord(kind: "member" | "club", id: string, data: Re
       ...(data.pointEvents !== undefined ? { pointEvents: validPointEvents(data.pointEvents) } : {}),
       ...(data.artistProfile && typeof data.artistProfile === "object" ? { artistProfile: data.artistProfile as Record<string, unknown> } : {}),
       ...(data.expertProfile && typeof data.expertProfile === "object" ? { expertProfile: data.expertProfile as Record<string, unknown> } : {}),
+      ...(Array.isArray(data.professionalMemberships) ? { professionalMemberships: data.professionalMemberships.filter((value) => value === "artist" || value === "expert") as ("artist" | "expert")[] } : {}),
       ...(Array.isArray(data.upgradeRequests) ? { upgradeRequests: data.upgradeRequests as MemberRecord["upgradeRequests"] } : {}),
       ...(data.supplementalData && typeof data.supplementalData === "object" && !Array.isArray(data.supplementalData) ? { supplementalData: data.supplementalData as Record<string, string> } : {}),
       sourceApplicationIds: typeof data.sourceApplicationId === "string" && data.sourceApplicationId ? Array.from(new Set([...(old.sourceApplicationIds || []), data.sourceApplicationId])) : (old.sourceApplicationIds || []),
