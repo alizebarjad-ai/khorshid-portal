@@ -148,13 +148,16 @@ export async function GET(request: NextRequest) {
         note: text(item.note || item.description || ""),
       }];
     }).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-    const effectivePointEvents = allPointEvents.length ? allPointEvents : (member.pointEvents || []).map((event) => ({
-      id: text(event.id) || `point-${member.id}-${text(event.createdAt)}`,
-      title: text(event.title || event.activity || "فعالیت ثبت‌شده"),
-      points: number(event.points ?? event.delta),
-      createdAt: text(event.createdAt || event.date),
-      note: text(event.note || event.description),
-    })).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    const effectivePointEvents = allPointEvents.length ? allPointEvents : (member.pointEvents || []).map((rawEvent) => {
+      const event = rawEvent as unknown as StoredItem;
+      return {
+        id: text(event.id) || `point-${member.id}-${text(event.createdAt)}`,
+        title: text(event.title || event.activity || "فعالیت ثبت‌شده"),
+        points: number(event.points ?? event.delta),
+        createdAt: text(event.createdAt || event.date),
+        note: text(event.note || event.description),
+      };
+    }).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
     const pointsBalance = effectivePointEvents.reduce((sum, event) => sum + event.points, 0);
     const pointEvents = effectivePointEvents.slice(0, 50);
 
