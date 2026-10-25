@@ -48,7 +48,7 @@ const CONFIG: Record<ManagementRole, DashboardConfig> = {
       { label: "سامانه پرونده‌ها و پاداش", description: "مشاهده اطلاعات پروژه و پاداش‌های ثبت‌شده", href: "/internal/project-rewards" },
       { label: "کارتابل محتوای تأییدشده", description: "دریافت محتوای ارجاع‌شده از معاون رسانه و ثبت نتیجه بارگذاری در سایت", href: "/internal/content-review", primary: true },
     ],
-    attentionStatuses: ["ارسال به مدیرعامل", "ارسال طرح نهایی به مدیرعامل", "تأیید نهایی مدیرعامل", "رد توسط مدیرعامل در مرحله اول"],
+    attentionStatuses: ["ارسال به مدیرعامل", "ارسال طرح نهایی به مدیرعامل", "تأیید نهایی مدیرعامل", "قرارداد تنظیم شد"],
     progressStatuses: ["تشکیل تیم پروژه", "در حال تدوین طرح و پروپوزال", "قیمت‌گذاری و بررسی مالی", "مذاکرات اولیه"],
     completedStatuses: ["قرارداد تنظیم شد", "ثبت پروژه"],
     emptyTitle: "پرونده‌ای برای تصمیم‌گیری ثبت نشده است",
@@ -64,7 +64,7 @@ const CONFIG: Record<ManagementRole, DashboardConfig> = {
       { label: "مدیریت اعضا و باشگاه‌ها", description: "دسترسی مدیریتی به پرونده اعضا و باشگاه‌های تخصصی", href: "/internal/members" },
       { label: "ثبت فرصت جدید", description: "ثبت فرصت‌های راهبردی و همکاری", href: "/internal/submit-proposal" },
     ],
-    attentionStatuses: ["در حال بررسی قائم‌مقام", "نیازمند تکمیل", "بازگشت به قائم‌مقام", "ثبت اولیه"],
+    attentionStatuses: ["در حال بررسی قائم‌مقام", "نیازمند تکمیل"],
     progressStatuses: ["ارسال به مدیرعامل", "تشکیل تیم پروژه", "در حال تدوین طرح و پروپوزال", "مذاکرات اولیه"],
     completedStatuses: ["قرارداد تنظیم شد", "ثبت پروژه"],
     emptyTitle: "کارتابل فعلاً خالی است",
@@ -249,15 +249,73 @@ export default function RoleDashboard({ role }: { role: ManagementRole }) {
 
   useEffect(() => { void load(); }, [load]);
 
-  const metrics = useMemo(() => {
-    const count = (statuses: string[]) => items.filter((item) => statuses.includes(item.status || "")).length;
-    return {
-      total: items.length,
-      attention: count(config.attentionStatuses),
-      progress: count(config.progressStatuses),
-      completed: count(config.completedStatuses),
-    };
-  }, [config, items]);
+  const countStatuses = (statuses: string[]) => items.filter((item) => statuses.includes(item.status || "")).length;
+  const openItems = useMemo(
+    () => items.filter((item) => !["رد توسط قائم‌مقام", "رد توسط مدیرعامل در مرحله اول", "رد نهایی مدیرعامل", "ثبت پروژه", "قرارداد تنظیم شد"].includes(item.status || "")),
+    [items],
+  );
+  const openPipelineValue = useMemo(
+    () => openItems.reduce((sum, item) => sum + Math.max(0, Number(item.proposedPrice || item.expectedValue || 0)), 0),
+    [openItems],
+  );
+  const contractedValue = useMemo(
+    () => items.filter((item) => ["قرارداد تنظیم شد", "ثبت پروژه"].includes(item.status || "")).reduce((sum, item) => sum + Math.max(0, Number(item.contractValue || 0)), 0),
+    [items],
+  );
+  const metricCards = useMemo(() => {
+    if (role === "ceo") return [
+      { label: "کل پرونده‌ها", value: money(items.length), hint: "کل سبد قابل مشاهده مدیرعامل" },
+      { label: "در انتظار تصمیم", value: money(countStatuses(["ارسال به مدیرعامل", "ارسال طرح نهایی به مدیرعامل"])), hint: "تأیید اولیه یا تصمیم نهایی" },
+      { label: "قرارداد در انتظار ثبت مالی", value: money(countStatuses(["قرارداد تنظیم شد"])), hint: "قرارداد ثبت شده، اطلاعات مالی نهایی نشده" },
+      { label: "ارزش برآوردی فرصت‌های باز", value: money(openPipelineValue), hint: "ریال · قیمت پیشنهادی یا برآورد اولیه" },
+    ];
+    if (role === "deputy") return [
+      { label: "کل پرونده‌ها", value: money(items.length), hint: "نمای کلی گردش کار" },
+      { label: "در انتظار بررسی اولیه", value: money(countStatuses(["در حال بررسی قائم‌مقام"])), hint: "تصمیم: تکمیل، رد یا ارجاع" },
+      { label: "نیازمند تکمیل", value: money(countStatuses(["نیازمند تکمیل"])), hint: "پرونده‌های برگشتی برای اصلاح" },
+      { label: "در مسیر اجرا", value: money(countStatuses(["تشکیل تیم پروژه", "در حال تدوین طرح و پروپوزال", "قیمت‌گذاری و بررسی مالی", "مذاکرات اولیه"])), hint: "پیگیری گلوگاه‌ها و هماهنگی واحدها" },
+    ];
+    if (role === "economic") return [
+      { label: "فرصت‌های ارجاع‌شده به واحد", value: money(items.length), hint: "فقط پرونده‌های تخصیص‌یافته به توسعه اقتصادی" },
+      { label: "در حال تدوین یا قیمت‌گذاری", value: money(countStatuses(["تشکیل تیم پروژه", "در حال تدوین طرح و پروپوزال", "قیمت‌گذاری و بررسی مالی"])), hint: "تکمیل پیشنهاد ارزش و برآورد مالی" },
+      { label: "در حال مذاکره", value: money(countStatuses(["مذاکرات اولیه"])), hint: "نیازمند ثبت نتیجه و گام بعدی" },
+      { label: "ارزش برآوردی فرصت‌های باز", money: true, value: money(openPipelineValue), hint: "ریال · قیمت پیشنهادی یا برآورد اولیه" },
+    ];
+    return [
+      { label: "پرونده‌های در دسترس", value: money(items.length), hint: "بر اساس سطح دسترسی شما" },
+      { label: "نیازمند اقدام", value: money(countStatuses(config.attentionStatuses)), hint: "طبق مرحله گردش کار" },
+      { label: "در حال پیگیری", value: money(countStatuses(config.progressStatuses)), hint: "پرونده‌های فعال در مسیر اجرا" },
+      { label: "ارزش قراردادها", value: money(contractedValue), hint: "ریال · قرارداد تنظیم‌شده یا ثبت‌شده" },
+    ];
+  }, [role, items, config, openPipelineValue, contractedValue]);
+  const reportRows = useMemo(() => {
+    if (role === "ceo") return [
+      { label: "منتظر تصمیم اولیه مدیرعامل", value: countStatuses(["ارسال به مدیرعامل"]) },
+      { label: "منتظر تأیید نهایی", value: countStatuses(["ارسال طرح نهایی به مدیرعامل"]) },
+      { label: "تأییدشده، در انتظار قرارداد", value: countStatuses(["تأیید نهایی مدیرعامل"]) },
+      { label: "قرارداد در انتظار تکمیل مالی", value: countStatuses(["قرارداد تنظیم شد"]) },
+      { label: "ردشده / بسته‌شده", value: countStatuses(["رد توسط قائم‌مقام", "رد توسط مدیرعامل در مرحله اول", "رد نهایی مدیرعامل"]) },
+    ];
+    if (role === "deputy") return [
+      { label: "بررسی اولیه", value: countStatuses(["در حال بررسی قائم‌مقام"]) },
+      { label: "برگشتی برای تکمیل", value: countStatuses(["نیازمند تکمیل"]) },
+      { label: "در انتظار تصمیم مدیرعامل", value: countStatuses(["ارسال به مدیرعامل", "ارسال طرح نهایی به مدیرعامل"]) },
+      { label: "طراحی و قیمت‌گذاری", value: countStatuses(["تشکیل تیم پروژه", "در حال تدوین طرح و پروپوزال", "قیمت‌گذاری و بررسی مالی"]) },
+      { label: "مذاکرات", value: countStatuses(["مذاکرات اولیه"]) },
+    ];
+    if (role === "economic") return [
+      { label: "در حال تدوین طرح", value: countStatuses(["تشکیل تیم پروژه", "در حال تدوین طرح و پروپوزال"]) },
+      { label: "قیمت‌گذاری", value: countStatuses(["قیمت‌گذاری و بررسی مالی"]) },
+      { label: "مذاکرات", value: countStatuses(["مذاکرات اولیه"]) },
+      { label: "ارسال‌شده برای تصمیم نهایی", value: countStatuses(["ارسال طرح نهایی به مدیرعامل"]) },
+      { label: "قرارداد / ثبت نهایی", value: countStatuses(["قرارداد تنظیم شد", "ثبت پروژه"]) },
+    ];
+    return [
+      { label: "نیازمند اقدام", value: countStatuses(config.attentionStatuses) },
+      { label: "در حال پیگیری", value: countStatuses(config.progressStatuses) },
+      { label: "قرارداد / ثبت نهایی", value: countStatuses(config.completedStatuses) },
+    ];
+  }, [role, items, config]);
 
   const attentionItems = useMemo(
     () => items.filter((item) => config.attentionStatuses.includes(item.status || "")),
@@ -302,19 +360,37 @@ export default function RoleDashboard({ role }: { role: ManagementRole }) {
           <p className="text-sm font-bold text-[#D8B56E]">نمای اختصاصی شما</p>
           <h2 className="mt-2 text-2xl font-extrabold md:text-3xl">{config.subtitle}</h2>
           <p className="mt-3 max-w-4xl text-sm leading-7 text-[#E6EAF0]">{config.welcome}</p>
-          <div className="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
-            {[
-              { label: "پرونده‌های در دسترس", value: metrics.total, hint: "بر اساس سطح دسترسی شما" },
-              { label: "نیازمند اقدام", value: metrics.attention, hint: "طبق مرحله گردش کار" },
-              { label: "در حال پیگیری", value: metrics.progress, hint: "پرونده‌های فعال در مسیر اجرا" },
-              { label: "قرارداد / ثبت نهایی", value: metrics.completed, hint: "پرونده‌های نهایی‌شده" },
-            ].map((metric) => (
+          <div className="mt-5 grid grid-cols-2 gap-3 xl:grid-cols-4">
+            {metricCards.map((metric) => (
               <div key={metric.label} className="rounded-2xl border border-white/10 bg-white/10 p-4">
                 <div className="text-xs text-white/75">{metric.label}</div>
-                <div className="mt-2 text-2xl font-extrabold">{money(metric.value)}</div>
+                <div className="mt-2 text-2xl font-extrabold tabular-nums">{metric.value}</div>
                 <div className="mt-1 text-[11px] leading-5 text-white/65">{metric.hint}</div>
               </div>
             ))}
+          </div>
+        </section>
+
+        <section className="mt-6 grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(320px,0.8fr)]">
+          <div className="rounded-3xl border border-[#E3E0D8] bg-[#FFFEFA] p-5 md:p-6">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div><h3 className="text-lg font-extrabold">گزارش مدیریتی سبد پرونده‌ها</h3><p className="mt-1 text-sm leading-6 text-[#687783]">{role === "ceo" ? "تمرکز بر تصمیم‌های معطل، قراردادها و تصویر کلان فرصت‌ها." : role === "deputy" ? "تمرکز بر صف ورودی، پرونده‌های برگشتی و مراحل ایجاد گلوگاه." : role === "economic" ? "تمرکز بر پیشرفت فرصت‌های تخصیص‌یافته، قیمت‌گذاری و مذاکره." : "توزیع پرونده‌ها بر اساس مرحله گردش کار."}</p></div>
+              <span className="rounded-full bg-[#F0DFB8] px-3 py-1.5 text-xs font-bold text-[#6A531B]">بر پایه داده‌های ثبت‌شده</span>
+            </div>
+            <div className="mt-4 divide-y divide-[#E3E0D8]">
+              {reportRows.map((row) => <div key={row.label} className="flex items-center justify-between gap-4 py-3 text-sm">
+                <span className="text-[#526173]">{row.label}</span><strong className="min-w-8 rounded-lg bg-[#F7F5F0] px-2 py-1 text-center tabular-nums">{money(row.value)}</strong>
+              </div>)}
+            </div>
+          </div>
+          <div className="rounded-3xl border border-[#E3E0D8] bg-[#FFFEFA] p-5 md:p-6">
+            <h3 className="text-lg font-extrabold">نمای مالی فرصت‌ها</h3>
+            <p className="mt-1 text-sm leading-6 text-[#687783]">مبالغ از فیلدهای ثبت‌شده پرونده‌ها محاسبه شده‌اند؛ این اعداد جایگزین گزارش حسابداری یا مانده وصولی نیستند.</p>
+            <div className="mt-4 space-y-3">
+              <div className="rounded-2xl bg-[#F7F5F0] p-4"><div className="text-xs text-[#687783]">ارزش برآوردی فرصت‌های باز</div><div className="mt-2 text-xl font-extrabold tabular-nums">{money(openPipelineValue)} <span className="text-xs font-bold text-[#687783]">ریال</span></div></div>
+              <div className="rounded-2xl bg-[#F7F5F0] p-4"><div className="text-xs text-[#687783]">مبلغ قراردادهای ثبت‌شده در پرونده</div><div className="mt-2 text-xl font-extrabold tabular-nums">{money(contractedValue)} <span className="text-xs font-bold text-[#687783]">ریال</span></div></div>
+              <div className="rounded-2xl border border-[#E3E0D8] p-4 text-xs leading-6 text-[#687783]">{role === "economic" ? "مبنای محاسبه فقط پرونده‌هایی است که به واحد توسعه مشارکت‌های اقتصادی تخصیص یافته‌اند." : "این نمای مالی از داده‌های فرصت‌ها و قراردادها ساخته شده است؛ وصول واقعی، هزینه قطعی و سود نهایی تا اتصال داده‌های مالی به‌صورت مستقل قابل گزارش نیست."}</div>
+            </div>
           </div>
         </section>
 
