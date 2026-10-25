@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
     ]);
     const clubIds = new Set(member.clubIds || []);
     const memberClubKeys = new Set(allClubs.filter((club) => clubIds.has(club.id)).map((club) => clubKeyForName(club.name)).filter((key): key is string => Boolean(key)));
-    const siteBase = (process.env.KHORSHID_WEBSITE_URL || "https://www.khorshid-mafakher.ir").replace(/\\/$/, "");
+    const siteBase = (process.env.KHORSHID_WEBSITE_URL || "https://www.khorshid-mafakher.ir").replace(/\/$/, "");
     const siteContent = await fetch(siteBase + "/api/club-feed", { cache: "no-store", signal: AbortSignal.timeout(3500) })
       .then(async (response) => response.ok ? (await response.json()).items as StoredItem[] : [])
       .catch(() => [] as StoredItem[]);
