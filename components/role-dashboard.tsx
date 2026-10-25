@@ -29,6 +29,12 @@ type ClubSummary = {
   feedAvailable: boolean;
 };
 
+type MembershipOverview = {
+  members: Array<{ id: string; fullName?: string; status?: string; clubIds?: string[] }>;
+  clubs: Array<{ id: string; name: string; status?: string }>;
+  requests: Array<{ id: string; name?: string; reviewStatus?: string; status?: string; createdAt?: string }>;
+  upgrades: Array<{ id: string; target?: string; status?: string; assignedRole?: string; member?: { fullName?: string } }>;
+};
 type Action = { label: string; description: string; href: string; primary?: boolean };
 type DashboardConfig = {
   title: string;
@@ -220,7 +226,7 @@ export default function RoleDashboard({ role }: { role: ManagementRole }) {
   const router = useRouter();
   const config = CONFIG[role];
   const [items, setItems] = useState<Opportunity[]>([]);
-  const [clubSummary, setClubSummary] = useState<ClubSummary | null>(null);
+  const [clubSummary, setClubSummary] = useState<ClubSummary | null>(null);\n  const [membershipOverview, setMembershipOverview] = useState<MembershipOverview | null>(null);\n  const [upgradeItems, setUpgradeItems] = useState<MembershipOverview["upgrades"]>([]);
   const [userName, setUserName] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -265,6 +271,33 @@ export default function RoleDashboard({ role }: { role: ManagementRole }) {
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "دریافت اطلاعات داشبورد انجام نشد.");
       setItems(Array.isArray(data.items) ? data.items : []);
+      if (["members", "ceo", "deputy"].includes(role)) {
+        try {
+          const recordsResponse = await fetch("/api/records", { cache: "no-store" });
+          const recordsData = await recordsResponse.json();
+          const requestResponse = await fetch("/api/membership-requests", { cache: "no-store" });
+          const requestData = await requestResponse.json();
+          const upgradeResponse = await fetch("/api/member-upgrades", { cache: "no-store" });
+          const upgradeData = await upgradeResponse.json();
+          if (recordsResponse.ok) {
+            setMembershipOverview({
+              members: Array.isArray(recordsData.members) ? recordsData.members : [],
+              clubs: Array.isArray(recordsData.clubs) ? recordsData.clubs : [],
+              requests: requestResponse.ok && Array.isArray(requestData.items) ? requestData.items : [],
+              upgrades: upgradeResponse.ok && Array.isArray(upgradeData.items) ? upgradeData.items : [],
+            });
+          } else setMembershipOverview(null);
+        } catch { setMembershipOverview(null); }
+      } else {
+        setMembershipOverview(null);
+      }
+      if (["members", "artists", "csr"].includes(role)) {
+        try {
+          const upgradeResponse = await fetch("/api/member-upgrades", { cache: "no-store" });
+          const upgradeData = await upgradeResponse.json();
+          setUpgradeItems(upgradeResponse.ok && Array.isArray(upgradeData.items) ? upgradeData.items : []);
+        } catch { setUpgradeItems([]); }
+      } else setUpgradeItems([]);
       if (role === "ceo" || role === "deputy") {
         try {
           const summaryResponse = await fetch("/api/management/club-summary", { cache: "no-store" });
@@ -299,6 +332,20 @@ export default function RoleDashboard({ role }: { role: ManagementRole }) {
     [items],
   );
   const metricCards = useMemo(() => {
+    if (role === "members") {
+      const members = membershipOverview?.members || [];
+      const clubs = membershipOverview?.clubs || [];
+      const requests = membershipOverview?.requests || [];
+      const pendingRequests = requests.filter((item) => !["approved", "rejected"].includes(String(item.reviewStatus || item.status || "")));
+      const pendingUpgrades = (membershipOverview?.upgrades || []).filter((item) => ["pending", "needs_info"].includes(String(item.status || "")));
+      return [
+        { label: "کل اعضا", value: money(members.length), hint: "پرونده‌های ثبت‌شده اعضا" },
+        { label: "اعضای فعال", value: money(members.filter((item) => item.status === "active").length), hint: "عضویت فعال در سامانه" },
+        { label: "باشگاه‌ها", value: money(clubs.filter((item) => item.status !== "closed").length), hint: "باشگاه‌های ثبت‌شده و قابل استفاده" },
+        { label: "درخواست‌های عضویت در انتظار", value: money(pendingRequests.length), hint: "نیازمند بررسی، تعیین نوع یا تکمیل" },
+        { label: "درخواست‌های ارتقا در جریان", value: money(pendingUpgrades.length), hint: "هنرمند، متخصص یا مشاور" },
+      ];
+    }
     if (role === "ceo") return [
       { label: "کل پرونده‌ها", value: money(items.length), hint: "کل سبد قابل مشاهده مدیرعامل" },
       { label: "در انتظار تصمیم", value: money(countByStatuses(items, ["ارسال به مدیرعامل", "ارسال طرح نهایی به مدیرعامل"])), hint: "تأیید اولیه یا تصمیم نهایی" },
@@ -317,14 +364,40 @@ export default function RoleDashboard({ role }: { role: ManagementRole }) {
       { label: "در حال مذاکره", value: money(countByStatuses(items, ["مذاکرات اولیه"])), hint: "نیازمند ثبت نتیجه و گام بعدی" },
       { label: "ارزش برآوردی فرصت‌های باز", value: money(openPipelineValue), hint: "ریال · قیمت پیشنهادی یا برآورد اولیه" },
     ];
+    if (role === "finance") return [
+      { label: "پرونده‌های در دسترس مالی", value: money(items.length), hint: "پرونده‌های قرارداد و ثبت پروژه" },
+      { label: "آماده ثبت پروژه", value: money(countByStatuses(items, ["قرارداد تنظیم شد"])), hint: "نیازمند تکمیل ثبت مالی" },
+      { label: "پروژه‌های ثبت‌شده", value: money(countByStatuses(items, ["ثبت پروژه"])), hint: "پرونده‌های ثبت نهایی" },
+      { label: "مبلغ قراردادها", value: money(contractedValue), hint: "ریال · مبلغ ثبت‌شده در پرونده" },
+    ];
+    if (role === "artists" || role === "csr") {
+      const relevant = upgradeItems.filter((item) => role === "artists" ? item.assignedRole === "artists" || item.target === "artist" : item.assignedRole === "csr" || item.target === "expert" || item.target === "consultant");
+      return [
+        { label: "پرونده‌های ارجاع‌شده", value: money(items.length), hint: "پرونده‌های مرتبط با مأموریت واحد" },
+        { label: "درخواست‌های تخصصی در انتظار", value: money(relevant.filter((item) => ["pending", "needs_info"].includes(String(item.status || ""))).length), hint: role === "artists" ? "درخواست شناسایی و تأیید هنرمندان" : "درخواست تخصص و مشاوره" },
+        { label: "در حال پیگیری", value: money(countByStatuses(items, config.progressStatuses)), hint: "پرونده‌های فعال در مسیر اجرا" },
+        { label: "نیازمند اقدام", value: money(countByStatuses(items, config.attentionStatuses)), hint: "کارهای اولویت‌دار واحد" },
+      ];
+    }
     return [
       { label: "پرونده‌های در دسترس", value: money(items.length), hint: "بر اساس سطح دسترسی شما" },
       { label: "نیازمند اقدام", value: money(countByStatuses(items, config.attentionStatuses)), hint: "طبق مرحله گردش کار" },
       { label: "در حال پیگیری", value: money(countByStatuses(items, config.progressStatuses)), hint: "پرونده‌های فعال در مسیر اجرا" },
-      { label: "ارزش قراردادها", value: money(contractedValue), hint: "ریال · قرارداد تنظیم‌شده یا ثبت‌شده" },
+      { label: "اقدامات اولویت‌دار", value: money(config.actions.length), hint: "میان‌برهای مرتبط با مأموریت واحد" },
     ];
-  }, [role, items, config, openPipelineValue, contractedValue]);
+  }, [role, items, config, openPipelineValue, contractedValue, membershipOverview, upgradeItems]);
   const reportRows = useMemo(() => {
+    if (role === "members") {
+      const requests = membershipOverview?.requests || [];
+      const upgrades = membershipOverview?.upgrades || [];
+      return [
+        { label: "در انتظار بررسی درخواست عضویت", value: requests.filter((item) => ["pending", "in_review", "needs_revision"].includes(String(item.reviewStatus || item.status || ""))).length },
+        { label: "درخواست‌های نیازمند تکمیل", value: requests.filter((item) => ["needs_revision", "needs_info"].includes(String(item.reviewStatus || item.status || ""))).length },
+        { label: "درخواست‌های تأییدشده", value: requests.filter((item) => ["approved"].includes(String(item.reviewStatus || item.status || ""))).length },
+        { label: "درخواست‌های ارتقای در انتظار بررسی", value: upgrades.filter((item) => ["pending", "needs_info"].includes(String(item.status || ""))).length },
+        { label: "درخواست‌های ارتقای تأییدشده", value: upgrades.filter((item) => item.status === "approved").length },
+      ];
+    }
     if (role === "ceo") return [
       { label: "منتظر تصمیم اولیه مدیرعامل", value: countByStatuses(items, ["ارسال به مدیرعامل"]) },
       { label: "منتظر تأیید نهایی", value: countByStatuses(items, ["ارسال طرح نهایی به مدیرعامل"]) },
