@@ -424,7 +424,7 @@ export default function RoleDashboard({ role }: { role: ManagementRole }) {
       { label: "در حال پیگیری", value: countByStatuses(items, config.progressStatuses) },
       { label: "قرارداد / ثبت نهایی", value: countByStatuses(items, config.completedStatuses) },
     ];
-  }, [role, items, config]);
+  }, [role, items, config, membershipOverview]);
 
   const attentionItems = useMemo(
     () => items.filter((item) => config.attentionStatuses.includes(item.status || "")),
@@ -480,10 +480,10 @@ export default function RoleDashboard({ role }: { role: ManagementRole }) {
           </div>
         </section>
 
-        <section className="mt-6 grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(320px,0.8fr)]">
+        <section className={`mt-6 grid gap-5 ${role === "members" ? "lg:grid-cols-1" : "lg:grid-cols-[minmax(0,1fr)_minmax(320px,0.8fr)]"}`}>
           <div className="rounded-3xl border border-[#E3E0D8] bg-[#FFFEFA] p-5 md:p-6">
             <div className="flex flex-wrap items-start justify-between gap-3">
-              <div><h3 className="text-lg font-extrabold">گزارش مدیریتی سبد پرونده‌ها</h3><p className="mt-1 text-sm leading-6 text-[#687783]">{role === "ceo" ? "تمرکز بر تصمیم‌های معطل، قراردادها و تصویر کلان فرصت‌ها." : role === "deputy" ? "تمرکز بر صف ورودی، پرونده‌های برگشتی و مراحل ایجاد گلوگاه." : role === "economic" ? "تمرکز بر پیشرفت فرصت‌های تخصیص‌یافته، قیمت‌گذاری و مذاکره." : "توزیع پرونده‌ها بر اساس مرحله گردش کار."}</p></div>
+              <div><h3 className="text-lg font-extrabold">{role === "members" ? "وضعیت درخواست‌های عضویت و ارتقا" : "گزارش مدیریتی سبد پرونده‌ها"}</h3><p className="mt-1 text-sm leading-6 text-[#687783]">{role === "members" ? "صف درخواست‌های عضویت، تکمیل مدارک و ارتقای رده تخصصی اعضا." : role === "ceo" ? "تمرکز بر تصمیم‌های معطل، قراردادها و تصویر کلان فرصت‌ها." : role === "deputy" ? "تمرکز بر صف ورودی، پرونده‌های برگشتی و مراحل ایجاد گلوگاه." : role === "economic" ? "تمرکز بر پیشرفت فرصت‌های تخصیص‌یافته، قیمت‌گذاری و مذاکره." : "توزیع پرونده‌ها بر اساس مرحله گردش کار."}</p></div>
               <span className="rounded-full bg-[#F0DFB8] px-3 py-1.5 text-xs font-bold text-[#6A531B]">بر پایه داده‌های ثبت‌شده</span>
             </div>
             <div className="mt-4 divide-y divide-[#E3E0D8]">
@@ -492,7 +492,7 @@ export default function RoleDashboard({ role }: { role: ManagementRole }) {
               </div>)}
             </div>
           </div>
-          <div className="rounded-3xl border border-[#E3E0D8] bg-[#FFFEFA] p-5 md:p-6">
+          {role !== "members" && !["csr", "media", "artists", "education"].includes(role) && <div className="rounded-3xl border border-[#E3E0D8] bg-[#FFFEFA] p-5 md:p-6">
             <h3 className="text-lg font-extrabold">نمای مالی فرصت‌ها</h3>
             <p className="mt-1 text-sm leading-6 text-[#687783]">مبالغ از فیلدهای ثبت‌شده پرونده‌ها محاسبه شده‌اند؛ این اعداد جایگزین گزارش حسابداری یا مانده وصولی نیستند.</p>
             <div className="mt-4 space-y-3">
@@ -500,8 +500,33 @@ export default function RoleDashboard({ role }: { role: ManagementRole }) {
               <div className="rounded-2xl bg-[#F7F5F0] p-4"><div className="text-xs text-[#687783]">مبلغ قراردادهای ثبت‌شده در پرونده</div><div className="mt-2 text-xl font-extrabold tabular-nums">{money(contractedValue)} <span className="text-xs font-bold text-[#687783]">ریال</span></div></div>
               <div className="rounded-2xl border border-[#E3E0D8] p-4 text-xs leading-6 text-[#687783]">{role === "economic" ? "مبنای محاسبه فقط پرونده‌هایی است که به واحد توسعه مشارکت‌های اقتصادی تخصیص یافته‌اند." : "این نمای مالی از داده‌های فرصت‌ها و قراردادها ساخته شده است؛ وصول واقعی، هزینه قطعی و سود نهایی تا اتصال داده‌های مالی به‌صورت مستقل قابل گزارش نیست."}</div>
             </div>
-          </div>
+          </div>}
         </section>
+
+        {role === "members" && (
+          <section className="mt-6 grid gap-5 lg:grid-cols-2">
+            <div className="rounded-3xl border border-[#E3E0D8] bg-[#FFFEFA] p-5 md:p-6">
+              <h3 className="text-lg font-extrabold">باشگاه‌ها و تعداد اعضا</h3>
+              <p className="mt-1 text-sm text-[#687783]">تعداد اعضا بر اساس ارتباط ثبت‌شده در پرونده‌ها محاسبه می‌شود.</p>
+              <div className="mt-3 divide-y divide-[#E3E0D8]">
+                {(membershipOverview?.clubs || []).filter((club) => club.status !== "closed").map((club) => {
+                  const count = (membershipOverview?.members || []).filter((member) => (member.clubIds || []).includes(club.id)).length;
+                  return <div key={club.id} className="flex items-center justify-between gap-3 py-3 text-sm"><span>{club.name}</span><strong className="rounded-lg bg-[#F0DFB8] px-3 py-1.5 tabular-nums">{money(count)}</strong></div>;
+                })}
+                {(!membershipOverview || !membershipOverview.clubs.length) && <p className="py-4 text-sm text-[#687783]">اطلاعات باشگاه‌ها در دسترس نیست.</p>}
+              </div>
+              <button type="button" onClick={() => router.push("/internal/clubs")} className="mt-4 rounded-xl border border-[#E3E0D8] px-4 py-2 text-sm font-bold">مدیریت باشگاه‌ها</button>
+            </div>
+            <div className="rounded-3xl border border-[#E3E0D8] bg-[#FFFEFA] p-5 md:p-6">
+              <h3 className="text-lg font-extrabold">آخرین درخواست‌های عضویت</h3>
+              <div className="mt-3 divide-y divide-[#E3E0D8]">
+                {(membershipOverview?.requests || []).slice(0, 6).map((request) => <div key={request.id} className="flex items-center justify-between gap-3 py-3 text-sm"><div><span className="block font-bold">{request.name || "متقاضی بدون نام"}</span><span className="mt-1 block text-xs text-[#687783]">{String(request.reviewStatus || request.status || "ثبت‌شده")}</span></div><span className="text-xs text-[#687783]">{request.createdAt ? new Date(request.createdAt).toLocaleDateString("fa-IR") : ""}</span></div>)}
+                {(!membershipOverview || !membershipOverview.requests.length) && <p className="py-4 text-sm text-[#687783]">درخواست عضویتی برای نمایش وجود ندارد یا اتصال سایت در دسترس نیست.</p>}
+              </div>
+              <button type="button" onClick={() => router.push("/internal/membership-requests")} className="mt-4 rounded-xl bg-[#172F48] px-4 py-2 text-sm font-bold text-white">ورود به کارتابل درخواست‌ها</button>
+            </div>
+          </section>
+        )}
 
         {(role === "ceo" || role === "deputy") && (
           <section className="mt-6 rounded-3xl border border-[#E3E0D8] bg-[#FFFEFA] p-5 md:p-6">
