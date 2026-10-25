@@ -26,8 +26,9 @@ export async function GET(request: NextRequest) {
     const [members, events] = await Promise.all([readMembers(), listStored<PointEvent>("member-points")]);
     const member = members.find((item) => item.id === memberId);
     if (!member) return NextResponse.json({ error: "پرونده عضو پیدا نشد." }, { status: 404 });
-    const pointEvents = events.filter((event) => event.memberId === memberId).sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 100);
-    return NextResponse.json({ member: { id: member.id, fullName: member.fullName, membershipTier: member.membershipTier || "affiliate", memberRank: member.memberRank || "volunteer", rankHistory: member.rankHistory || [] }, pointEvents, pointsBalance: pointEvents.reduce((sum, event) => sum + Number(event.points || 0), 0) }, { headers: { "Cache-Control": "private, no-store, max-age=0" } });
+    const allPointEvents = events.filter((event) => event.memberId === memberId).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    const pointEvents = allPointEvents.slice(0, 100);
+    return NextResponse.json({ member: { id: member.id, fullName: member.fullName, membershipTier: member.membershipTier || "affiliate", memberRank: member.memberRank || "volunteer", rankHistory: member.rankHistory || [] }, pointEvents, pointsBalance: allPointEvents.reduce((sum, event) => sum + Number(event.points || 0), 0) }, { headers: { "Cache-Control": "private, no-store, max-age=0" } });
   } catch {
     return NextResponse.json({ error: "دریافت سابقه امتیاز ناموفق بود." }, { status: 503 });
   }
