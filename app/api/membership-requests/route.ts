@@ -91,7 +91,9 @@ async function patchMembershipRequest(request: NextRequest) {
     const profileData = {
       fullName: application.name,
       memberType: existing ? existing.memberType : inferredMemberType,
-      membershipTier: application.membershipTier,
+      membershipType: "affiliate",
+      membershipTier: "affiliate",
+      membershipRank: existing?.membershipRank || "volunteer",
       supplementalData: application.supplementalData || {},
       status: "active",
       phone: application.phone,
