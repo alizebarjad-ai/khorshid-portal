@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
     if (member.status !== "active") return NextResponse.json({ error: "ثبت امتیاز فقط برای عضو فعال امکان‌پذیر است." }, { status: 409 });
     const existingEvents = await listStored<PointEvent>("member-points");
     const legacyEvents: PointEvent[] = (member.pointEvents || []).map(event => ({ ...event, memberId, memberName: member.fullName, createdBy: event.actor, actor: event.actor }));
-    const merged = [...new Map([...existingEvents.filter(event => event.memberId === memberId), ...legacyEvents].map(event => [event.id, event])).values()];
+    const merged = [...new Map([...existingEvents.filter(event => event.memberId === memberId), ...legacyEvents].map(event => [event.id, event] as const)).values()];
     const currentBalance = merged.reduce((sum, event) => sum + (Number(event.points) || 0), 0);
     if (currentBalance + points < 0) return NextResponse.json({ error: "امتیاز قابل کسر از موجودی فعلی بیشتر است." }, { status: 409 });
     const event: PointEvent = { id: randomUUID(), memberId, memberName: member.fullName, points, title, note, createdAt: new Date().toISOString(), createdBy: user.username, actor: user.name || user.username };
