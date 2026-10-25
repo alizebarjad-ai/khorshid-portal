@@ -107,7 +107,7 @@ export default function MembersPage(){
      <label className="text-sm font-bold">دلیل ارتقا<textarea value={rankReasons[m.id]||""} onChange={e=>setRankReasons(current=>({...current,[m.id]:e.target.value}))} required minLength={5} maxLength={1000} rows={3} className={inputClass+" mt-1"} placeholder="مبنای ارتقا، مشارکت یا مسئولیت پذیرفته‌شده را بنویسید."/></label>
      <button disabled={actionBusy===m.id+":rank"} className="rounded-xl bg-[#F2A900] px-4 py-2.5 text-sm font-extrabold text-[#18304A] disabled:opacity-50">{actionBusy===m.id+":rank"?"در حال ثبت…":"تأیید و ارتقای رده"}</button>
     </form>}
-    {(m.rankHistory||[]).length>0&&<div className="mt-4 border-t border-[#E5DED3] pt-3"><p className="text-xs font-extrabold">سوابق ارتقا</p><div className="mt-2 space-y-2">{(m.rankHistory||[]).slice().reverse().slice(0,4).map((h,i)=><div key={h.at+"-"+i} className="text-xs"><p className="font-bold">{rankLabel[h.from||""]||"بدون رده"} ← {rankLabel[h.to]||h.to}</p><p className="mt-1 text-[#687783]">{new Date(h.at).toLocaleDateString("fa-IR")} · {h.reason}</p></div>)}</div></div>}
+    {(m.rankHistory||[]).length>0&&<div className="mt-4 border-t border-[#E5DED3] pt-3"><p className="text-xs font-extrabold">سوابق ارتقا</p><div className="mt-2 space-y-2">{(m.rankHistory||[]).slice().reverse().slice(0,4).map((h,i)=><div key={h.at+"-"+i} className="text-xs"><p className="font-bold">از {rankLabel[h.from||""]||"بدون رده"} به {rankLabel[h.to]||h.to}</p><p className="mt-1 text-[#687783]">{new Date(h.at).toLocaleDateString("fa-IR")} · {h.reason}</p></div>)}</div></div>}
    </section>
   </div>
   {actionMessages[m.id]&&<p role="status" className="mt-3 rounded-lg bg-[#F0DFB8] p-3 text-sm text-[#18304A]">{actionMessages[m.id]}</p>}
