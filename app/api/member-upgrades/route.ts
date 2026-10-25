@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
   const auth = session(request);
   if (!auth.user) return auth.response!;
   try {
-    const members = await readMembers();
+    const members: MemberRecord[] = await readMembers();
     const visible = members.flatMap(member => (member.upgradeRequests || [])
       .filter(item => auth.user!.role === "ceo" || auth.user!.role === "deputy" || auth.user!.role === "members" || item.assignedRole === auth.user!.role)
       .map(item => ({ ...item, member: { id: member.id, fullName: member.fullName, email: member.email, phone: member.phone, city: member.city, membershipTier: member.membershipTier || "affiliate", membershipGrade: member.membershipGrade || "volunteer", pointsBalance: member.pointsBalance || 0, expertise: member.expertise, biography: member.biography, artistProfile: member.artistProfile || {}, expertProfile: member.expertProfile || {} } })));
@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
   if (!user) return NextResponse.json({ error: "برای ادامه وارد سامانه شوید." }, { status: 401 });
   if (user.role !== "member" || !user.memberId) return NextResponse.json({ error: "ثبت درخواست ارتقا فقط از حساب عضو امکان‌پذیر است." }, { status: 403 });
   try {
-    const body = await request.json() as { target?: Target; headline?: string; education?: string; educationField?: string; experience?: string; specialties?: string; portfolio?: string; resumeText?: string; biography?: string };
+    const body = await request.json() as { target?: Target; headline?: string; education?: string; educationField?: string; experience?: string; specialties?: string; portfolio?: string; resumeText?: string; biography?: string; website?: string };
     const target = body.target;
     if (!target || !["artist", "expert", "consultant"].includes(target)) return NextResponse.json({ error: "مسیر ارتقا معتبر نیست." }, { status: 400 });
     const members = await readMembers();
@@ -105,7 +105,8 @@ export async function PATCH(request: NextRequest) {
       patch.expertProfile = { ...(member.expertProfile || {}), designation: current.target, verified: true, verifiedAt: new Date().toISOString(), verifiedBy: auth.user.name };
     }
     const updated = await updateRecord("member", member.id, patch, { username: auth.user.username });
-    return NextResponse.json({ item: updated, request: updated?.upgradeRequests?.find(item => item.id === current.id) });
+    const updatedMember = updated as MemberRecord | null;
+    return NextResponse.json({ item: updatedMember, request: updatedMember?.upgradeRequests?.find(item => item.id === current.id) });
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : "ثبت تصمیم انجام نشد." }, { status: 400 });
   }
