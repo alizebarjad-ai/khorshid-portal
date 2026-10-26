@@ -7,4 +7,5 @@ export const deleteCollection = deletePostgresCollection;
 
 export const consumeMemberActivationToken = consumePostgresMemberActivationToken;
 export const withPersistentAdvisoryLock = withPostgresAdvisoryLockImpl;
-\nexport const consumeMemberPasswordResetToken = consumePostgresPasswordResetToken;\n
+
+export const consumeMemberPasswordResetToken = consumePostgresPasswordResetToken;
