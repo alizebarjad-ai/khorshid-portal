@@ -75,7 +75,6 @@ const CONFIG: Record<ManagementRole, DashboardConfig> = {
     priorities: ["بررسی اولیه پیشنهادهای تازه و تعیین اولویت", "بازگرداندن پرونده‌های ناقص برای تکمیل اطلاعات", "پیگیری پرونده‌های در گردش و هماهنگی واحدها"],
     actions: [
       { label: "کارتابل و گردش کار", description: "بررسی، تکمیل و ارجاع پرونده‌ها", href: "/internal/opportunities", primary: true },
-      { label: "مدیریت اعضا و باشگاه‌ها", description: "دسترسی مدیریتی به پرونده اعضا و باشگاه‌های تخصصی", href: "/internal/members" },
       { label: "ثبت فرصت جدید", description: "ثبت فرصت‌های راهبردی و همکاری", href: "/internal/submit-proposal" },
     ],
     attentionStatuses: ["در حال بررسی قائم‌مقام", "نیازمند تکمیل"],
@@ -277,7 +276,7 @@ export default function RoleDashboard({ role }: { role: ManagementRole }) {
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "دریافت اطلاعات داشبورد انجام نشد.");
       setItems(Array.isArray(data.items) ? data.items : []);
-      if (["members", "ceo", "deputy"].includes(role)) {
+      if (role === "members") {
         try {
           const recordsResponse = await fetch("/api/records", { cache: "no-store" });
           const recordsData = await recordsResponse.json();
@@ -555,10 +554,10 @@ export default function RoleDashboard({ role }: { role: ManagementRole }) {
                 <h3 className="text-lg font-extrabold">نمای مدیریتی اعضا و باشگاه‌ها</h3>
                 <p className="mt-1 text-sm leading-6 text-[#687783]">آمار از پرونده‌های اعضا و باشگاه‌های ثبت‌شده در سامانه محاسبه می‌شود. تعداد اعضای هر باشگاه بر اساس ارتباط ثبت‌شده در پرونده عضو است.</p>
               </div>
-              {role === "ceo" && <button type="button" aria-expanded={clubSummaryExpanded} onClick={() => setClubSummaryExpanded((value) => !value)} className="rounded-xl bg-[#172F48] px-3 py-2 text-sm font-bold text-white">{clubSummaryExpanded ? "بستن جزئیات" : "نمایش جزئیات"}</button>}
+              {(role === "ceo" || role === "deputy") && <button type="button" aria-expanded={clubSummaryExpanded} onClick={() => setClubSummaryExpanded((value) => !value)} className="rounded-xl bg-[#172F48] px-3 py-2 text-sm font-bold text-white">{clubSummaryExpanded ? "بستن جزئیات" : "نمایش جزئیات"}</button>}
               <button type="button" onClick={() => void load()} className="rounded-xl border border-[#E3E0D8] bg-white px-3 py-2 text-sm font-bold">به‌روزرسانی گزارش</button>
             </div>
-            {(role !== "ceo" || clubSummaryExpanded) && (clubSummary ? (
+            {clubSummaryExpanded && (clubSummary ? (
               <>
                 <div className="mt-4 grid grid-cols-2 gap-3 xl:grid-cols-4">
                   {[
@@ -610,10 +609,6 @@ export default function RoleDashboard({ role }: { role: ManagementRole }) {
                     )}
                   </div>
                 </div>
-                {role !== "ceo" && <div className="mt-4 flex flex-wrap gap-3 border-t border-[#E3E0D8] pt-4">
-                  <a href="/internal/members" className="rounded-xl bg-[#172F48] px-4 py-2.5 text-sm font-bold text-white">بازکردن پرونده اعضا</a>
-                  <a href="/internal/clubs" className="rounded-xl border border-[#E3E0D8] bg-white px-4 py-2.5 text-sm font-bold">مدیریت باشگاه‌ها</a>
-                </div>}
               </>
             ) : (
               <p className="mt-4 rounded-2xl bg-[#F7F5F0] p-5 text-sm text-[#687783]">گزارش اعضا و باشگاه‌ها فعلاً دریافت نشد. اطلاعات این بخش از API مستقل خوانده می‌شود و خطای آن روی کارتابل فرصت‌ها اثری ندارد.</p>
@@ -674,7 +669,7 @@ export default function RoleDashboard({ role }: { role: ManagementRole }) {
               </ol>
             </div>
             <div className="rounded-2xl border border-[#E3E0D8] bg-white p-4 text-xs leading-6 text-[#687783]">
-              این داشبورد نمای کاری نقش فعلی است. دسترسی نهایی به اطلاعات و عملیات در سمت سرور کنترل می‌شود. مدیریت اعضا و باشگاه‌ها در دسترس است؛ ابزارهای مستقل تقویم محتوا و مدیریت برنامه‌های آموزشی هنوز نیازمند پیاده‌سازی هستند.
+              این داشبورد نمای کاری نقش فعلی است. دسترسی نهایی به اطلاعات و عملیات در سمت سرور کنترل می‌شود. افزودن، ویرایش و حذف پرونده اعضا و باشگاه‌ها فقط در اختیار معاونت اعضا است؛ ابزارهای مستقل تقویم محتوا و مدیریت برنامه‌های آموزشی هنوز نیازمند پیاده‌سازی هستند.
             </div>
           </aside>
         </section>
