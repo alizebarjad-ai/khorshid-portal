@@ -59,7 +59,6 @@ const CONFIG: Record<ManagementRole, DashboardConfig> = {
     actions: [
       { label: "کارتابل تصمیم‌گیری", description: "مشاهده پرونده‌ها و اقدامات مدیریتی", href: "/internal/opportunities", primary: true },
       { label: "ثبت پیشنهاد یا فرصت جدید", description: "ثبت فرصت همکاری، پروژه یا حامی جدید", href: "/internal/submit-proposal" },
-      { label: "پرونده اعضا و باشگاه‌ها", description: "مدیریت اطلاعات اعضا، مفاخر و باشگاه‌های تخصصی", href: "/internal/members" },
       { label: "سامانه پرونده‌ها و پاداش", description: "مشاهده اطلاعات پروژه و پاداش‌های ثبت‌شده", href: "/internal/project-rewards" },
       { label: "کارتابل محتوای تأییدشده", description: "دریافت محتوای ارجاع‌شده از معاون رسانه و ثبت نتیجه بارگذاری در سایت", href: "/internal/content-review", primary: true },
     ],
@@ -224,6 +223,7 @@ export default function RoleDashboard({ role }: { role: ManagementRole }) {
   const config = CONFIG[role];
   const [items, setItems] = useState<Opportunity[]>([]);
   const [clubSummary, setClubSummary] = useState<ClubSummary | null>(null);
+  const [clubSummaryExpanded, setClubSummaryExpanded] = useState(false);
   const [membershipOverview, setMembershipOverview] = useState<MembershipOverview | null>(null);
   const [upgradeItems, setUpgradeItems] = useState<MembershipOverview["upgrades"]>([]);
   const [userName, setUserName] = useState("");
@@ -555,9 +555,10 @@ export default function RoleDashboard({ role }: { role: ManagementRole }) {
                 <h3 className="text-lg font-extrabold">نمای مدیریتی اعضا و باشگاه‌ها</h3>
                 <p className="mt-1 text-sm leading-6 text-[#687783]">آمار از پرونده‌های اعضا و باشگاه‌های ثبت‌شده در سامانه محاسبه می‌شود. تعداد اعضای هر باشگاه بر اساس ارتباط ثبت‌شده در پرونده عضو است.</p>
               </div>
+              {role === "ceo" && <button type="button" aria-expanded={clubSummaryExpanded} onClick={() => setClubSummaryExpanded((value) => !value)} className="rounded-xl bg-[#172F48] px-3 py-2 text-sm font-bold text-white">{clubSummaryExpanded ? "بستن جزئیات" : "نمایش جزئیات"}</button>}
               <button type="button" onClick={() => void load()} className="rounded-xl border border-[#E3E0D8] bg-white px-3 py-2 text-sm font-bold">به‌روزرسانی گزارش</button>
             </div>
-            {clubSummary ? (
+            {(role !== "ceo" || clubSummaryExpanded) && (clubSummary ? (
               <>
                 <div className="mt-4 grid grid-cols-2 gap-3 xl:grid-cols-4">
                   {[
@@ -609,14 +610,14 @@ export default function RoleDashboard({ role }: { role: ManagementRole }) {
                     )}
                   </div>
                 </div>
-                <div className="mt-4 flex flex-wrap gap-3 border-t border-[#E3E0D8] pt-4">
+                {role !== "ceo" && <div className="mt-4 flex flex-wrap gap-3 border-t border-[#E3E0D8] pt-4">
                   <a href="/internal/members" className="rounded-xl bg-[#172F48] px-4 py-2.5 text-sm font-bold text-white">بازکردن پرونده اعضا</a>
                   <a href="/internal/clubs" className="rounded-xl border border-[#E3E0D8] bg-white px-4 py-2.5 text-sm font-bold">مدیریت باشگاه‌ها</a>
-                </div>
+                </div>}
               </>
             ) : (
               <p className="mt-4 rounded-2xl bg-[#F7F5F0] p-5 text-sm text-[#687783]">گزارش اعضا و باشگاه‌ها فعلاً دریافت نشد. اطلاعات این بخش از API مستقل خوانده می‌شود و خطای آن روی کارتابل فرصت‌ها اثری ندارد.</p>
-            )}
+            ))}
           </section>
         )}
 

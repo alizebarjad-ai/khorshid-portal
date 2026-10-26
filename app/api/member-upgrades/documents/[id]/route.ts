@@ -29,7 +29,7 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
     if (user.role === "member") {
       if (user.memberId !== document.memberId) return NextResponse.json({ error: "دسترسی به این مدرک مجاز نیست." }, { status: 403 });
     } else {
-      const allowedStaff = ["ceo", "deputy", "members"].includes(user.role);
+      const allowedStaff = ["ceo", "deputy"].includes(user.role);
       if (!allowedStaff && !["artists", "education", "csr"].includes(user.role)) {
         return NextResponse.json({ error: "دسترسی به مدارک ارتقا مجاز نیست." }, { status: 403 });
       }

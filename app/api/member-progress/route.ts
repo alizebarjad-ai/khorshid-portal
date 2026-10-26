@@ -113,7 +113,7 @@ export async function POST(request: NextRequest) {
         membershipTier: "affiliate",
         membershipRank: body.membershipRank,
         membershipGrade: body.membershipRank,
-        membershipRankReason: note,
+        rankReason: note,
       }, { username: checked.user.username });
       if (!updated || updated.kind !== "member") return NextResponse.json({ error: "ثبت رده جدید انجام نشد." }, { status: 500 });
       updatedMember = updated;

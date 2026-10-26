@@ -40,17 +40,24 @@ export async function GET(request: NextRequest) {
   if (!auth.user) return auth.response!;
   try {
     const members: MemberRecord[] = await readMembers();
+    const statusOnly = auth.user.role === "members";
     const visible = members.flatMap(member => (member.upgradeRequests || [])
       .filter(item => ["ceo", "deputy", "members"].includes(auth.user!.role) || item.assignedRole === auth.user!.role)
-      .map(item => ({ ...item, member: {
-        id: member.id, fullName: member.fullName, email: member.email, phone: member.phone,
-        city: member.city, membershipTier: member.membershipTier || "affiliate",
-        membershipGrade: member.membershipRank || member.membershipGrade || "volunteer",
-        membershipRank: member.membershipRank || member.membershipGrade || "volunteer",
-        professionalMemberships: member.professionalMemberships || [],
-        pointsBalance: member.pointsBalance || 0, expertise: member.expertise, biography: member.biography,
-        artistProfile: member.artistProfile || {}, expertProfile: member.expertProfile || {},
-      } })));
+      .map(item => statusOnly
+        ? ({
+            id: item.id, target: item.target, status: item.status, assignedRole: item.assignedRole,
+            submittedAt: item.submittedAt, reviewedAt: item.reviewedAt,
+            member: { id: member.id, fullName: member.fullName },
+          })
+        : ({ ...item, member: {
+            id: member.id, fullName: member.fullName, email: member.email, phone: member.phone,
+            city: member.city, membershipTier: member.membershipTier || "affiliate",
+            membershipGrade: member.membershipRank || member.membershipGrade || "volunteer",
+            membershipRank: member.membershipRank || member.membershipGrade || "volunteer",
+            professionalMemberships: member.professionalMemberships || [],
+            pointsBalance: member.pointsBalance || 0, expertise: member.expertise, biography: member.biography,
+            artistProfile: member.artistProfile || {}, expertProfile: member.expertProfile || {},
+          } })));
     visible.sort((a,b) => b.submittedAt.localeCompare(a.submittedAt));
     return NextResponse.json({ items: visible }, { headers: { "Cache-Control": "private, no-store" } });
   } catch (error) {
