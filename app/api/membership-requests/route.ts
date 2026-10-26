@@ -40,6 +40,7 @@ export async function GET(request: NextRequest) {
 async function patchMembershipRequest(request: NextRequest) {
   const checked = auth(request);
   if (!checked.user) return checked.response!;
+  if (checked.user.role !== "members") return NextResponse.json({ error: "تغییر وضعیت، تأیید و ایجاد پرونده عضو فقط در اختیار معاون اعضاست." }, { status: 403 });
   try {
     const body = await request.json();
     if (body.action !== "approve") {

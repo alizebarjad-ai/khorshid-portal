@@ -5,7 +5,21 @@ export type MembershipTier = "affiliate" | "professional" | "supporter_partner";
 export type MembershipGrade = "volunteer" | "professional" | "club_manager";
 export type MembershipRank = "volunteer" | "professional" | "club_manager";
 export type MembershipRankHistory = { from: MembershipRank | null; to: MembershipRank; at: string; actor: string; reason: string };
-export type MemberPointEvent = { id: string; points: number; title: string; note: string; createdAt: string; actor: string };
+export type ProfessionalTarget = "artist" | "expert" | "consultant";
+export type ProfessionalProfileRecord = {
+  headline?: string; education?: string; educationField?: string; experience?: string;
+  specialties?: string[]; portfolio?: string; website?: string; resumeText?: string;
+  biography?: string; submittedAt?: string; verified?: boolean; verifiedAt?: string;
+  verifiedBy?: string; designation?: ProfessionalTarget;
+};
+export type MemberContribution = {
+  id: string; memberId: string; title: string; description?: string;
+  sourceType: "program" | "content" | "volunteer" | "other"; sourceId?: string; sourceUnit?: string;
+  status: "submitted" | "in_review" | "verified" | "rejected" | "awarded";
+  submittedAt: string; reviewedAt?: string; reviewedBy?: string; reviewNote?: string;
+  pointsAwarded?: number; pointEventId?: string;
+};
+export type MemberPointEvent = { id: string; points: number; title: string; note: string; createdAt: string; actor: string; sourceContributionId?: string; verifiedByRole?: string; verifiedBy?: string };
 
 export type MemberRecord = {
   id: string;
@@ -19,9 +33,12 @@ export type MemberRecord = {
   rankHistory?: MembershipRankHistory[];
   pointsBalance?: number;
   pointEvents?: MemberPointEvent[];
+  /** Canonical profiles for future searchable professional directory; independent from membership rank. */
+  professionalProfiles?: Partial<Record<ProfessionalTarget, ProfessionalProfileRecord>>;
+  /** Legacy profile fields are read during migration only. */
   artistProfile?: Record<string, unknown>;
   expertProfile?: Record<string, unknown>;
-  professionalMemberships?: ("artist" | "expert")[];
+  professionalMemberships?: ProfessionalTarget[];
   upgradeRequests?: { id: string; target: "artist" | "expert" | "consultant"; status: "pending" | "approved" | "rejected" | "needs_info"; assignedRole: "artists" | "education" | "csr"; submittedAt: string; reviewedAt?: string; reviewer?: string; note?: string; documents?: { id: string; fileName: string; mimeType: string; size: number; uploadedAt: string }[] }[];
   supplementalData?: Record<string, string>;
   sourceApplicationIds?: string[];
@@ -99,7 +116,8 @@ async function readRecords<T extends StoredRecord>(kind: "member" | "club"): Pro
       membershipTier: "affiliate" as const,
       membershipRank: isMembershipRank(member.membershipRank) ? member.membershipRank : (isMembershipGrade(member.membershipGrade) ? member.membershipGrade : "volunteer" as const),
       membershipGrade: isMembershipRank(member.membershipRank) ? member.membershipRank : (isMembershipGrade(member.membershipGrade) ? member.membershipGrade : "volunteer" as const),
-      professionalMemberships: Array.isArray(member.professionalMemberships) ? member.professionalMemberships.filter((value) => value === "artist" || value === "expert") : [],
+      professionalMemberships: Array.isArray(member.professionalMemberships) ? member.professionalMemberships.filter((value): value is ProfessionalTarget => value === "artist" || value === "expert" || value === "consultant") : [],
+      professionalProfiles: normalizeProfessionalProfiles(member),
       rankHistory: Array.isArray(member.rankHistory) ? member.rankHistory : [],
     } as unknown as T;
   });
@@ -111,6 +129,13 @@ async function writeRecord<T extends StoredRecord>(record: T): Promise<T> {
   return putStored(collection, record);
 }
 
+function normalizeProfessionalProfiles(member: MemberRecord): Partial<Record<ProfessionalTarget, ProfessionalProfileRecord>> {
+  const existing = member.professionalProfiles && typeof member.professionalProfiles === "object" ? member.professionalProfiles : {};
+  const artist = member.artistProfile && typeof member.artistProfile === "object" ? member.artistProfile as ProfessionalProfileRecord : undefined;
+  const expert = member.expertProfile && typeof member.expertProfile === "object" ? member.expertProfile as ProfessionalProfileRecord : undefined;
+  const legacyTarget: ProfessionalTarget = expert?.designation === "consultant" ? "consultant" : "expert";
+  return { ...(artist && !existing.artist ? { artist } : {}), ...(expert && !existing[legacyTarget] ? { [legacyTarget]: expert } : {}), ...existing };
+}
 function isMembershipTier(value: unknown): value is MembershipTier { return value === "affiliate" || value === "professional" || value === "supporter_partner"; }
 function isMembershipGrade(value: unknown): value is MembershipGrade { return value === "volunteer" || value === "professional" || value === "club_manager"; }
 function isMembershipRank(value: unknown): value is MembershipRank { return value === "volunteer" || value === "professional" || value === "club_manager"; }
@@ -135,7 +160,8 @@ export async function createRecord(kind: "member" | "club", data: Record<string,
       pointEvents: validPointEvents(data.pointEvents),
       ...(data.artistProfile && typeof data.artistProfile === "object" ? { artistProfile: data.artistProfile as Record<string, unknown> } : {}),
       ...(data.expertProfile && typeof data.expertProfile === "object" ? { expertProfile: data.expertProfile as Record<string, unknown> } : {}),
-      professionalMemberships: Array.isArray(data.professionalMemberships) ? data.professionalMemberships.filter((value) => value === "artist" || value === "expert") as ("artist" | "expert")[] : [],
+      professionalMemberships: Array.isArray(data.professionalMemberships) ? data.professionalMemberships.filter((value): value is ProfessionalTarget => value === "artist" || value === "expert" || value === "consultant") : [],
+      professionalProfiles: data.professionalProfiles && typeof data.professionalProfiles === "object" ? data.professionalProfiles as MemberRecord["professionalProfiles"] : {},
       upgradeRequests: Array.isArray(data.upgradeRequests) ? data.upgradeRequests as MemberRecord["upgradeRequests"] : [],
       ...(data.supplementalData && typeof data.supplementalData === "object" && !Array.isArray(data.supplementalData) ? { supplementalData: data.supplementalData as Record<string, string> } : {}),
       sourceApplicationIds: typeof data.sourceApplicationId === "string" && data.sourceApplicationId ? [data.sourceApplicationId] : [],
@@ -189,7 +215,8 @@ export async function updateRecord(kind: "member" | "club", id: string, data: Re
       ...(data.pointEvents !== undefined ? { pointEvents: validPointEvents(data.pointEvents) } : {}),
       ...(data.artistProfile && typeof data.artistProfile === "object" ? { artistProfile: data.artistProfile as Record<string, unknown> } : {}),
       ...(data.expertProfile && typeof data.expertProfile === "object" ? { expertProfile: data.expertProfile as Record<string, unknown> } : {}),
-      ...(Array.isArray(data.professionalMemberships) ? { professionalMemberships: data.professionalMemberships.filter((value) => value === "artist" || value === "expert") as ("artist" | "expert")[] } : {}),
+      ...(data.professionalProfiles && typeof data.professionalProfiles === "object" ? { professionalProfiles: data.professionalProfiles as MemberRecord["professionalProfiles"] } : {}),
+      ...(Array.isArray(data.professionalMemberships) ? { professionalMemberships: data.professionalMemberships.filter((value): value is ProfessionalTarget => value === "artist" || value === "expert" || value === "consultant") } : {}),
       ...(Array.isArray(data.upgradeRequests) ? { upgradeRequests: data.upgradeRequests as MemberRecord["upgradeRequests"] } : {}),
       ...(data.supplementalData && typeof data.supplementalData === "object" && !Array.isArray(data.supplementalData) ? { supplementalData: data.supplementalData as Record<string, string> } : {}),
       sourceApplicationIds: typeof data.sourceApplicationId === "string" && data.sourceApplicationId ? Array.from(new Set([...(old.sourceApplicationIds || []), data.sourceApplicationId])) : (old.sourceApplicationIds || []),

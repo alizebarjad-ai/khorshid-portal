@@ -19,7 +19,7 @@ type PointEvent = {
   actor?: string;
 };
 
-const allowedRoles = new Set(["members", "deputy", "ceo"]);
+const allowedRoles = new Set(["members"]);
 const ranks: MembershipRank[] = ["volunteer", "professional", "club_manager"];
 const rankLabels: Record<MembershipRank, string> = {
   volunteer: "داوطلب",

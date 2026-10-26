@@ -7,8 +7,8 @@ import { readMembers, updateRecord, type MemberRecord } from "@/lib/records-stor
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-type Target = "artist" | "expert";
-type LegacyTarget = Target | "consultant";
+type Target = "artist" | "expert" | "consultant";
+type LegacyTarget = Target;
 type Status = "pending" | "approved" | "rejected" | "needs_info";
 type UpgradeDocument = { id: string; fileName: string; mimeType: string; size: number; uploadedAt: string };
 type StoredUpgradeDocument = UpgradeDocument & { memberId: string; requestId: string; dataBase64: string };
@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
   if (!auth.user) return auth.response!;
   try {
     const members: MemberRecord[] = await readMembers();
-    const statusOnly = auth.user.role === "members";
+    const statusOnly = ["members", "ceo", "deputy"].includes(auth.user.role);
     const visible = members.flatMap(member => (member.upgradeRequests || [])
       .filter(item => ["ceo", "deputy", "members"].includes(auth.user!.role) || item.assignedRole === auth.user!.role)
       .map(item => statusOnly
@@ -56,7 +56,9 @@ export async function GET(request: NextRequest) {
             membershipRank: member.membershipRank || member.membershipGrade || "volunteer",
             professionalMemberships: member.professionalMemberships || [],
             pointsBalance: member.pointsBalance || 0, expertise: member.expertise, biography: member.biography,
-            artistProfile: member.artistProfile || {}, expertProfile: member.expertProfile || {},
+            professionalProfiles: { [item.target]: member.professionalProfiles?.[item.target] || (item.target === "artist" ? member.artistProfile : member.expertProfile) || {} },
+            artistProfile: item.target === "artist" ? (member.professionalProfiles?.artist || member.artistProfile || {}) : {},
+            expertProfile: item.target !== "artist" ? (member.professionalProfiles?.[item.target] || member.expertProfile || {}) : {},
           } })));
     visible.sort((a,b) => b.submittedAt.localeCompare(a.submittedAt));
     return NextResponse.json({ items: visible }, { headers: { "Cache-Control": "private, no-store" } });
@@ -74,16 +76,11 @@ export async function POST(request: NextRequest) {
   try {
     const form = await request.formData();
     const target = String(form.get("target") || "") as Target;
-    if (!["artist", "expert"].includes(target)) return NextResponse.json({ error: "مسیر ارتقا معتبر نیست. فقط هنرمند یا متخصص قابل درخواست است." }, { status: 400 });
+    if (!["artist", "expert", "consultant"].includes(target)) return NextResponse.json({ error: "نوع پروفایل تخصصی معتبر نیست." }, { status: 400 });
 
     const members = await readMembers();
     const member = members.find(item => item.id === user.memberId);
     if (!member || member.status !== "active") return NextResponse.json({ error: "پرونده عضو فعال پیدا نشد." }, { status: 404 });
-    const currentRank = member.membershipRank || member.membershipGrade || "volunteer";
-    if (currentRank !== "volunteer") {
-      return NextResponse.json({ error: "درخواست عنوان هنرمند یا متخصص فقط برای عضو وابسته در رده «داوطلب» فعال است. این مسیر از ارتقای رده عضویت جداست." }, { status: 409 });
-    }
-
     const headline = String(form.get("headline") || "").trim().slice(0, 160);
     const education = String(form.get("education") || "").trim().slice(0, 1200);
     const educationField = String(form.get("educationField") || "").trim().slice(0, 160);
@@ -135,8 +132,9 @@ export async function POST(request: NextRequest) {
       documents.push({ id, fileName: document.fileName, mimeType: document.mimeType, size: document.size, uploadedAt });
     }
 
+    const previousProfile = member.professionalProfiles?.[target] || (target === "artist" ? member.artistProfile : member.expertProfile) || {};
     const profile = {
-      ...(target === "artist" ? (member.artistProfile || {}) : (member.expertProfile || {})),
+      ...previousProfile,
       headline, education, educationField, experience,
       specialties: specialtiesRaw.split(/[،,\n]/).map(item => item.trim()).filter(Boolean).slice(0, 30),
       portfolio, website, resumeText, biography,
@@ -152,7 +150,7 @@ export async function POST(request: NextRequest) {
       ? existingRequests.map(item => item.id === open.id ? requestItem : item)
       : [...existingRequests, requestItem];
     const updated = await updateRecord("member", member.id, {
-      ...(target === "artist" ? { artistProfile: profile } : { expertProfile: profile }),
+      professionalProfiles: { ...(member.professionalProfiles || {}), [target]: profile },
       upgradeRequests: updatedRequests,
       membershipType: "affiliate",
       membershipTier: "affiliate",
@@ -179,7 +177,7 @@ export async function PATCH(request: NextRequest) {
     const requests = member.upgradeRequests || [];
     const current = requests.find(item => item.id === body.requestId);
     if (!current) return NextResponse.json({ error: "درخواست ارتقا پیدا نشد." }, { status: 404 });
-    if (!["ceo", "deputy"].includes(auth.user.role) && current.assignedRole !== auth.user.role) {
+    if (auth.user.role !== "ceo" && current.assignedRole !== auth.user.role) {
       return NextResponse.json({ error: "این درخواست فقط در کارتابل معاونت ارجاع‌شده قابل تصمیم‌گیری است." }, { status: 403 });
     }
     if (current.status !== "pending" && current.status !== "needs_info") {
@@ -192,12 +190,12 @@ export async function PATCH(request: NextRequest) {
     const reviewedAt = new Date().toISOString();
     const updatedRequests = requests.map(item => item.id === current.id ? { ...item, status: body.status!, reviewedAt, reviewer: auth.user!.name, note } : item);
     const patch: Record<string, unknown> = { upgradeRequests: updatedRequests, membershipType: "affiliate", membershipTier: "affiliate" };
-    if (body.status === "approved" && current.target === "artist") {
-      patch.artistProfile = { ...(member.artistProfile || {}), verified: true, verifiedAt: reviewedAt, verifiedBy: auth.user.name };
-      patch.professionalMemberships = Array.from(new Set([...(member.professionalMemberships || []), "artist"]));
-    } else if (body.status === "approved" && current.target === "expert") {
-      patch.expertProfile = { ...(member.expertProfile || {}), designation: "expert", verified: true, verifiedAt: reviewedAt, verifiedBy: auth.user.name };
-      patch.professionalMemberships = Array.from(new Set([...(member.professionalMemberships || []), "expert"]));
+    if (body.status === "approved") {
+      const target = current.target as Target;
+      const profiles = member.professionalProfiles || {};
+      const profile = profiles[target] || (target === "artist" ? member.artistProfile : member.expertProfile) || {};
+      patch.professionalProfiles = { ...profiles, [target]: { ...profile, designation: target, verified: true, verifiedAt: reviewedAt, verifiedBy: auth.user.name } };
+      patch.professionalMemberships = Array.from(new Set([...(member.professionalMemberships || []), target]));
     }
     const updated = await updateRecord("member", member.id, patch, { username: auth.user.username });
     const updatedMember = updated as MemberRecord | null;

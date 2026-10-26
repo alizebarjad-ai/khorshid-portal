@@ -4,8 +4,8 @@ import { useEffect, useMemo, useState, type ChangeEvent, type FormEvent } from "
 import { useRouter } from "next/navigation";
 
 type UpgradeRequest = { id:string; target:"artist"|"expert"|"consultant"; status:"pending"|"approved"|"rejected"|"needs_info"; assignedRole:"artists"|"education"|"csr"; submittedAt:string; reviewedAt?:string; reviewer?:string; note?:string; documents?:{id:string;fileName:string;mimeType:string;size:number;uploadedAt:string}[] };
-type ProfessionalProfile = { headline?:string; specialties?:string|string[]; education?:string; educationField?:string; experience?:string; portfolio?:string; biography?:string; website?:string; resumeText?:string; submittedAt?:string; verified?:boolean };
-type Member = { id:string; username?:string; fullName:string; memberType:string; membershipTier?:string; membershipGrade?:string; membershipRank?:string; professionalMemberships?:("artist"|"expert")[]; phone:string; email:string; city:string; expertise:string; biography:string; status:string; clubIds:string[]; artistProfile?:ProfessionalProfile; expertProfile?:ProfessionalProfile; upgradeRequests?:UpgradeRequest[] };
+type ProfessionalProfile = { headline?:string; specialties?:string|string[]; education?:string; educationField?:string; experience?:string; portfolio?:string; biography?:string; website?:string; resumeText?:string; submittedAt?:string; verified?:boolean; designation?:"artist"|"expert"|"consultant" };
+type Member = { id:string; username?:string; fullName:string; memberType:string; membershipTier?:string; membershipGrade?:string; membershipRank?:string; professionalMemberships?:("artist"|"expert"|"consultant")[]; professionalProfiles?:Partial<Record<"artist"|"expert"|"consultant",ProfessionalProfile>>; phone:string; email:string; city:string; expertise:string; biography:string; status:string; clubIds:string[]; artistProfile?:ProfessionalProfile; expertProfile?:ProfessionalProfile; upgradeRequests?:UpgradeRequest[] };
 type Club = { id:string; name:string; clubType:string; city:string; description:string; status:string };
 type Program = { id:string; title:string; description:string; startsAt:string; location:string; clubName:string; format:string; href?:string };
 type ClubFeedItem = { id:string; kind:string; title:string; description?:string; dateLabel?:string; href?:string; clubIds?:string[]; showToMembers?:boolean };
@@ -43,7 +43,7 @@ export default function MemberHomePage(){
  const [city,setCity]=useState("");
  const [expertise,setExpertise]=useState("");
  const [biography,setBiography]=useState("");
- const [upgradeTarget,setUpgradeTarget]=useState<"artist"|"expert">("artist");
+ const [upgradeTarget,setUpgradeTarget]=useState<"artist"|"expert"|"consultant">("artist");
  const [professionalHeadline,setProfessionalHeadline]=useState("");
  const [professionalSpecialties,setProfessionalSpecialties]=useState("");
  const [professionalEducation,setProfessionalEducation]=useState("");
@@ -99,7 +99,7 @@ export default function MemberHomePage(){
  },[router]);
 
  useEffect(()=>{
-   const profile = upgradeTarget==="artist" ? member?.artistProfile : member?.expertProfile;
+   const profile = member?.professionalProfiles?.[upgradeTarget] || (upgradeTarget==="artist" ? member?.artistProfile : member?.expertProfile);
    setProfessionalFiles([]);
    if(!profile){
      setProfessionalHeadline("");setProfessionalSpecialties("");setProfessionalEducation("");
@@ -157,7 +157,7 @@ export default function MemberHomePage(){
      const response=await fetch("/api/member-upgrades",{method:"POST",body:form});
      const data=await response.json();
      if(!response.ok)throw new Error(data.error||"ثبت درخواست ارتقا انجام نشد.");
-     setMember(prev=>prev?{...prev,upgradeRequests:data.member?.upgradeRequests||prev.upgradeRequests,artistProfile:data.member?.artistProfile||prev.artistProfile,expertProfile:data.member?.expertProfile||prev.expertProfile}:prev);
+     setMember(prev=>prev?{...prev,upgradeRequests:data.member?.upgradeRequests||prev.upgradeRequests,professionalProfiles:data.member?.professionalProfiles||prev.professionalProfiles}:prev);
      setProfessionalFiles([]);
      setNotice("درخواست شما ثبت شد و برای بررسی به معاونت مربوطه ارجاع شد. رده فعالیت شما همچنان مستقل باقی می‌ماند.");
    }catch(err){setError(err instanceof Error?err.message:"ثبت درخواست ارتقا انجام نشد.");}
@@ -219,7 +219,7 @@ export default function MemberHomePage(){
      {loading?<div className="rounded-3xl border border-[#E3E0D8] bg-white p-8 text-center">در حال دریافت پرونده شما…</div>:member?<>
        <section id="home" className={(activeSection==="home"?"":"hidden ")+"scroll-mt-36 overflow-hidden rounded-[28px] bg-[#172F48] p-5 text-white shadow-lg md:p-8"}>
          <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
-           <div className="min-w-0"><p className="text-xs font-bold tracking-wide text-[#D7B978]">جامعه اعضای خورشید مفاخر</p><h1 className="mt-2 text-2xl font-extrabold md:text-3xl">سلام {member.fullName}</h1><p className="mt-2 max-w-2xl text-sm leading-7 text-[#E6EAF0]">اینجا مرکز شخصی شما برای برنامه‌های باشگاهی، خدمات عضویت، امتیازها و ارسال آثار است.</p><div className="mt-4 flex flex-wrap gap-2"><span className="rounded-full bg-white/10 px-3 py-1.5 text-xs font-bold">{memberType}</span><span className="rounded-full bg-[#F0DFB8] px-3 py-1.5 text-xs font-bold text-[#172F48]">{memberTier}</span><span className="rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-bold">{memberGrade}</span>{(member.professionalMemberships||[]).map(role=><span key={role} className="rounded-full bg-[#DCEFE4] px-3 py-1.5 text-xs font-bold text-[#1D6543]">{role==="artist"?"عنوان تأییدشده: هنرمند":"عنوان تأییدشده: متخصص"}</span>)}<span className="rounded-full bg-emerald-100 px-3 py-1.5 text-xs font-bold text-emerald-800">عضویت فعال</span></div><p className="mt-3 text-xs text-[#E6EAF0]">نام کاربری ورود: <bdi dir="ltr" className="font-bold">{member.username||member.phone}</bdi> · برای ورود بعدی از شماره تلفن ثبت‌شده استفاده کنید.</p></div>
+           <div className="min-w-0"><p className="text-xs font-bold tracking-wide text-[#D7B978]">جامعه اعضای خورشید مفاخر</p><h1 className="mt-2 text-2xl font-extrabold md:text-3xl">سلام {member.fullName}</h1><p className="mt-2 max-w-2xl text-sm leading-7 text-[#E6EAF0]">اینجا مرکز شخصی شما برای برنامه‌های باشگاهی، خدمات عضویت، امتیازها و ارسال آثار است.</p><div className="mt-4 flex flex-wrap gap-2"><span className="rounded-full bg-white/10 px-3 py-1.5 text-xs font-bold">{memberType}</span><span className="rounded-full bg-[#F0DFB8] px-3 py-1.5 text-xs font-bold text-[#172F48]">{memberTier}</span><span className="rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-bold">{memberGrade}</span>{(member.professionalMemberships||[]).map(role=><span key={role} className="rounded-full bg-[#DCEFE4] px-3 py-1.5 text-xs font-bold text-[#1D6543]">{role==="artist"?"عنوان تأییدشده: هنرمند":role==="consultant"?"عنوان تأییدشده: مشاور":"عنوان تأییدشده: متخصص"}</span>)}<span className="rounded-full bg-emerald-100 px-3 py-1.5 text-xs font-bold text-emerald-800">عضویت فعال</span></div><p className="mt-3 text-xs text-[#E6EAF0]">نام کاربری ورود: <bdi dir="ltr" className="font-bold">{member.username||member.phone}</bdi> · برای ورود بعدی از شماره تلفن ثبت‌شده استفاده کنید.</p></div>
            <div className="grid w-full grid-cols-2 gap-3 sm:max-w-[270px]"><div className="rounded-2xl border border-white/10 bg-white/10 p-4"><span className="text-xs text-[#E6EAF0]">باشگاه‌های فعال</span><strong className="mt-1 block text-2xl">{money(activeClubs.length)}</strong></div><div className="rounded-2xl border border-white/10 bg-white/10 p-4"><span className="text-xs text-[#E6EAF0]">امتیاز ثبت‌شده</span><strong className="mt-1 block text-2xl">{money(dashboard.pointsBalance)}</strong></div></div>
          </div>
        </section>
@@ -275,15 +275,15 @@ export default function MemberHomePage(){
           </div>
         </section>
         <section id="upgrades" className={(activeSection==="upgrades"?"":"hidden ")+"mt-8 scroll-mt-36"}>
-          <div className="mb-4"><p className="text-xs font-bold text-[#96763D]">مسیر حرفه‌ای مستقل</p><h2 className="mt-1 text-xl font-extrabold">درخواست عنوان هنرمند یا متخصص</h2><p className="mt-2 text-sm leading-6 text-[#687783]">این مسیر، رده فعالیت عضو وابسته را تغییر نمی‌دهد. پس از تأیید معاونت مربوطه، عنوان حرفه‌ای جداگانه در پرونده ثبت می‌شود.</p></div>
-          {memberGrade!=="داوطلب"&&<div className="mb-4 rounded-2xl border border-[#D8D0C4] bg-[#F7F5F0] p-4 text-sm leading-7"><strong>این مسیر در حال حاضر در دسترس نیست.</strong><p className="mt-1">ثبت درخواست هنرمندی یا تخصص فقط برای عضو وابسته در رده «داوطلب» فعال است. رده فعلی شما: {memberGrade}.</p></div>}
+          <div className="mb-4"><p className="text-xs font-bold text-[#96763D]">مسیر حرفه‌ای مستقل</p><h2 className="mt-1 text-xl font-extrabold">درخواست پروفایل تخصصی</h2><p className="mt-2 text-sm leading-6 text-[#687783]">این مسیر برای ساخت پروفایل تخصصی قابل جست‌وجو در آینده است و از امتیازها و رده عضویت مستقل است. تأیید آن هیچ تغییری در رده مشارکت شما ایجاد نمی‌کند.</p></div>
+
           <div className="grid gap-4">
              <section className="rounded-2xl border border-[#E3E0D8] bg-white p-5 shadow-sm">
               <h3 className="font-extrabold">درخواست عنوان حرفه‌ای</h3>
              <p className="mt-2 text-sm leading-6 text-[#687783]">برای درخواست عنوان هنرمند، به معاونت امور هنرمندان و برای عنوان متخصص، به معاونت آموزش، پژوهش و نوآوری ارجاع می‌شوید. تأیید این عنوان‌ها مستقل از رده فعالیت عضو وابسته است.</p>
              {(member.upgradeRequests||[]).length>0&&<div className="mt-4 space-y-2">{(member.upgradeRequests||[]).slice().reverse().map(req=><div key={req.id} className="rounded-xl border border-[#E3E0D8] bg-[#F7F5F0] p-3"><div className="flex flex-wrap items-center justify-between gap-2"><strong className="text-sm">{req.target==="artist"?"هنرمند":req.target==="expert"?"متخصص":"مشاور"}</strong><span className="rounded-full bg-white px-2.5 py-1 text-xs font-bold">{req.status==="pending"?"در انتظار بررسی":req.status==="approved"?"تأیید شده":req.status==="needs_info"?"نیازمند تکمیل اطلاعات":"رد شده"}</span></div><p className="mt-1 text-xs text-[#687783]">مسیر بررسی: {req.assignedRole==="artists"?"معاونت امور هنرمندان":req.assignedRole==="education"?"معاونت آموزش، پژوهش و نوآوری":"معاونت اجتماعی و حمایتی"} · {dateLabel(req.submittedAt)}</p>{req.note&&<p className="mt-2 text-sm leading-6">{req.note}</p>}{req.documents&&req.documents.length>0&&<div className="mt-2 flex flex-wrap gap-2">{req.documents.map(doc=><a key={doc.id} href={"/api/member-upgrades/documents/"+encodeURIComponent(doc.id)} className="rounded-lg border border-[#D8D0C4] bg-white px-2.5 py-1.5 text-xs font-bold">دریافت {doc.fileName}</a>)}</div>}</div>)}</div>}
              <form onSubmit={submitUpgrade} className="mt-4 grid gap-3">
-               <label className="text-sm font-bold">عنوان مورد درخواست<select className={inputClass+" mt-2"} value={upgradeTarget} onChange={e=>setUpgradeTarget(e.target.value as "artist"|"expert")}><option value="artist">هنرمند</option><option value="expert">متخصص</option></select></label>
+               <label className="text-sm font-bold">نوع پروفایل تخصصی<select className={inputClass+" mt-2"} value={upgradeTarget} onChange={e=>setUpgradeTarget(e.target.value as "artist"|"expert"|"consultant")}><option value="artist">هنرمند</option><option value="expert">متخصص</option><option value="consultant">مشاور</option></select></label>
                <label className="text-sm font-bold">عنوان حرفه‌ای / زمینه فعالیت<input className={inputClass+" mt-2"} value={professionalHeadline} onChange={e=>setProfessionalHeadline(e.target.value)} maxLength={160} placeholder="مثلاً نقاش، پژوهشگر هنر، مشاور مسئولیت اجتماعی" required/></label>
                <label className="text-sm font-bold">تخصص‌ها و حوزه‌های کاری<textarea className={inputClass+" mt-2"} rows={3} value={professionalSpecialties} onChange={e=>setProfessionalSpecialties(e.target.value)} maxLength={1200} required/></label>
                <label className="text-sm font-bold">تحصیلات و گواهی‌های مرتبط<textarea className={inputClass+" mt-2"} rows={3} value={professionalEducation} onChange={e=>setProfessionalEducation(e.target.value)} maxLength={1200} required/></label>
@@ -293,7 +293,7 @@ export default function MemberHomePage(){
                <label className="text-sm font-bold">وب‌سایت یا صفحه حرفه‌ای<input className={inputClass+" mt-2"} value={professionalWebsite} onChange={e=>setProfessionalWebsite(e.target.value)} maxLength={300} placeholder="https://…"/></label>
                <label className="text-sm font-bold">پیوست رزومه، مدارک یا نمونه‌کارها<input className={inputClass+" mt-2"} type="file" multiple accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.webp,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/jpeg,image/png,image/webp" onChange={e=>{const files=Array.from(e.target.files||[]);setProfessionalFiles(files);}}/><span className="mt-1 block text-xs font-normal leading-5 text-[#687783]">حداکثر ۴ فایل؛ هر فایل تا ۲ مگابایت و مجموع تا ۴ مگابایت. فایل‌ها خصوصی نگهداری می‌شوند و فقط نقش‌های مجاز می‌توانند دریافت کنند.</span></label>
                {professionalFiles.length>0&&<ul className="rounded-xl bg-[#F7F5F0] p-3 text-xs text-[#526173]">{professionalFiles.map((file,index)=><li key={file.name+index} className="flex justify-between gap-2 py-1"><span className="break-all">{file.name}</span><span className="shrink-0">{(file.size/1024).toFixed(0)} KB</span></li>)}</ul>}
-               <button disabled={upgradeBusy||memberGrade!=="داوطلب"} className="rounded-xl bg-[#172F48] px-4 py-3 text-sm font-bold text-white disabled:opacity-50">{upgradeBusy?"در حال ثبت…":"ثبت درخواست و ارسال به معاونت مربوطه"}</button>
+               <button disabled={upgradeBusy} className="rounded-xl bg-[#172F48] px-4 py-3 text-sm font-bold text-white disabled:opacity-50">{upgradeBusy?"در حال ثبت…":"ثبت درخواست و ارسال به معاونت مربوطه"}</button>
              </form>
            </section>
           </div>
