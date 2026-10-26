@@ -617,8 +617,7 @@ export default function RoleDashboard({ role }: { role: ManagementRole }) {
               </>
             ) : (
               <p className="mt-4 rounded-2xl bg-[#F7F5F0] p-5 text-sm text-[#687783]">گزارش اعضا و باشگاه‌ها فعلاً دریافت نشد. اطلاعات این بخش از API مستقل خوانده می‌شود و خطای آن روی کارتابل فرصت‌ها اثری ندارد.</p>
-            )}
-            )}
+            ))}
           </section>
         )}
 
