@@ -13,6 +13,8 @@ export type MemberAccount = {
   passwordHash: string;
   activationTokenHash?: string;
   activationExpiresAt?: string;
+  passwordResetTokenHash?: string;
+  passwordResetExpiresAt?: string;
   createdAt: string;
   updatedAt: string;
   lastLoginAt?: string;
