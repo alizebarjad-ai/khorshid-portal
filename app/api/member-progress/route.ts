@@ -100,6 +100,11 @@ export async function POST(request: NextRequest) {
     if (!member) return NextResponse.json({ error: "پرونده عضو پیدا نشد." }, { status: 404 });
     if (member.status !== "active") return NextResponse.json({ error: "ثبت امتیاز یا ارتقای رده فقط برای عضو فعال امکان‌پذیر است." }, { status: 409 });
 
+    const existingPointEvents = title ? await listStored<PointEvent>("member-points") : [];
+    const currentPointBalance = existingPointEvents.filter((event) => event.memberId === memberId).reduce((sum, event) => sum + (Number(event.points) || 0), 0);
+    if (title && Number(body.points) < 0 && note.length < 5) return NextResponse.json({ error: "برای کسر امتیاز، دلیل حداقل ۵ نویسه‌ای ثبت کنید." }, { status: 400 });
+    if (title && currentPointBalance + Number(body.points) < 0) return NextResponse.json({ error: "امتیاز قابل کسر از موجودی فعلی بیشتر است." }, { status: 409 });
+
     const currentRank = ranks.includes(member.membershipRank as MembershipRank) ? member.membershipRank as MembershipRank : "volunteer";
     let updatedMember = member;
     if (hasRank && body.membershipRank !== currentRank) {

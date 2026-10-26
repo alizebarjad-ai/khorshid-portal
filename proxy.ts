@@ -9,7 +9,7 @@ const PASSWORD_ALLOWED = new Set([
   "/internal/change-password",
 ]);
 const OWNER_ALLOWED_PREFIXES = ["/internal/owner", "/api/owner/"];
-const MEMBER_CLUB_MANAGEMENT_PATHS = new Set(["/internal/members", "/internal/clubs"]);
+const MEMBER_CLUB_MANAGEMENT_PATHS = new Set(["/internal/members", "/internal/clubs", "/internal/membership-requests"]);
 const MEMBER_WRITE_API_PATHS = new Set(["/api/records", "/api/member-points", "/api/member-progress"]);
 const MEMBER_ALLOWED_PATHS = new Set([
   "/internal/member-home",

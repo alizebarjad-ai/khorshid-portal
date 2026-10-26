@@ -5,7 +5,7 @@ import { mergeClubCatalog } from "@/lib/club-catalog";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-const allowed = ["ceo", "deputy", "members"] as const;
+const allowed = ["members"] as const;
 
 async function actor(request: NextRequest) {
   const user = decodeSession(request.cookies.get(COOKIE_NAME)?.value);
