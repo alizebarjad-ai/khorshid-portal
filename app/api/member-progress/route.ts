@@ -1,8 +1,8 @@
 import { randomUUID } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { COOKIE_NAME, decodeSession } from "@/lib/auth";
-import { readMembers, updateRecord, type MembershipRank } from "@/lib/records-store";
-import { listStored, putStored } from "@/lib/persistent-store";
+import { readMembers, readMemberPointLedger, updateRecord, type MembershipRank } from "@/lib/records-store";
+import { putStored } from "@/lib/persistent-store";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -43,20 +43,12 @@ export async function GET(request: NextRequest) {
   try {
     const [members, entries] = await Promise.all([
       readMembers(),
-      listStored<PointEvent>("member-points"),
+      readMemberPointLedger(memberId),
     ]);
     const member = members.find((item) => item.id === memberId);
     if (!member) return NextResponse.json({ error: "پرونده عضو پیدا نشد." }, { status: 404 });
 
-    const pointEvents = entries
-      .filter((entry) => entry.memberId === memberId)
-      .map((entry) => ({
-        ...entry,
-        points: Number(entry.points) || 0,
-        actor: entry.actor || entry.createdBy || "سامانه",
-      }))
-      .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
-      .slice(0, 100);
+    const pointEvents = entries.map((entry) => ({ ...entry, points: Number(entry.points) || 0, actor: entry.actor || entry.createdBy || "سامانه" })).slice(0, 100);
 
     return NextResponse.json({
       member: {
@@ -68,7 +60,7 @@ export async function GET(request: NextRequest) {
         rankHistory: member.rankHistory || [],
       },
       pointEvents,
-      pointsBalance: entries.filter((entry) => entry.memberId === memberId).reduce((sum, event) => sum + (Number(event.points) || 0), 0),
+      pointsBalance: entries.reduce((sum, event) => sum + (Number(event.points) || 0), 0),
     }, { headers: { "Cache-Control": "private, no-store, max-age=0" } });
   } catch (error) {
     console.error("Member progress could not be loaded", error);
@@ -100,7 +92,7 @@ export async function POST(request: NextRequest) {
     if (!member) return NextResponse.json({ error: "پرونده عضو پیدا نشد." }, { status: 404 });
     if (member.status !== "active") return NextResponse.json({ error: "ثبت امتیاز یا ارتقای رده فقط برای عضو فعال امکان‌پذیر است." }, { status: 409 });
 
-    const existingPointEvents = title ? await listStored<PointEvent>("member-points") : [];
+    const existingPointEvents = title ? await readMemberPointLedger(memberId) : [];
     const currentPointBalance = existingPointEvents.filter((event) => event.memberId === memberId).reduce((sum, event) => sum + (Number(event.points) || 0), 0);
     if (title && Number(body.points) < 0 && note.length < 5) return NextResponse.json({ error: "برای کسر امتیاز، دلیل حداقل ۵ نویسه‌ای ثبت کنید." }, { status: 400 });
     if (title && currentPointBalance + Number(body.points) < 0) return NextResponse.json({ error: "امتیاز قابل کسر از موجودی فعلی بیشتر است." }, { status: 409 });
@@ -140,8 +132,8 @@ export async function POST(request: NextRequest) {
       await putStored("member-points", pointEvent);
     }
 
-    const allEvents = await listStored<PointEvent>("member-points");
-    const pointsBalance = allEvents.filter((event) => event.memberId === memberId).reduce((sum, event) => sum + (Number(event.points) || 0), 0);
+    const allEvents = await readMemberPointLedger(memberId);
+    const pointsBalance = allEvents.reduce((sum, event) => sum + (Number(event.points) || 0), 0);
     return NextResponse.json({
       success: true,
       pointEvent,

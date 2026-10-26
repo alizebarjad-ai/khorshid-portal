@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { randomUUID } from "node:crypto";
 import { COOKIE_NAME, decodeSession } from "@/lib/auth";
-import { readMembers, updateRecord } from "@/lib/records-store";
-import { listStored, putStored } from "@/lib/persistent-store";
+import { readMembers, readMemberPointLedger, updateRecord } from "@/lib/records-store";
+import { putStored } from "@/lib/persistent-store";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -23,8 +23,8 @@ export async function POST(request: NextRequest) {
     if (points < 0 && !note) return NextResponse.json({ error: "برای کسر امتیاز، درج دلیل الزامی است." }, { status: 400 });
     const member = (await readMembers()).find(item => item.id === memberId);
     if (!member) return NextResponse.json({ error: "پرونده عضو پیدا نشد." }, { status: 404 });
-    const existingEvents = await listStored<{ memberId?: string; points?: number }>("member-points");
-    const currentBalance = existingEvents.filter((item) => item.memberId === member.id).reduce((sum, item) => sum + (Number(item.points) || 0), 0);
+    const existingEvents = await readMemberPointLedger(member.id);
+    const currentBalance = existingEvents.reduce((sum, item) => sum + (Number(item.points) || 0), 0);
     if (currentBalance + points < 0) return NextResponse.json({ error: "امتیاز قابل کسر از موجودی فعلی بیشتر است." }, { status: 409 });
     const event = { id: randomUUID(), memberId: member.id, memberName: member.fullName, points, title, note, createdAt: new Date().toISOString(), createdBy: user.username, actor: user.name };
     await putStored("member-points", event);

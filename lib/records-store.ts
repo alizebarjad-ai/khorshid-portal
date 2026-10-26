@@ -144,6 +144,39 @@ function validPointEvents(value: unknown): MemberPointEvent[] { return Array.isA
 export const readMembers = () => readRecords<MemberRecord>("member");
 export const readClubs = () => readRecords<ClubRecord>("club");
 
+export type MemberPointLedgerEvent = MemberPointEvent & { memberId: string; memberName?: string; createdBy?: string };
+export async function readMemberPointLedger(memberId?: string): Promise<MemberPointLedgerEvent[]> {
+  const [members, stored] = await Promise.all([
+    readMembers(),
+    listStored<Record<string, unknown>>("member-points"),
+  ]);
+  const events = new Map<string, MemberPointLedgerEvent>();
+  for (const member of members) {
+    for (const event of member.pointEvents || []) {
+      if (!event?.id || !Number.isFinite(Number(event.points))) continue;
+      events.set(event.id, { ...event, memberId: member.id, memberName: member.fullName, createdBy: event.actor });
+    }
+  }
+  for (const raw of stored) {
+    const id = typeof raw.id === "string" ? raw.id : "";
+    const ownerId = typeof raw.memberId === "string" ? raw.memberId : "";
+    if (!id || !ownerId || !Number.isFinite(Number(raw.points))) continue;
+    events.set(id, {
+      id, memberId: ownerId, memberName: typeof raw.memberName === "string" ? raw.memberName : undefined,
+      points: Number(raw.points), title: String(raw.title || "فعالیت ثبت‌شده"),
+      note: String(raw.note || ""), createdAt: String(raw.createdAt || ""),
+      actor: String(raw.actor || raw.createdBy || "سامانه"),
+      createdBy: typeof raw.createdBy === "string" ? raw.createdBy : undefined,
+      sourceContributionId: typeof raw.sourceContributionId === "string" ? raw.sourceContributionId : undefined,
+      verifiedByRole: typeof raw.verifiedByRole === "string" ? raw.verifiedByRole : undefined,
+      verifiedBy: typeof raw.verifiedBy === "string" ? raw.verifiedBy : undefined,
+    });
+  }
+  return [...events.values()]
+    .filter((event) => !memberId || event.memberId === memberId)
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+}
+
 export async function createRecord(kind: "member" | "club", data: Record<string, unknown>, actor: {username:string}) {
   const now = new Date().toISOString();
   const base = { id: randomUUID(), kind, createdAt: now, updatedAt: now, createdBy: actor.username, updatedBy: actor.username };
