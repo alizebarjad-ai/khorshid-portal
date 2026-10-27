@@ -118,7 +118,7 @@ export default function OwnerStaffPage() {
               <p className="mt-3 max-w-3xl text-sm leading-7 text-[#E6EAF0]">بازنشانی رمز، توقف دسترسی و انتقال مسئولیت‌ها. رمزهای قبلی قابل مشاهده نیستند و رمز موقت فقط یک بار نمایش داده می‌شود.</p>
             </div>
             <div className="flex flex-wrap gap-2">
-              <a href="/internal" className="rounded-xl border border-white/20 px-4 py-2.5 text-sm font-bold text-white">صفحه داخلی</a>
+              <a href="/internal/content-review" className="rounded-xl border border-white/20 px-4 py-2.5 text-sm font-bold text-white">کارتابل محتوای رسانه</a>
               <button onClick={logout} className="rounded-xl bg-white/10 px-4 py-2.5 text-sm font-bold text-white">خروج امن</button>
             </div>
           </div>
