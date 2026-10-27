@@ -24,7 +24,6 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
-      NODE_ENV: production
       AUTH_SECRET: "ci-only-secret-that-is-at-least-thirty-two-characters"
       DATABASE_URL: "postgresql://portal:portal@127.0.0.1:5432/portal"
       AUTH_OWNER_USERNAME: "ci-owner"
