@@ -277,7 +277,7 @@ function normalizeProject(raw: Partial<Project>): Project {
       Number(raw.tax || 0) +
       Number(raw.otherCosts || 0),
     received: Number(raw.received || 0),
-    rewardRate: Number(raw.rewardRate ?? 20) || 20,
+    rewardRate: raw.rewardRate === undefined ? 20 : Math.max(0, Math.min(100, Number(raw.rewardRate) || 0)),
     status: raw.status || "پیش‌نویس",
     people: (raw.people || []).map((p) => ({
       id: p.id || uid(),
