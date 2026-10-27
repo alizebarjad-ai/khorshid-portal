@@ -2,7 +2,9 @@ name: Portal CI
 
 on:
   pull_request:
-    branches: [main]
+    branches:
+      - main
+      - "integration/**"
   push:
     branches:
       - "feat/**"
