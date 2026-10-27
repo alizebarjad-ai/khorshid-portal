@@ -19,6 +19,8 @@ function fail(message: string, status: number) {
   return NextResponse.json({ error: message }, { status });
 }
 
+function today() { return new Date().toISOString(); }
+
 function changedKeys(existing: Record<string, unknown>, next: Record<string, unknown>) {
   return Object.keys(next).filter((key) => JSON.stringify(existing[key]) !== JSON.stringify(next[key]));
 }
@@ -229,9 +231,10 @@ export async function PUT(request: NextRequest) {
     const actionLabel = existing.status !== item.status
       ? `تغییر وضعیت از «${String(existing.status || "")}» به «${String(item.status || "")}»`
       : "به‌روزرسانی اطلاعات پیشنهاد";
-    const nextItem = {
+    const nextItem: Record<string, unknown> & { id: string } = {
       ...existing,
       ...item,
+      id: existing.id as string,
       history: [...priorHistory, { id: randomUUID(), date: today(), actor: user.name, action: actionLabel, note: auditNote }],
     };
     return NextResponse.json({ item: await putStored(collection, nextItem as Record<string, unknown> & { id: string }) });
