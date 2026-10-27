@@ -3,26 +3,124 @@
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
-type Item = { id:string; kind:"text"|"image"|"video"; title:string; description:string; text?:string; fileUrl?:string; fileName?:string; contentType?:string; size?:number; memberId:string; memberName:string; memberEmail?:string; status:string; createdAt:string; updatedAt:string; mediaNote?:string; adminNote?:string; reviewedBy?:string };
-const statusLabels:Record<string,string>={pending_media:"در انتظار بررسی رسانه",approved_media:"تأیید رسانه، آماده ارجاع",rejected_media:"رد شده توسط رسانه",forwarded_admin:"ارجاع‌شده به ادمین",published:"بارگذاری‌شده در سایت",rejected_admin:"رد توسط ادمین"};
-const dateLabel=(s:string)=>{try{return new Intl.DateTimeFormat("fa-IR",{dateStyle:"medium",timeStyle:"short"}).format(new Date(s))}catch{return s}};
-const inputClass="w-full rounded-xl border border-[#D8D0C4] bg-white px-3 py-2.5 text-sm text-[#18304A] outline-none focus:border-[#B99450]";
-export default function ContentReviewPage(){
- const router=useRouter();const [role,setRole]=useState("");const [items,setItems]=useState<Item[]>([]);const [notes,setNotes]=useState<Record<string,string>>({});const [loading,setLoading]=useState(true);const [busy,setBusy]=useState("");const [error,setError]=useState("");const [notice,setNotice]=useState("");
- const load=useCallback(async()=>{setLoading(true);try{const a=await fetch("/api/auth/me",{cache:"no-store"});if(!a.ok){router.replace("/login");return;}const au=await a.json();const r=au.user?.role||"";setRole(r);if(r==="ceo"||r==="deputy"){router.replace("/internal");return;}if(!["media","ceo","deputy","owner"].includes(r)){router.replace("/internal");return;}const res=await fetch("/api/member-content",{cache:"no-store"});const d=await res.json();if(!res.ok)throw new Error(d.error||"دریافت کارتابل ناموفق بود.");setItems(d.items||[]);setError("");}catch(e){setError(e instanceof Error?e.message:"دریافت کارتابل ناموفق بود.");}finally{setLoading(false)}},[router]);
- useEffect(()=>{void load()},[load]);
- async function act(item:Item,action:"approve"|"reject"|"forward"|"publish"|"reject_admin"){if(action==="forward"&&(notes[item.id]||"").trim().length<20){setError("برای ارجاع به ادمین، توضیح انتشار دست‌کم ۲۰ نویسه‌ای بنویسید.");return;}setBusy(item.id);setError("");setNotice("");try{const r=await fetch("/api/member-content",{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({id:item.id,action,note:notes[item.id]||""})});const d=await r.json();if(!r.ok)throw new Error(d.error||"ثبت تصمیم انجام نشد.");setNotice("وضعیت محتوا ثبت شد.");await load();}catch(e){setError(e instanceof Error?e.message:"ثبت تصمیم انجام نشد.");}finally{setBusy("")}}
- const media=role==="media";const pending=items.filter(x=>media?x.status==="pending_media":x.status==="forwarded_admin");
- return <main className="internal-app min-h-screen px-4 pb-16 pt-28 text-[#172F48]"><div className="container-site">
- <header className="rounded-3xl bg-[#172F48] p-6 text-white md:p-8"><a href={media?"/internal/media-manager":"/internal/owner"} className="text-sm text-[#D7B978]">← بازگشت به داشبورد</a><h1 className="mt-3 text-3xl font-extrabold">{media?"کارتابل محتوای اعضا":"کارتابل ادمین سایت: محتوای ارجاع‌شده از رسانه"}</h1><p className="mt-2 max-w-3xl text-sm leading-7 text-[#E6EAF0]">{media?"محتوا را بررسی کنید، در صورت تأیید آن را به ادمین سایت ارجاع دهید و در صورت رد، دلیل روشن بنویسید.":"فقط محتوای تأییدشده معاونت رسانه در این کارتابل نمایش داده می‌شود. فایل را بررسی کنید، سپس بارگذاری واقعی در سایت را انجام دهید و نتیجه را ثبت کنید. این اقدام به‌خودی‌خود محتوای سایت را منتشر نمی‌کند."}</p><div className="mt-5 flex flex-wrap gap-3"><span className="rounded-xl bg-white/10 px-4 py-2">کل موارد: {items.length}</span><span className="rounded-xl bg-white/10 px-4 py-2">نیازمند اقدام: {pending.length}</span></div></header>
- {error&&<p role="alert" className="mt-5 rounded-xl bg-red-50 p-4 text-sm text-red-800">{error}</p>}{notice&&<p role="status" className="mt-5 rounded-xl bg-emerald-50 p-4 text-sm text-emerald-800">{notice}</p>}
- {loading?<p className="mt-6 rounded-2xl bg-white p-6">در حال دریافت محتوا…</p>:!items.length?<p className="mt-6 rounded-2xl border border-dashed border-[#D8D0C4] bg-white p-8 text-center">فعلاً محتوایی در این کارتابل نیست.</p>:<div className="mt-6 grid gap-4">{items.map(item=><article key={item.id} className="rounded-2xl border border-[#E3E0D8] bg-white p-5 shadow-sm"><div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="text-lg font-extrabold">{item.title}</h2><p className="mt-1 text-xs text-[#687783]">فرستنده: {item.memberName} · {dateLabel(item.createdAt)} · {item.kind==="image"?"تصویر":item.kind==="video"?"ویدیو":"متن"}</p></div><span className="rounded-full bg-[#F0DFB8] px-3 py-1.5 text-xs font-bold">{statusLabels[item.status]||item.status}</span></div>
- {item.description&&<p className="mt-4 whitespace-pre-wrap text-sm leading-7 text-[#526173]">{item.description}</p>}
- {item.text&&<div className="mt-4 whitespace-pre-wrap rounded-xl bg-[#F7F5F0] p-4 text-sm leading-7">{item.text}</div>}
- {item.fileUrl&&<div className="mt-4"><p className="mb-2 break-all text-xs text-[#687783]">{item.fileName} · {((item.size||0)/1024/1024).toFixed(2)} MB</p>{item.kind==="image"?<a href={item.fileUrl} target="_blank" rel="noopener noreferrer"><img src={item.fileUrl} alt={item.title} className="max-h-[480px] rounded-xl border border-[#E3E0D8] object-contain"/></a>:<video src={item.fileUrl} controls className="max-h-[480px] w-full rounded-xl bg-black"/>}<p className="mt-2"><a className="text-sm font-bold text-[#80652F] underline" href={item.fileUrl} target="_blank" rel="noopener noreferrer">بازکردن فایل اصلی ↗</a></p></div>}
- {(item.mediaNote||item.adminNote)&&<div className="mt-3 rounded-xl bg-[#F7F5F0] p-3 text-sm leading-6">{item.mediaNote&&<p>یادداشت رسانه: {item.mediaNote}</p>}{item.adminNote&&<p>یادداشت ادمین: {item.adminNote}</p>}</div>}
- {(media&&item.status==="pending_media"||!media&&item.status==="forwarded_admin")&&<div className="mt-4 grid gap-3"><label className="text-sm font-bold">{media?"توضیح بررسی رسانه":"توضیح ادمین / وضعیت بارگذاری"}<textarea className={inputClass+" mt-2"} rows={2} maxLength={3000} value={notes[item.id]||""} onChange={e=>setNotes(old=>({...old,[item.id]:e.target.value}))} placeholder={media?"نکات اصلاحی یا دلیل رد محتوا":"در صورت رد، دلیل؛ در صورت انتشار، توضیح اختیاری"}/></label><div className="flex flex-wrap gap-2">{media?<><button disabled={busy===item.id} onClick={()=>act(item,"approve")} className="rounded-xl bg-emerald-700 px-4 py-2.5 text-sm font-bold text-white disabled:opacity-50">تأیید محتوا</button><button disabled={busy===item.id} onClick={()=>act(item,"reject")} className="rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-bold text-red-800 disabled:opacity-50">رد با توضیح</button></>:<><button disabled={busy===item.id} onClick={()=>act(item,"publish")} className="rounded-xl bg-emerald-700 px-4 py-2.5 text-sm font-bold text-white disabled:opacity-50">ثبت بارگذاری در سایت</button><button disabled={busy===item.id} onClick={()=>act(item,"reject_admin")} className="rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-bold text-red-800 disabled:opacity-50">رد با توضیح</button></>}</div></div>}
- {media&&item.status==="approved_media"&&<div className="mt-4"><label className="block text-sm font-bold">یادداشت همراه برای ادمین<textarea className={inputClass+" mt-2"} rows={3} maxLength={3000} value={notes[item.id]||item.mediaNote||""} onChange={e=>setNotes(old=>({...old,[item.id]:e.target.value}))} placeholder="پیشنهاد عنوان، کپشن، دسته‌بندی، اعتبار صاحب اثر و نکات انتشار"/></label><button disabled={busy===item.id||(notes[item.id]||"").trim().length<20} onClick={()=>act(item,"forward")} className="mt-3 rounded-xl bg-[#172F48] px-4 py-3 text-sm font-extrabold text-white disabled:opacity-50">ارجاع به ادمین برای بارگذاری</button><p className="mt-2 text-xs leading-6 text-[#687783]">برای جلوگیری از ارجاع ناقص، توضیح انتشار حداقل ۲۰ نویسه‌ای الزامی است.</p></div>}
- </article>)}</div>}
- </div></main>;
+type Item = {
+  id: string;
+  kind: "text" | "image" | "video";
+  title: string;
+  description: string;
+  text?: string;
+  fileUrl?: string;
+  fileName?: string;
+  contentType?: string;
+  size?: number;
+  memberName: string;
+  status: "pending_media" | "approved_media" | "rejected_media";
+  createdAt: string;
+  mediaNote?: string;
+  forwardedAt?: string;
+};
+const statusLabels: Record<string, string> = {
+  pending_media: "در انتظار بررسی رسانه",
+  approved_media: "تأیید رسانه، آماده ارجاع",
+  rejected_media: "رد شده توسط رسانه",
+};
+const dateLabel = (s: string) => {
+  try { return new Intl.DateTimeFormat("fa-IR", { dateStyle: "medium", timeStyle: "short" }).format(new Date(s)); }
+  catch { return s; }
+};
+const inputClass = "w-full rounded-xl border border-[#D8D0C4] bg-white px-3 py-2.5 text-sm text-[#18304A] outline-none focus:border-[#B99450]";
+
+export default function ContentReviewPage() {
+  const router = useRouter();
+  const [items, setItems] = useState<Item[]>([]);
+  const [notes, setNotes] = useState<Record<string, string>>({});
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState("");
+  const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const auth = await fetch("/api/auth/me", { cache: "no-store" });
+      if (!auth.ok) { router.replace("/login"); return; }
+      const session = await auth.json();
+      if (session.user?.role !== "media") { router.replace("/internal"); return; }
+      const response = await fetch("/api/member-content", { cache: "no-store" });
+      const body = await response.json();
+      if (!response.ok) throw new Error(body.error || "دریافت کارتابل ناموفق بود.");
+      setItems(body.items || []);
+      setError("");
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "دریافت کارتابل ناموفق بود.");
+    } finally {
+      setLoading(false);
+    }
+  }, [router]);
+
+  useEffect(() => { const timer = window.setTimeout(() => { void load(); }, 0); return () => window.clearTimeout(timer); }, [load]);
+
+  async function act(item: Item, action: "approve" | "reject" | "forward") {
+    const note = (notes[item.id] || "").trim();
+    if (action === "reject" && !note) { setError("برای رد محتوا، دلیل روشن بنویسید."); return; }
+    if (action === "forward" && note.length < 20) { setError("برای ارجاع به ادمین سایت، توضیح انتشار دست‌کم ۲۰ نویسه‌ای بنویسید."); return; }
+    setBusy(item.id); setError(""); setNotice("");
+    try {
+      const response = await fetch("/api/member-content", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: item.id, action, note }),
+      });
+      const body = await response.json();
+      if (!response.ok) throw new Error(body.error || "ثبت تصمیم انجام نشد.");
+      setNotice(action === "forward" ? "محتوا به کارتابل ادمین سایت در سایت اصلی ارجاع شد." : "وضعیت محتوا ثبت شد.");
+      await load();
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "ثبت تصمیم انجام نشد.");
+    } finally { setBusy(""); }
+  }
+
+  const pending = items.filter(item => item.status === "pending_media").length;
+
+  return (
+    <main className="internal-app min-h-screen px-4 pb-16 pt-28 text-[#172F48]">
+      <div className="container-site">
+        <header className="rounded-3xl bg-[#172F48] p-6 text-white md:p-8">
+          <a href="/internal/media-manager" className="text-sm text-[#D7B978]">← بازگشت به داشبورد معاونت رسانه</a>
+          <h1 className="mt-3 text-3xl font-extrabold">کارتابل محتوای اعضا</h1>
+          <p className="mt-2 max-w-3xl text-sm leading-7 text-[#E6EAF0]">
+            محتوای اعضا را بررسی کنید. پس از تأیید، آن را مستقیماً به کارتابل ادمین سایت در سایت اصلی خورشید مفاخر ارجاع دهید؛ این محتوا به مدیرعامل یا مالک پرتال ارسال نمی‌شود.
+          </p>
+          <div className="mt-5 flex flex-wrap gap-3">
+            <span className="rounded-xl bg-white/10 px-4 py-2">کل موارد: {items.length}</span>
+            <span className="rounded-xl bg-white/10 px-4 py-2">در انتظار بررسی: {pending}</span>
+          </div>
+        </header>
+        {error && <p role="alert" className="mt-5 rounded-xl bg-red-50 p-4 text-sm text-red-800">{error}</p>}
+        {notice && <p role="status" className="mt-5 rounded-xl bg-emerald-50 p-4 text-sm text-emerald-800">{notice}</p>}
+        {loading ? <p className="mt-6 rounded-2xl bg-white p-6">در حال دریافت محتوا…</p> :
+          !items.length ? <p className="mt-6 rounded-2xl border border-dashed border-[#D8D0C4] bg-white p-8 text-center">فعلاً محتوایی در کارتابل رسانه نیست.</p> :
+          <div className="mt-6 grid gap-4">
+            {items.map(item => <article key={item.id} className="rounded-2xl border border-[#E3E0D8] bg-white p-5 shadow-sm">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div><h2 className="text-lg font-extrabold">{item.title}</h2><p className="mt-1 text-xs text-[#687783]">فرستنده: {item.memberName} · {dateLabel(item.createdAt)} · {item.kind === "image" ? "تصویر" : item.kind === "video" ? "ویدیو" : "متن"}</p></div>
+                <span className="rounded-full bg-[#F0DFB8] px-3 py-1.5 text-xs font-bold">{statusLabels[item.status] || item.status}</span>
+              </div>
+              {item.description && <p className="mt-4 whitespace-pre-wrap text-sm leading-7 text-[#526173]">{item.description}</p>}
+              {item.text && <div className="mt-4 whitespace-pre-wrap rounded-xl bg-[#F7F5F0] p-4 text-sm leading-7">{item.text}</div>}
+              {item.fileUrl && <div className="mt-4"><p className="mb-2 break-all text-xs text-[#687783]">{item.fileName} · {((item.size || 0) / 1024 / 1024).toFixed(2)} MB</p>{item.kind === "image" ? <a href={item.fileUrl} target="_blank" rel="noopener noreferrer"><img src={item.fileUrl} alt={item.title} className="max-h-[480px] rounded-xl border border-[#E3E0D8] object-contain" /></a> : <video src={item.fileUrl} controls className="max-h-[480px] w-full rounded-xl bg-black" />}<p className="mt-2"><a className="text-sm font-bold text-[#80652F] underline" href={item.fileUrl} target="_blank" rel="noopener noreferrer">بازکردن فایل اصلی ↗</a></p></div>}
+              {item.mediaNote && <p className="mt-3 rounded-xl bg-[#F7F5F0] p-3 text-sm leading-6">یادداشت رسانه: {item.mediaNote}</p>}
+              {item.status === "pending_media" && <div className="mt-4 grid gap-3">
+                <label className="text-sm font-bold">یادداشت بررسی یا دلیل رد<textarea className={inputClass + " mt-2"} rows={3} maxLength={3000} value={notes[item.id] || ""} onChange={e => setNotes(old => ({ ...old, [item.id]: e.target.value }))} placeholder="نکات اصلاحی یا دلیل رد محتوا" /></label>
+                <div className="flex flex-wrap gap-2">
+                  <button disabled={busy === item.id} onClick={() => void act(item, "approve")} className="rounded-xl bg-emerald-700 px-4 py-2.5 text-sm font-bold text-white disabled:opacity-50">تأیید محتوا</button>
+                  <button disabled={busy === item.id} onClick={() => void act(item, "reject")} className="rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-bold text-red-800 disabled:opacity-50">رد با توضیح</button>
+                </div>
+              </div>}
+              {item.status === "approved_media" && <div className="mt-4"><label className="block text-sm font-bold">توضیح انتشار برای ادمین سایت<textarea className={inputClass + " mt-2"} rows={3} maxLength={3000} value={notes[item.id] || item.mediaNote || ""} onChange={e => setNotes(old => ({ ...old, [item.id]: e.target.value }))} placeholder="پیشنهاد عنوان، کپشن، دسته‌بندی و اعتبار صاحب اثر" /></label><button disabled={busy === item.id || (notes[item.id] || "").trim().length < 20} onClick={() => void act(item, "forward")} className="mt-3 rounded-xl bg-[#172F48] px-4 py-3 text-sm font-extrabold text-white disabled:opacity-50">ارجاع به ادمین سایت در سایت اصلی</button><p className="mt-2 text-xs leading-6 text-[#687783]">برای جلوگیری از ارجاع ناقص، توضیح انتشار حداقل ۲۰ نویسه‌ای الزامی است.</p></div>}
+            </article>)}
+          </div>}
+      </div>
+    </main>
+  );
 }
