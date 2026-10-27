@@ -78,7 +78,8 @@ export async function POST(request: NextRequest) {
       item.fileName = file.name.slice(0, 240); item.contentType = file.type; item.size = file.size;
     }
     await putStored(collection, item);
-    return NextResponse.json({ item: { ...item, memberEmail: undefined } }, { status: 201, headers: { "Cache-Control": "private, no-store" } });
+    const { filePathname: _privatePathname, ...safeItem } = item;
+    return NextResponse.json({ item: { ...safeItem, memberEmail: undefined } }, { status: 201, headers: { "Cache-Control": "private, no-store" } });
   } catch (error) {
     return jsonError(error instanceof Error ? error.message : "ارسال محتوا انجام نشد.", 400);
   }
@@ -93,7 +94,7 @@ export async function GET(request: NextRequest) {
     const items = await listStored<Submission>(collection);
     const visible = items.filter(item => user.role === "member" ? item.memberId === user.memberId : user.role === "media" ? ["pending_media", "approved_media", "rejected_media"].includes(item.status) : ["forwarded_admin", "published", "rejected_admin"].includes(item.status));
     visible.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-    return NextResponse.json({ items: visible.map(item => ({ ...item, fileUrl: item.filePathname ? `/api/member-content/files/${encodeURIComponent(item.id)}` : undefined })) }, { headers: { "Cache-Control": "private, no-store" } });
+    return NextResponse.json({ items: visible.map(({ filePathname, ...item }) => ({ ...item, fileUrl: filePathname ? `/api/member-content/files/${encodeURIComponent(item.id)}` : undefined })) }, { headers: { "Cache-Control": "private, no-store" } });
   } catch (error) {
     return jsonError(error instanceof Error ? error.message : "دریافت کارتابل محتوا ناموفق بود.", 503);
   }
