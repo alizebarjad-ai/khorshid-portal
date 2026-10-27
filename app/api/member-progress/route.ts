@@ -85,12 +85,12 @@ export async function POST(request: NextRequest) {
     if (title && (!Number.isInteger(Number(body.points)) || Number(body.points) === 0 || Math.abs(Number(body.points)) > 10000)) {
       return NextResponse.json({ error: "امتیاز باید عدد صحیح غیرصفر بین ۱۰۰۰۰- تا ۱۰۰۰۰ باشد." }, { status: 400 });
     }
-    if (hasRankInput && !hasRank) return NextResponse.json({ error: "رده عضویت معتبر نیست." }, { status: 400 });
+    if (hasRankInput && !hasRank) return NextResponse.json({ error: "وضعیت مشارکت معتبر نیست." }, { status: 400 });
 
     const members = await readMembers();
     const member = members.find((item) => item.id === memberId);
     if (!member) return NextResponse.json({ error: "پرونده عضو پیدا نشد." }, { status: 404 });
-    if (member.status !== "active") return NextResponse.json({ error: "ثبت امتیاز یا ارتقای رده فقط برای عضو فعال امکان‌پذیر است." }, { status: 409 });
+    if (member.status !== "active") return NextResponse.json({ error: "ثبت امتیاز یا تغییر وضعیت مشارکت فقط برای عضو فعال امکان‌پذیر است." }, { status: 409 });
 
     const existingPointEvents = title ? await readMemberPointLedger(memberId) : [];
     const currentPointBalance = existingPointEvents.filter((event) => event.memberId === memberId).reduce((sum, event) => sum + (Number(event.points) || 0), 0);
@@ -103,7 +103,7 @@ export async function POST(request: NextRequest) {
       const currentIndex = ranks.indexOf(currentRank);
       const nextIndex = ranks.indexOf(body.membershipRank as MembershipRank);
       if (nextIndex < currentIndex) return NextResponse.json({ error: "کاهش رده از این مسیر مجاز نیست." }, { status: 409 });
-      if (nextIndex > currentIndex && note.length < 5) return NextResponse.json({ error: "برای ارتقای رده، دلیل حداقل ۵ نویسه‌ای ثبت کنید." }, { status: 400 });
+      if (nextIndex > currentIndex && note.length < 5) return NextResponse.json({ error: "برای ارتقای وضعیت مشارکت، دلیل حداقل ۵ نویسه‌ای ثبت کنید." }, { status: 400 });
 
       const updated = await updateRecord("member", memberId, {
         membershipType: "affiliate",

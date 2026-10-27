@@ -91,7 +91,7 @@ export async function POST(request: NextRequest) {
     const resumeText = String(form.get("resumeText") || "").trim().slice(0, 8000);
     const biography = String(form.get("biography") || member.biography || "").trim().slice(0, 3000);
     if (!headline || !education || !experience || !specialtiesRaw) {
-      return NextResponse.json({ error: "عنوان حرفه‌ای، حوزه تخصص، تحصیلات و سوابق کاری را کامل کنید." }, { status: 400 });
+      return NextResponse.json({ error: "عنوان تخصصی، حوزه تخصص، تحصیلات و سوابق کاری را کامل کنید." }, { status: 400 });
     }
     if (website && !/^https?:\/\//i.test(website)) {
       return NextResponse.json({ error: "نشانی وب‌سایت باید با https:// یا http:// شروع شود." }, { status: 400 });
@@ -155,7 +155,7 @@ export async function POST(request: NextRequest) {
       membershipType: "affiliate",
       membershipTier: "affiliate",
     }, { username: user.username });
-    if (!updated) throw new Error("ثبت پرونده حرفه‌ای انجام نشد.");
+    if (!updated) throw new Error("ثبت پرونده تخصصی انجام نشد.");
     return NextResponse.json({ request: requestItem, member: updated }, { status: open ? 200 : 201, headers: { "Cache-Control": "private, no-store" } });
   } catch (error) {
     await Promise.all(newlyStoredIds.map(id => deleteStored(DOCUMENTS, id).catch(() => undefined)));

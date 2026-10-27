@@ -28,7 +28,7 @@ const rankLabels: Record<MembershipRank, string> = {
 function authorize(request: NextRequest) {
   const user = decodeSession(request.cookies.get(COOKIE_NAME)?.value);
   if (!user) return { user: null, response: NextResponse.json({ error: "برای ادامه وارد سامانه شوید." }, { status: 401 }) };
-  if (!allowedRoles.has(user.role)) return { user: null, response: NextResponse.json({ error: "ثبت امتیاز و ارتقای رده فقط برای معاون اعضا و مدیران مجاز است." }, { status: 403 }) };
+  if (!allowedRoles.has(user.role)) return { user: null, response: NextResponse.json({ error: "ثبت امتیاز و تغییر وضعیت مشارکت فقط برای معاون اعضا و مدیران مجاز است." }, { status: 403 }) };
   return { user, response: null };
 }
 
@@ -70,7 +70,7 @@ export async function POST(request: NextRequest) {
     const members = await readMembers();
     const member = members.find((item) => item.id === memberId);
     if (!member) return NextResponse.json({ error: "پرونده عضو پیدا نشد." }, { status: 404 });
-    if (member.status !== "active") return NextResponse.json({ error: "ثبت امتیاز یا ارتقای رده فقط برای عضو فعال امکان‌پذیر است." }, { status: 409 });
+    if (member.status !== "active") return NextResponse.json({ error: "ثبت امتیاز یا تغییر وضعیت مشارکت فقط برای عضو فعال امکان‌پذیر است." }, { status: 409 });
 
     if (body.action === "award-points") {
       const points = Number(body.points);
@@ -101,7 +101,7 @@ export async function POST(request: NextRequest) {
       const current = ranks.includes(member.membershipRank as MembershipRank) ? member.membershipRank as MembershipRank : "volunteer";
       const currentIndex = ranks.indexOf(current);
       if (currentIndex >= ranks.length - 1) {
-        return NextResponse.json({ error: "رده «مدیر باشگاه» بالاترین رده تعریف‌شده فعلی است." }, { status: 409 });
+        return NextResponse.json({ error: "وضعیت «مسئول باشگاه» بالاترین سطح مشارکت تعریف‌شده فعلی است." }, { status: 409 });
       }
       const reason = typeof body.reason === "string" ? body.reason.trim() : "";
       if (reason.length < 5 || reason.length > 1000) {
