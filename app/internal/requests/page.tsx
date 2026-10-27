@@ -101,7 +101,7 @@ export default function GeneralRequestsPage() {
     if (!selected) return;
     setAssignedUnit(selected.assignedUnit || "deputy");
     setFeedback(selected.reviewFeedback || "");
-  }, [selectedId, selected?.updatedAt]);
+  }, [selected]);
 
   async function act(action: string) {
     if (!selected) return;
