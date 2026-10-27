@@ -1,3 +1,4 @@
+import { get } from "@vercel/blob";
 import { NextRequest, NextResponse } from "next/server";
 import { COOKIE_NAME, decodeSession } from "@/lib/auth";
 import { listStored } from "@/lib/persistent-store";
@@ -14,7 +15,9 @@ type StoredUpgradeDocument = {
   mimeType: string;
   size: number;
   uploadedAt: string;
-  dataBase64: string;
+  pathname?: string;
+  /** Read-only compatibility for legacy records uploaded before private Blob storage was enabled. */
+  dataBase64?: string;
 };
 
 export async function GET(request: NextRequest, context: { params: Promise<{ id: string }> }) {
@@ -40,17 +43,34 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
       }
     }
 
-    const bytes = Buffer.from(document.dataBase64, "base64");
-    return new Response(new Uint8Array(bytes), {
-      headers: {
-        "Content-Type": document.mimeType || "application/octet-stream",
-        "Content-Length": String(bytes.byteLength),
-        "Content-Disposition": "attachment; filename*=UTF-8''" + encodeURIComponent(document.fileName),
-        "Cache-Control": "private, no-store",
-        "X-Content-Type-Options": "nosniff",
-      },
+    const headers = new Headers({
+      "Content-Type": document.mimeType || "application/octet-stream",
+      "Content-Disposition": "attachment; filename*=UTF-8''" + encodeURIComponent(document.fileName),
+      "Cache-Control": "private, no-store, max-age=0",
+      "X-Content-Type-Options": "nosniff",
+      "Content-Security-Policy": "default-src 'none'; sandbox",
     });
-  } catch {
+
+    if (document.pathname) {
+      // Stream from private Blob; never expose a public document URL.
+      const result = await get(document.pathname, { access: "private" });
+      if (!result || result.statusCode !== 200 || !result.stream) {
+        return NextResponse.json({ error: "فایل پیوست پیدا نشد." }, { status: 404 });
+      }
+      headers.set("Content-Type", result.blob.contentType || document.mimeType || "application/octet-stream");
+      headers.set("Content-Length", String(document.size));
+      return new Response(result.stream, { headers });
+    }
+
+    // Backward compatibility: existing test documents are still downloadable while records migrate naturally.
+    if (document.dataBase64) {
+      const bytes = Buffer.from(document.dataBase64, "base64");
+      headers.set("Content-Length", String(bytes.byteLength));
+      return new Response(new Uint8Array(bytes), { headers });
+    }
+    return NextResponse.json({ error: "اطلاعات ذخیره‌سازی این مدرک کامل نیست." }, { status: 410 });
+  } catch (error) {
+    console.error("Member upgrade document download failed", error instanceof Error ? error.name : "UnknownError");
     return NextResponse.json({ error: "دریافت مدرک انجام نشد." }, { status: 503 });
   }
 }
