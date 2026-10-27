@@ -118,7 +118,8 @@ export async function GET(request: NextRequest) {
     });
     return NextResponse.json({ items: safeItems }, { headers: { "Cache-Control": "private, no-store" } });
   } catch (error) {
-    return jsonError(error instanceof Error ? error.message : "دریافت کارتابل محتوا ناموفق بود.", 503);
+    console.error("[member-content] inbox read failed", error instanceof Error ? { name: error.name } : { name: "UnknownError" });
+    return jsonError("دریافت کارتابل محتوا ناموفق بود.", 503);
   }
 }
 
@@ -163,8 +164,11 @@ export async function PATCH(request: NextRequest) {
       ...(body.action === "forward" ? { forwardedAt: actionAt } : {})
     };
     await putStored(collection, updated);
-    return NextResponse.json({ item: updated }, { headers: { "Cache-Control": "private, no-store" } });
+    const safeUpdated = { ...updated };
+    delete safeUpdated.filePathname;
+    return NextResponse.json({ item: safeUpdated }, { headers: { "Cache-Control": "private, no-store" } });
   } catch (error) {
-    return jsonError(error instanceof Error ? error.message : "ثبت تصمیم انجام نشد.", 400);
+    console.error("[member-content] review update failed", error instanceof Error ? { name: error.name } : { name: "UnknownError" });
+    return jsonError("ثبت تصمیم انجام نشد.", 503);
   }
 }
