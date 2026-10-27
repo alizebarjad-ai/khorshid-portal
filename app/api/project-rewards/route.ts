@@ -33,14 +33,71 @@ export async function GET() {
       listStored<Record<string, unknown>>("projects"),
       listStored<Record<string, unknown>>("project-proposals"),
     ]);
-    return NextResponse.json({
-      projects: user.role === "beneficiary"
-        ? projects.filter((item) => Array.isArray(item.people) && item.people.some((person: any) => person.name === user.name))
-        : projects,
-      proposals: user.role === "beneficiary"
-        ? proposals.filter((item) => item.creator === user.username)
-        : proposals,
+    const fullAccess = ["finance", "ceo", "deputy"].includes(user.role);
+    const assignedProject = (item: Record<string, unknown>) => {
+      const team = Array.isArray(item.team) ? item.team.map(String) : [];
+      const people = Array.isArray(item.people) ? item.people as Array<Record<string, unknown>> : [];
+      return item.creator === user.username
+        || item.assignedTo === user.role
+        || team.includes(user.role)
+        || people.some((person) => person.name === user.name);
+    };
+    const assignedProposal = (item: Record<string, unknown>) => {
+      const team = Array.isArray(item.team) ? item.team.map(String) : [];
+      return item.creator === user.username || item.assignedTo === user.role || team.includes(user.role);
+    };
+    const redactProjectFinance = (item: Record<string, unknown>) => ({
+      ...item,
+      clientContact: "",
+      contractNo: "",
+      contractDate: "",
+      contractValue: 0,
+      paymentTerms: "",
+      revenue: 0,
+      directCosts: 0,
+      overheadCosts: 0,
+      tax: 0,
+      otherCosts: 0,
+      costs: 0,
+      received: 0,
+      rewardRate: 0,
+      financialTransactions: [],
+      collectionStages: [],
+      financeNote: "",
+      lastFinancialReview: "",
+      paymentReceiptNo: "",
+      rewardBase: 0,
+      settlementDate: "",
+      settlementNote: "",
     });
+    const redactProposalFinance = (item: Record<string, unknown>, forBeneficiary = false) => ({
+      ...item,
+      ...(forBeneficiary ? { negotiationNote: "", proposalDetails: "" } : {}),
+      contractNo: "",
+      contractValue: 0,
+      contractDate: "",
+      financeNote: "",
+      history: Array.isArray(item.history)
+        ? item.history.map((entry: Record<string, unknown>) => ({
+            ...entry,
+            actor: forBeneficiary ? "سامانه" : entry.actor,
+            note: forBeneficiary && !["درخواست تکمیل", "رد پیشنهاد"].includes(String(entry.action || "")) ? "" : entry.note,
+          }))
+        : [],
+    });
+
+    return NextResponse.json({
+      projects: fullAccess
+        ? projects
+        : user.role === "beneficiary"
+          ? []
+          : projects.filter(assignedProject).map(redactProjectFinance),
+      proposals: fullAccess
+        ? proposals
+        : user.role === "beneficiary"
+          ? proposals.filter((item) => item.creator === user.username).map((item) => redactProposalFinance(item, true))
+          : proposals.filter(assignedProposal).map((item) => redactProposalFinance(item)),
+    }, { headers: { "Cache-Control": "private, no-store, max-age=0" } });
   } catch (error) {
     console.error("GET /api/project-rewards failed", error);
     return fail(error instanceof Error ? error.message : "خواندن اطلاعات انجام نشد.", 503);
