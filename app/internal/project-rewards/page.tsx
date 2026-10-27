@@ -667,9 +667,18 @@ export default function ProjectRewardsPage() {
   }
 
   async function resetAll() {
-    if (!confirm("همه پرونده‌های پروژه در سامانه مشترک حذف شوند؟ این کار برای همه کاربران اثر دارد.")) return;
+    if (!confirm("هشدار: همه پرونده‌های پروژه در سامانه مشترک حذف می‌شوند و این اقدام قابل بازگشت نیست.")) return;
+    const confirmation = prompt("برای تأیید نهایی، عبارت «حذف همه پروژه‌ها» را دقیق وارد کنید.");
+    if (confirmation !== "حذف همه پروژه‌ها") {
+      setStorageError("تأیید نهایی انجام نشد؛ هیچ پرونده‌ای حذف نشد.");
+      return;
+    }
     try {
-      const response = await fetch("/api/project-rewards?kind=projects", { method: "DELETE" });
+      const response = await fetch("/api/project-rewards?kind=projects", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ confirmation }),
+      });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "پاک‌سازی پروژه‌ها انجام نشد.");
       savedProjectsRef.current = {};
