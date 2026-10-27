@@ -83,21 +83,27 @@ export async function GET() {
           }))
         : [],
     });
-    const redactProposalFinance = (item: Record<string, unknown>, forBeneficiary = false) => ({
-      ...item,
-      ...(forBeneficiary ? { negotiationNote: "", proposalDetails: "" } : {}),
-      contractNo: "",
-      contractValue: 0,
-      contractDate: "",
-      financeNote: "",
-      history: Array.isArray(item.history)
-        ? item.history.map((entry: Record<string, unknown>) => ({
-            ...entry,
-            actor: forBeneficiary ? "سامانه" : entry.actor,
-            note: forBeneficiary && !["درخواست تکمیل", "رد پیشنهاد"].includes(String(entry.action || "")) ? "" : entry.note,
-          }))
-        : [],
-    });
+    const redactProposalFinance = (item: Record<string, unknown>, role: string) => {
+      const forBeneficiary = role === "beneficiary";
+      return {
+        ...item,
+        clientContact: ["beneficiary", "economic"].includes(role) ? item.clientContact : "",
+        expectedValue: ["beneficiary", "economic"].includes(role) ? item.expectedValue : 0,
+        ...(role !== "economic" ? { negotiationNote: "" } : {}),
+        ...(forBeneficiary ? { proposalDetails: "" } : {}),
+        contractNo: "",
+        contractValue: 0,
+        contractDate: "",
+        financeNote: "",
+        history: Array.isArray(item.history)
+          ? item.history.map((entry: Record<string, unknown>) => ({
+              ...entry,
+              actor: forBeneficiary ? "سامانه" : entry.actor,
+              note: forBeneficiary && ["درخواست تکمیل", "رد پیشنهاد"].includes(String(entry.action || "")) ? entry.note : "",
+            }))
+          : [],
+      };
+    };
 
     return NextResponse.json({
       projects: fullAccess
@@ -108,8 +114,8 @@ export async function GET() {
       proposals: fullAccess
         ? proposals
         : user.role === "beneficiary"
-          ? proposals.filter((item) => item.creator === user.username).map((item) => redactProposalFinance(item, true))
-          : proposals.filter(assignedProposal).map((item) => redactProposalFinance(item)),
+          ? proposals.filter((item) => item.creator === user.username).map((item) => redactProposalFinance(item, user.role))
+          : proposals.filter(assignedProposal).map((item) => redactProposalFinance(item, user.role)),
     }, { headers: { "Cache-Control": "private, no-store, max-age=0" } });
   } catch (error) {
     console.error("GET /api/project-rewards failed", error);
