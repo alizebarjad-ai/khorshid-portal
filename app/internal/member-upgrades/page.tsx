@@ -1,5 +1,7 @@
 "use client";
 
+/* eslint-disable react-hooks/set-state-in-effect -- this effect initiates asynchronous loading from the authenticated API. */
+
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
