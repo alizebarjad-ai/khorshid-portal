@@ -1,4 +1,5 @@
 import { cookies } from "next/headers";
+import { randomUUID } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { COOKIE_NAME, decodeSession } from "@/lib/auth";
 import { deleteCollection, getStored, listStored, putStored } from "@/lib/persistent-store";
@@ -194,10 +195,32 @@ export async function DELETE(request: NextRequest) {
   const kind = request.nextUrl.searchParams.get("kind");
   if (kind !== "projects") return fail("درخواست حذف معتبر نیست.", 400);
   try {
+    const body = await request.json().catch(() => ({})) as { confirmation?: unknown };
+    if (body.confirmation !== "حذف همه پروژه‌ها") {
+      return fail("برای حذف گروهی، تأیید صریح و معتبر الزامی است.", 400);
+    }
+    const count = (await listStored<Record<string, unknown>>("projects")).length;
+    const operationId = randomUUID();
+    await putStored("project-rewards-audit", {
+      id: operationId,
+      kind: "bulk-delete-projects",
+      status: "started",
+      actor: user.username,
+      count,
+      at: new Date().toISOString(),
+    });
     await deleteCollection("projects");
-    return NextResponse.json({ ok: true });
+    await putStored("project-rewards-audit", {
+      id: operationId + "-completed",
+      kind: "bulk-delete-projects",
+      status: "completed",
+      actor: user.username,
+      count,
+      at: new Date().toISOString(),
+    });
+    return NextResponse.json({ ok: true, deletedCount: count });
   } catch (error) {
-    console.error("DELETE /api/project-rewards failed", error);
-    return fail(error instanceof Error ? error.message : "حذف اطلاعات انجام نشد.", 503);
+    console.error("DELETE /api/project-rewards failed", error instanceof Error ? { name: error.name } : { name: "UnknownError" });
+    return fail("حذف گروهی پروژه‌ها انجام نشد.", 503);
   }
 }
