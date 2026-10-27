@@ -89,6 +89,7 @@ const CONFIG: Record<ManagementRole, DashboardConfig> = {
     welcome: "تمرکز امروز: بررسی پرونده‌های آماده ثبت، کنترل اطلاعات مالی و پیگیری موارد نیازمند اقدام مالی.",
     priorities: ["بررسی پرونده‌های ارجاع‌شده به مالی", "کنترل مبلغ قرارداد و اطلاعات ثبت پروژه", "پیگیری ثبت‌ها و موارد مالی ناقص"],
     actions: [
+      { label: "کارتابل درخواست‌های حمایت مالی و اسپانسرینگ", description: "دریافت، بررسی، پیگیری و پاک‌سازی کنترل‌شده درخواست‌های بسته‌شده", href: "/internal/requests", primary: true },
       { label: "مدیریت پروژه‌ها و پاداش", description: "ورود به پرونده‌های مالی و اطلاعات پروژه", href: "/internal/project-rewards", primary: true },
       { label: "پرونده‌های ارجاع‌شده", description: "بررسی گردش کار و وضعیت قراردادها", href: "/internal/opportunities" },
     ],
@@ -119,6 +120,7 @@ const CONFIG: Record<ManagementRole, DashboardConfig> = {
     welcome: "تمرکز امروز: بررسی نیاز اجتماعی، طراحی مداخله قابل سنجش و هماهنگی منابع و شرکای اجرایی.",
     priorities: ["بررسی پرونده‌های اجتماعی ارجاع‌شده", "تعیین مسئله، گروه هدف و خروجی قابل سنجش", "هماهنگی با شرکا و تیم‌های اجرایی"],
     actions: [
+      { label: "کارتابل درخواست‌های همکاری و پیشنهاد پروژه", description: "دریافت و مدیریت درخواست‌های همکاری و ایده‌های پروژه‌ای ارجاع‌شده به CSR", href: "/internal/requests", primary: true },
       { label: "پرونده‌های اجتماعی", description: "پیگیری پروژه‌های ارجاع‌شده به واحد", href: "/internal/opportunities", primary: true },
       { label: "کارتابل ارتقای متخصصان و مشاوران", description: "بررسی درخواست‌های تخصص و مشاوره و تأیید پروفایل", href: "/internal/member-upgrades", primary: true },
       { label: "بانک تخصص و مشاوران", description: "جست‌وجو در پروفایل متخصصان و مشاوران تأییدشده برای پروژه‌ها", href: "/internal/expertise-directory", primary: true },
@@ -136,6 +138,7 @@ const CONFIG: Record<ManagementRole, DashboardConfig> = {
     welcome: "تمرکز امروز: تبدیل نیازهای سازمان و پروژه‌ها به خروجی رسانه‌ای روشن، دقیق و قابل انتشار.",
     priorities: ["پیگیری پروژه‌های رسانه‌ای ارجاع‌شده", "تعیین خروجی، قالب، زمان‌بندی و نیازهای تولید", "هماهنگی انتشار و مستندسازی نتایج"],
     actions: [
+      { label: "کارتابل درخواست‌های تولید محتوا و رسانه", description: "دریافت، بررسی و پیگیری درخواست‌های رسانه‌ای ارسال‌شده از سایت", href: "/internal/requests", primary: true },
       { label: "پرونده‌های رسانه‌ای", description: "پیگیری پروژه‌های ارجاع‌شده به واحد", href: "/internal/opportunities", primary: true },
       { label: "کارتابل محتوای اعضا", description: "بررسی متن، تصویر و ویدیوی ارسالی و ارجاع محتوای تأییدشده به ادمین", href: "/internal/content-review", primary: true },
       { label: "ثبت پیشنهاد رسانه‌ای", description: "ثبت ایده تولید محتوا یا همکاری رسانه‌ای", href: "/internal/submit-proposal" },

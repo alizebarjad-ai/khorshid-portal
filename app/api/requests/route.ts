@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
     if (!response.ok) return response;
     const payload = await response.json();
     if (Array.isArray(payload.items)) payload.items = payload.items.filter((item: { assignedUnit?: string }) => item.assignedUnit !== "admin");
-    return NextResponse.json(payload, { headers: { "Cache-Control": "private, no-store" } });
+    return NextResponse.json({ ...payload, userRole: checked.user.role }, { headers: { "Cache-Control": "private, no-store" } });
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : "دریافت کارتابل ناموفق بود." }, { status: 503 });
   }
@@ -79,5 +79,49 @@ export async function PATCH(request: NextRequest) {
     });
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : "ثبت تغییرات درخواست ناموفق بود." }, { status: 503 });
+  }
+}
+
+
+export async function DELETE(request: NextRequest) {
+  const checked = auth(request);
+  if (!checked.user) return checked.response!;
+  try {
+    const body = await request.json();
+    const role = checked.user.role;
+    const unitRoles = ["members", "economic", "finance", "csr", "media", "artists", "education", "deputy"];
+
+    if (typeof body.olderThanDays === "number") {
+      if (!unitRoles.includes(role) || role === "deputy" || role === "members") {
+        return NextResponse.json({ error: "پاک‌سازی گروهی برای نقش شما فعال نیست." }, { status: 403 });
+      }
+      if (body.olderThanDays < 180) return NextResponse.json({ error: "حداقل قدمت مجاز برای پاک‌سازی ۱۸۰ روز است." }, { status: 400 });
+      return await upstream("", {
+        method: "DELETE",
+        body: JSON.stringify({ olderThanDays: 180, unit: role, actor: checked.user.name }),
+      });
+    }
+
+    if (typeof body.id !== "string" || !body.id) return NextResponse.json({ error: "شناسه درخواست معتبر نیست." }, { status: 400 });
+    const current = await upstream("?id=" + encodeURIComponent(body.id));
+    if (!current.ok) return current;
+    const payload = await current.clone().json();
+    const item = payload.item;
+    if (!item || item.requestType === "membership" || item.assignedUnit === "admin") {
+      return NextResponse.json({ error: "درخواست عمومی پیدا نشد." }, { status: 404 });
+    }
+    if (!["completed", "rejected"].includes(item.reviewStatus || "")) {
+      return NextResponse.json({ error: "فقط درخواست بسته‌شده یا ردشده قابل حذف است." }, { status: 409 });
+    }
+    if (!["ceo", "deputy"].includes(role) && item.assignedUnit !== role) {
+      return NextResponse.json({ error: "این درخواست به واحد شما ارجاع نشده است." }, { status: 403 });
+    }
+    if (!unitRoles.includes(item.assignedUnit)) return NextResponse.json({ error: "واحد درخواست معتبر نیست." }, { status: 400 });
+    return await upstream("", {
+      method: "DELETE",
+      body: JSON.stringify({ id: item.id, unit: item.assignedUnit, actor: checked.user.name }),
+    });
+  } catch (error) {
+    return NextResponse.json({ error: error instanceof Error ? error.message : "حذف درخواست انجام نشد." }, { status: 503 });
   }
 }
