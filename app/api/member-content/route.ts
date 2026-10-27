@@ -67,11 +67,11 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
   const user = decodeSession(request.cookies.get(COOKIE_NAME)?.value);
   if (!user) return jsonError("برای ادامه وارد سامانه شوید.", 401);
-  if (!["member", "media", "owner"].includes(user.role)) return jsonError("دسترسی به کارتابل محتوا مجاز نیست.", 403);
+  if (!["member", "media"].includes(user.role)) return jsonError("دسترسی به کارتابل محتوا مجاز نیست.", 403);
   if (user.role === "member" && !user.memberId) return jsonError("پرونده عضو به حساب شما متصل نیست.", 403);
   try {
     const items = await listStored<Submission>(collection);
-    const visible = items.filter(item => user.role === "member" ? item.memberId === user.memberId : user.role === "media" ? ["pending_media", "approved_media", "rejected_media"].includes(item.status) : ["forwarded_admin", "published", "rejected_admin"].includes(item.status));
+    const visible = items.filter(item => user.role === "member" ? item.memberId === user.memberId : ["pending_media", "approved_media", "rejected_media"].includes(item.status));
     visible.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
     return NextResponse.json({ items: visible }, { headers: { "Cache-Control": "private, no-store" } });
   } catch (error) {
@@ -82,7 +82,7 @@ export async function GET(request: NextRequest) {
 export async function PATCH(request: NextRequest) {
   const user = decodeSession(request.cookies.get(COOKIE_NAME)?.value);
   if (!user) return jsonError("برای ادامه وارد سامانه شوید.", 401);
-  if (!["media", "owner"].includes(user.role)) return jsonError("دسترسی به تغییر وضعیت محتوا مجاز نیست.", 403);
+  if (user.role !== "media") return jsonError("تغییر وضعیت محتوا فقط برای معاونت رسانه مجاز است.", 403);
   try {
     const body = await request.json() as { id?: string; action?: string; note?: string };
     if (!body.id || !["approve", "reject", "forward", "publish", "reject_admin"].includes(String(body.action))) return jsonError("درخواست تصمیم‌گیری معتبر نیست.", 400);
