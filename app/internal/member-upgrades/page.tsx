@@ -23,7 +23,7 @@ export default function MemberUpgradesPage(){
  const [notes,setNotes]=useState<Record<string,string>>({});
  const [error,setError]=useState("");
  const [notice,setNotice]=useState("");
- const load=useCallback(async()=>{setLoading(true);try{
+ const load=useCallback(async()=>{try{
   const auth=await fetch("/api/auth/me",{cache:"no-store"});if(!auth.ok){router.replace("/login");return;}
   const authData=await auth.json();setRole(authData.user?.role||"");
   if(!["artists","csr","members","ceo","deputy"].includes(authData.user?.role)){router.replace("/internal");return;}
