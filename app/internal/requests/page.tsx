@@ -1,7 +1,10 @@
 "use client";
 
+/* eslint-disable react-hooks/set-state-in-effect -- these effects synchronize async request loading and the selected record form. */
+
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 type RequestItem = {
   id: string;
@@ -160,7 +163,7 @@ export default function GeneralRequestsPage() {
 
   return <main className="internal-app min-h-screen px-4 pb-16 pt-28 text-[#18304A]"><div className="container-site">
     <header className="rounded-3xl bg-[#18304A] p-6 text-white md:p-8">
-      <a href="/internal/roles/members" className="text-sm text-[#F2A900]">← بازگشت به داشبورد</a>
+      <Link href="/internal/roles/members" className="text-sm text-[#F2A900]">← بازگشت به داشبورد</Link>
       <h1 className="mt-3 text-3xl font-extrabold">کارتابل درخواست‌های عمومی</h1>
       <p className="mt-2 max-w-3xl text-sm leading-7 text-[#E6EAF0]">درخواست‌های حمایت، مسئولیت اجتماعی، پیشنهاد پروژه، همکاری هنری و رسانه‌ای در این کارتابل مدیریت می‌شوند. درخواست عضویت در کارتابل اختصاصی معاونت اعضا باقی می‌ماند.</p>
       <div className="mt-5 flex flex-wrap gap-3"><span className="rounded-xl bg-white/10 px-4 py-2">درخواست‌های این کارتابل: {items.length}</span><a href="/internal/membership-requests" className="rounded-xl border border-white/30 px-4 py-2 font-bold">کارتابل عضویت</a></div>
