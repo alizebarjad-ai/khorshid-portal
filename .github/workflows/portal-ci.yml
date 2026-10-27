@@ -58,6 +58,6 @@ jobs:
       - name: TypeScript check
         run: npx tsc --noEmit
       - name: Lint
-        run: npx eslint app/layout.tsx app/manifest.ts next.config.ts app/api/requests/route.ts app/internal/requests/page.tsx app/api/member-upgrades/route.ts app/internal/member-upgrades/page.tsx app/api/member-content/route.ts 'app/api/member-content/files/[id]/route.ts' app/api/project-rewards/route.ts eslint.config.mjs
+        run: npx eslint app/layout.tsx app/manifest.ts next.config.ts app/api/requests/route.ts app/internal/requests/page.tsx app/api/member-upgrades/route.ts app/internal/member-upgrades/page.tsx app/api/member-content/route.ts 'app/api/member-content/files/[id]/route.ts' app/api/project-rewards/route.ts app/api/maintenance/cleanup-test-blobs/route.ts eslint.config.mjs
       - name: Production build
         run: npm run build
