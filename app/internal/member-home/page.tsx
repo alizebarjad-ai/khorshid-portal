@@ -8,10 +8,11 @@ type ProfessionalProfile = { headline?:string; specialties?:string|string[]; edu
 type Member = { id:string; username?:string; fullName:string; memberType:string; membershipTier?:string; membershipGrade?:string; membershipRank?:string; professionalMemberships?:("artist"|"expert"|"consultant")[]; professionalProfiles?:Partial<Record<"artist"|"expert"|"consultant",ProfessionalProfile>>; phone:string; email:string; city:string; expertise:string; biography:string; status:string; clubIds:string[]; artistProfile?:ProfessionalProfile; expertProfile?:ProfessionalProfile; upgradeRequests?:UpgradeRequest[] };
 type Club = { id:string; name:string; clubType:string; city:string; description:string; status:string };
 type Program = { id:string; title:string; description:string; startsAt:string; location:string; clubName:string; format:string; href?:string };
-type ClubFeedItem = { id:string; kind:string; title:string; description?:string; dateLabel?:string; href?:string; clubIds?:string[]; showToMembers?:boolean };
 type PointEvent = { id:string; title:string; points:number; createdAt:string; note:string };
 type ContentSubmission = { id:string; title:string; kind:"text"|"image"|"video"; status:string; createdAt:string; description?:string; mediaNote?:string; adminNote?:string };
-type DashboardData = { pointsBalance:number; pointEvents:PointEvent[]; programs:Program[] };
+type MemberServiceItem = { id:string; title:string; description:string; details?:string; href?:string; linkLabel?:string; targetGrades?:string[] };
+type SiteContentItem = { id:string; kind:string; title:string; description?:string; dateLabel?:string; isoDate?:string; href?:string; clubIds?:string[] };
+type DashboardData = { pointsBalance:number; pointEvents:PointEvent[]; programs:Program[]; memberServices:MemberServiceItem[] };
 const tierLabels:Record<string,string>={affiliate:"عضو وابسته",professional:"عضو وابسته",supporter_partner:"حامی مالی / شریک سازمانی"};
 const typeLabels:Record<string,string>={individual:"شخص حقیقی",artist:"شخص حقیقی",figure:"چهره و صاحب‌نظر",supporter:"حامی",expert:"شخص حقیقی",organization:"شخصیت حقوقی",media:"رسانه"};
 const gradeLabels:Record<string,string>={volunteer:"داوطلب",active_volunteer:"داوطلب فعال",professional:"داوطلب فعال",club_manager:"مسئول باشگاه"};
@@ -20,8 +21,7 @@ const services = [
  {icon:"✦",title:"برنامه‌ها و نشست‌های اعضا",description:"دسترسی به برنامه‌های اعلام‌شده برای باشگاه‌ها و وضعیت مشارکت شما.",status:"قابل استفاده",ready:true},
  {icon:"◎",title:"باشگاه‌های تخصصی",description:"پیگیری باشگاه‌هایی که عضویت شما در آن‌ها ثبت شده است.",status:"قابل استفاده",ready:true},
  {icon:"↗",title:"ارسال اثر و محتوای تولیدی",description:"ثبت متن، تصویر یا ویدیو برای بررسی و انتشار توسط تیم مربوطه.",status:"ارسال به کارتابل معاون رسانه",ready:true},
- {icon:"◇",title:"فرصت‌های آموزشی و همکاری",description:"اطلاع‌رسانی فرصت‌های مرتبط پس از ثبت رسمی در سامانه.",status:"به‌تدریج فعال می‌شود",ready:false},
- {icon:"＋",title:"خدمات و مزایای ویژه اعضا",description:"نمایش مزایای فعال بر اساس ضوابط و توافق‌های نهایی سازمان.",status:"در حال تکمیل",ready:false},
+
 ];
 const money = (value:number) => new Intl.NumberFormat("fa-IR").format(value);
 const dateLabel = (value:string) => { if(!value) return "زمان متعاقباً اعلام می‌شود"; const d=new Date(value); return Number.isNaN(d.getTime())?value:new Intl.DateTimeFormat("fa-IR",{dateStyle:"medium",timeStyle:"short"}).format(d); };
@@ -30,7 +30,7 @@ export default function MemberHomePage(){
  const router=useRouter();
  const [member,setMember]=useState<Member|null>(null);
  const [clubs,setClubs]=useState<Club[]>([]);
- const [dashboard,setDashboard]=useState<DashboardData>({pointsBalance:0,pointEvents:[],programs:[]});
+ const [dashboard,setDashboard]=useState<DashboardData>({pointsBalance:0,pointEvents:[],programs:[],memberServices:[]});
  const [loading,setLoading]=useState(true);
  const [activeSection,setActiveSection]=useState("home");
  const [currentPassword,setCurrentPassword]=useState("");
@@ -71,26 +71,23 @@ export default function MemberHomePage(){
    async function load(){
      setLoading(true);setError("");
      try{
-       const [profileResponse,dashboardResponse,feedResponse,contentResponse]=await Promise.all([
+       const [profileResponse,dashboardResponse,contentResponse]=await Promise.all([
          fetch("/api/member/profile",{cache:"no-store"}),
          fetch("/api/member/dashboard",{cache:"no-store"}),
-         fetch("/api/club-feed",{cache:"no-store"}),
          fetch("/api/member-content",{cache:"no-store"})
        ]);
        const profile=await profileResponse.json();
        if(profileResponse.status===401||profileResponse.status===403){router.replace("/login");return;}
        if(!profileResponse.ok)throw new Error(profile.error||"دریافت پرونده ناموفق بود.");
-       const dash=dashboardResponse.ok?await dashboardResponse.json():{pointsBalance:0,pointEvents:[],programs:[]};
-       const feedData=feedResponse.ok?await feedResponse.json():{items:[]};
+       const dash=dashboardResponse.ok?await dashboardResponse.json():{pointsBalance:0,pointEvents:[],programs:[],siteContent:[],memberServices:[]};
        const contentData=contentResponse.ok?await contentResponse.json():{items:[]};
-       const sharedPrograms:Program[]=(Array.isArray(feedData.items)?feedData.items:[])
-         .filter((item:ClubFeedItem)=>item.showToMembers===true)
-         .map((item:ClubFeedItem)=>({id:"site-"+item.id,title:item.title,description:item.description||"",startsAt:item.dateLabel||"",location:"",clubName:(item.clubIds||[]).length?"باشگاه تخصصی":"خورشید مفاخر",format:item.kind==="project"?"پروژه":item.kind==="announcement"?"اطلاعیه":"برنامه",href:item.href?(item.href.startsWith("http")?item.href:"https://www.khorshid-mafakher.ir"+item.href):undefined}));
+       const sharedPrograms:Program[]=(Array.isArray(dash.siteContent)?dash.siteContent as SiteContentItem[]:[])
+         .map((item)=>({id:"site-"+item.id,title:item.title,description:item.description||"",startsAt:item.isoDate||"",location:"",clubName:(item.clubIds||[]).length?"باشگاه تخصصی":"خورشید مفاخر",format:item.kind==="project"?"پروژه":item.kind==="announcement"?"اطلاعیه":"برنامه",href:item.href?(item.href.startsWith("http")?item.href:"https://www.khorshid-mafakher.ir"+item.href):undefined}));
        if(cancelled)return;
        setMember(profile.member);setCity(profile.member.city||"");setExpertise(profile.member.expertise||"");setBiography(profile.member.biography||"");
        setClubs(profile.clubs||[]);
        setContentSubmissions(Array.isArray(contentData.items)?contentData.items:[]);
-       setDashboard({pointsBalance:Number(dash.pointsBalance)||0,pointEvents:Array.isArray(dash.pointEvents)?dash.pointEvents:[],programs:[...(Array.isArray(dash.programs)?dash.programs:[]),...sharedPrograms]});
+       setDashboard({pointsBalance:Number(dash.pointsBalance)||0,pointEvents:Array.isArray(dash.pointEvents)?dash.pointEvents:[],programs:[...(Array.isArray(dash.programs)?dash.programs:[]),...sharedPrograms],memberServices:Array.isArray(dash.memberServices)?dash.memberServices:[]});
      }catch(e){if(!cancelled)setError(e instanceof Error?e.message:"دریافت پرونده ناموفق بود.");}
      finally{if(!cancelled)setLoading(false);}
    }
@@ -243,7 +240,7 @@ export default function MemberHomePage(){
            <article className="rounded-2xl bg-[#F0DFB8] p-5"><p className="text-sm font-bold text-[#526173]">موجودی امتیاز شما</p><div className="mt-2 flex items-baseline gap-2"><strong className="text-4xl">{money(dashboard.pointsBalance)}</strong><span className="text-sm">امتیاز</span></div><p className="mt-3 text-xs leading-6 text-[#526173]">امتیازها فقط پس از ثبت فعالیت و تصویب سازوکار امتیازدهی در این بخش محاسبه می‌شوند. عدد صفر به معنی ثبت‌نشدن امتیاز در سامانه است.</p></article>
            <div className="rounded-2xl border border-[#E3E0D8] bg-white p-5"><h3 className="font-extrabold">آخرین تغییرات امتیاز</h3>{dashboard.pointEvents.length?<ul className="mt-3 divide-y divide-[#E3E0D8]">{dashboard.pointEvents.slice(0,5).map(p=><li key={p.id} className="flex items-start justify-between gap-3 py-3"><div><p className="text-sm font-bold">{p.title}</p><p className="mt-1 text-xs text-[#687783]">{p.note||dateLabel(p.createdAt)}</p></div><strong className={"shrink-0 text-sm "+(p.points<0?"text-red-700":"text-emerald-800")}>{p.points>0?"+":""}{money(p.points)}</strong></li>)}</ul>:<p className="mt-3 text-sm leading-7 text-[#687783]">هنوز سابقه امتیازی ثبت نشده است. با فعال شدن برنامه‌های مشارکت، سوابق مصوب شما اینجا نمایش داده می‌شود.</p>}</div>
          </div>
-         <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{services.map(s=><article key={s.title} className="rounded-2xl border border-[#E3E0D8] bg-white p-5"><div className="flex items-start justify-between gap-2"><span className="grid h-10 w-10 place-items-center rounded-xl bg-[#F7F5F0] text-xl text-[#96763D]">{s.icon}</span><span className={"rounded-full px-2.5 py-1 text-[10px] font-bold "+(s.ready?"bg-emerald-50 text-emerald-800":"bg-[#EEECE6] text-[#687783]")}>{s.status}</span></div><h3 className="mt-3 font-extrabold">{s.title}</h3><p className="mt-2 text-sm leading-7 text-[#687783]">{s.description}</p></article>)}</div>
+         <div className="mt-5"><h3 className="font-extrabold">خدمات فعال برای رده عضویت شما</h3><p className="mt-1 text-sm leading-6 text-[#687783]">این فهرست بر اساس رده مشارکت ثبت‌شده در پرونده شما تنظیم شده است.</p></div>{dashboard.memberServices.length?<div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{dashboard.memberServices.map(s=><article key={s.id} className="rounded-2xl border border-[#D9C48E] bg-white p-5 shadow-sm"><span className="inline-flex rounded-full bg-[#F0DFB8] px-2.5 py-1 text-[10px] font-bold text-[#172F48]">ویژه رده شما</span><h3 className="mt-3 font-extrabold">{s.title}</h3><p className="mt-2 whitespace-pre-wrap text-sm leading-7 text-[#687783]">{s.description||s.details||"جزئیات خدمت از طریق سازمان اعلام می‌شود."}</p>{s.details&&s.description&&<details className="mt-3"><summary className="cursor-pointer text-sm font-bold text-[#96763D]">شرایط استفاده</summary><p className="mt-2 whitespace-pre-wrap text-sm leading-7 text-[#526173]">{s.details}</p></details>}{s.href&&<a href={s.href.startsWith("http")?s.href:"https://www.khorshid-mafakher.ir"+s.href} target="_blank" rel="noopener noreferrer" className="mt-4 inline-flex rounded-xl bg-[#172F48] px-4 py-2.5 text-sm font-bold text-white">{s.linkLabel||"اطلاعات بیشتر"} ↗</a>}</article>)}</div>:<p className="mt-3 rounded-xl border border-dashed border-[#D8D0C4] bg-white p-5 text-sm leading-7 text-[#687783]">در حال حاضر خدمتی برای رده عضویت شما ثبت نشده است. با تعریف خدمات از سوی ادمین، موارد مرتبط به‌صورت خودکار در همین بخش ظاهر می‌شوند.</p>}<div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{services.map(s=><article key={s.title} className="rounded-2xl border border-[#E3E0D8] bg-white p-5"><div className="flex items-start justify-between gap-2"><span className="grid h-10 w-10 place-items-center rounded-xl bg-[#F7F5F0] text-xl text-[#96763D]">{s.icon}</span><span className={"rounded-full px-2.5 py-1 text-[10px] font-bold "+(s.ready?"bg-emerald-50 text-emerald-800":"bg-[#EEECE6] text-[#687783]")}>{s.status}</span></div><h3 className="mt-3 font-extrabold">{s.title}</h3><p className="mt-2 text-sm leading-7 text-[#687783]">{s.description}</p></article>)}</div>
        </section>
 
        <section id="content" className={(activeSection==="content"?"":"hidden ")+"mt-8 scroll-mt-36"}>
