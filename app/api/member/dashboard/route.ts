@@ -17,6 +17,10 @@ type SiteContentItem = {
   href: string;
   linkLabel: string;
   clubIds: string[];
+  details?: string;
+  linkLabel?: string;
+  targetGrades?: string[];
+  isoDate?: string;
 };
 
 const text = (value: unknown) => typeof value === "string" ? value : "";
@@ -80,9 +84,15 @@ export async function GET(request: NextRequest) {
       });
       if (feedResponse.ok) {
         const feed = await feedResponse.json() as { items?: StoredItem[] };
+        const gradeRaw = text(member.membershipRank || member.membershipGrade || "volunteer");
+        const memberGrade = gradeRaw === "professional" ? "active_volunteer" : gradeRaw;
         siteContent = (Array.isArray(feed.items) ? feed.items : [])
           .filter((item) => item.showToMembers === true && text(item.kind) !== "club-member")
           .filter((item) => {
+            if (text(item.kind) === "member-service") {
+              const targetGrades = strings(item.targetGrades);
+              return targetGrades.length > 0 && targetGrades.includes(memberGrade);
+            }
             const targetClubs = strings(item.clubIds);
             return targetClubs.length === 0 || targetClubs.some((slug) => memberClubSlugs.has(slug));
           })
@@ -96,7 +106,10 @@ export async function GET(request: NextRequest) {
               description: text(item.description),
               image: rawImage && rawImage.startsWith("/") ? websiteBase + rawImage : rawImage,
               dateLabel: text(item.dateLabel),
-              href: rawHref.startsWith("http") ? rawHref : websiteBase + (rawHref.startsWith("/") ? rawHref : "/" + rawHref),
+              isoDate: text(item.isoDate),
+              details: text(item.details),
+              targetGrades: strings(item.targetGrades),
+              href: rawHref ? (rawHref.startsWith("http") ? rawHref : websiteBase + (rawHref.startsWith("/") ? rawHref : "/" + rawHref)) : "",
               linkLabel: text(item.linkLabel) || "مشاهده در سایت اصلی",
               clubIds: strings(item.clubIds),
             };
@@ -148,7 +161,8 @@ export async function GET(request: NextRequest) {
       pointsBalance,
       pointEvents,
       programs,
-      siteContent,
+      siteContent: siteContent.filter((item) => item.kind !== "member-service"),
+      memberServices: siteContent.filter((item) => item.kind === "member-service"),
     }, { headers: { "Cache-Control": "private, no-store, max-age=0" } });
   } catch (error) {
     console.error("Member dashboard data could not be loaded", error);
