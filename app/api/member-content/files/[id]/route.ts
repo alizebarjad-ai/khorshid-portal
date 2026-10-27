@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { get } from "@vercel/blob";
 import { COOKIE_NAME, decodeSession } from "@/lib/auth";
 import { listStored } from "@/lib/persistent-store";
 
@@ -43,20 +42,27 @@ export async function GET(
       return jsonError("این فایل هنوز به مرحله بررسی مدیریتی نرسیده است.", 403);
     }
 
-    if (!process.env.BLOB_STORE_ID) return jsonError("اتصال فضای ذخیره‌سازی خصوصی ناقص است.", 503);
+    const token = process.env.PRIVATE_BLOB_READ_WRITE_TOKEN;
+    const storeId = process.env.PRIVATE_BLOB_STORE_ID;
+    if (!token || !storeId) return jsonError("اتصال فضای ذخیره‌سازی خصوصی ناقص است.", 503);
     if (!item.filePathname.startsWith(`member-content/${item.memberId}/`)) {
       return jsonError("مسیر فایل معتبر نیست.", 404);
     }
 
-    const blob = await get(item.filePathname, { access: "private" });
-    if (!blob || blob.statusCode !== 200 || !blob.stream) {
-      return jsonError("فایل خصوصی پیدا نشد یا دریافت آن ممکن نیست.", 404);
+    const pathname = item.filePathname.split("/").map(encodeURIComponent).join("/");
+    const upstream = await fetch(`https://${storeId}.private.blob.vercel-storage.com/${pathname}`, {
+      headers: { Authorization: `Bearer ${token}` },
+      cache: "no-store",
+      signal: AbortSignal.timeout(15000),
+    });
+    if (!upstream.ok || !upstream.body) {
+      return jsonError(upstream.status === 404 ? "فایل پیدا نشد." : "دریافت فایل از فضای خصوصی ناموفق بود.", upstream.status === 404 ? 404 : 503);
     }
-    const contentType = blob.blob.contentType || "application/octet-stream";
+    const contentType = upstream.headers.get("content-type") || "application/octet-stream";
     if (!contentType.startsWith("image/") && !contentType.startsWith("video/")) {
       return jsonError("نوع فایل ذخیره‌شده مجاز نیست.", 415);
     }
-    return new NextResponse(blob.stream, {
+    return new NextResponse(upstream.body, {
       status: 200,
       headers: {
         "Content-Type": contentType,
