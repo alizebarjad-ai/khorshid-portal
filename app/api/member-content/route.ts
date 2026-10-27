@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 
 type Submission = {
   id: string; kind: "text" | "image" | "video"; title: string; description: string;
-  text?: string; fileUrl?: string; fileName?: string; contentType?: string; size?: number;
+  text?: string; fileUrl?: string; filePathname?: string; fileName?: string; contentType?: string; size?: number;
   memberId: string; memberName: string; memberEmail: string; status: "pending_media" | "rejected_media" | "approved_media" | "forwarded_admin" | "published" | "rejected_admin";
   createdAt: string; updatedAt: string; mediaNote?: string; adminNote?: string; reviewedBy?: string; forwardedAt?: string;
 };
@@ -66,12 +66,16 @@ export async function POST(request: NextRequest) {
         : (["video/mp4", "video/quicktime"].includes(file.type) && isMp4)
           || (file.type === "video/webm" && isWebm);
       if (!signatureMatches) return jsonError("محتوای فایل با نوع اعلام‌شده سازگار نیست یا قالب فایل پشتیبانی نمی‌شود.", 415);
-      if (!process.env.BLOB_READ_WRITE_TOKEN) return jsonError("ذخیره‌سازی فایل هنوز در محیط سامانه پیکربندی نشده است.", 503);
+      if (!process.env.PRIVATE_BLOB_READ_WRITE_TOKEN) {
+        return jsonError("فضای ذخیره‌سازی خصوصی هنوز به این محیط متصل نشده است؛ فایل ارسال نشد.", 503);
+      }
       const safeName = file.name.replace(/[^\p{L}\p{N}._-]+/gu, "_").slice(-120) || "upload";
       const blob = await put(`member-content/${user.memberId}/${randomUUID()}-${safeName}`, file, {
-        access: "public", addRandomSuffix: false, contentType: file.type, token: process.env.BLOB_READ_WRITE_TOKEN
+        access: "private", addRandomSuffix: false, contentType: file.type, token: process.env.PRIVATE_BLOB_READ_WRITE_TOKEN
       });
-      item.fileUrl = blob.url; item.fileName = file.name.slice(0, 240); item.contentType = file.type; item.size = file.size;
+      item.filePathname = blob.pathname;
+      item.fileUrl = `/api/member-content/files/${item.id}`;
+      item.fileName = file.name.slice(0, 240); item.contentType = file.type; item.size = file.size;
     }
     await putStored(collection, item);
     return NextResponse.json({ item: { ...item, memberEmail: undefined } }, { status: 201, headers: { "Cache-Control": "private, no-store" } });
@@ -89,7 +93,7 @@ export async function GET(request: NextRequest) {
     const items = await listStored<Submission>(collection);
     const visible = items.filter(item => user.role === "member" ? item.memberId === user.memberId : user.role === "media" ? ["pending_media", "approved_media", "rejected_media"].includes(item.status) : ["forwarded_admin", "published", "rejected_admin"].includes(item.status));
     visible.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-    return NextResponse.json({ items: visible }, { headers: { "Cache-Control": "private, no-store" } });
+    return NextResponse.json({ items: visible.map(item => ({ ...item, fileUrl: item.filePathname ? `/api/member-content/files/${encodeURIComponent(item.id)}` : undefined })) }, { headers: { "Cache-Control": "private, no-store" } });
   } catch (error) {
     return jsonError(error instanceof Error ? error.message : "دریافت کارتابل محتوا ناموفق بود.", 503);
   }
