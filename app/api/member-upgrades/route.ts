@@ -24,9 +24,26 @@ export async function GET(request: NextRequest) {
   if (!auth.user) return auth.response!;
   try {
     const members: MemberRecord[] = await readMembers();
+    const isMembersOverview = auth.user.role === "members";
     const visible = members.flatMap(member => (member.upgradeRequests || [])
       .filter(item => auth.user!.role === "ceo" || auth.user!.role === "deputy" || auth.user!.role === "members" || item.assignedRole === auth.user!.role)
-      .map(item => ({ ...item, member: { id: member.id, fullName: member.fullName, email: member.email, phone: member.phone, city: member.city, membershipTier: member.membershipTier || "affiliate", membershipGrade: member.membershipGrade || "volunteer", pointsBalance: member.pointsBalance || 0, expertise: member.expertise, biography: member.biography, artistProfile: member.artistProfile || {}, expertProfile: member.expertProfile || {} } })));
+      .map(item => ({
+        ...item,
+        member: {
+          id: member.id,
+          fullName: member.fullName,
+          email: isMembersOverview ? "" : member.email,
+          phone: isMembersOverview ? "" : member.phone,
+          city: isMembersOverview ? "" : member.city,
+          membershipTier: member.membershipTier || "affiliate",
+          membershipGrade: member.membershipGrade || "volunteer",
+          pointsBalance: member.pointsBalance || 0,
+          expertise: isMembersOverview ? "" : member.expertise,
+          biography: isMembersOverview ? "" : member.biography,
+          artistProfile: isMembersOverview ? {} : member.artistProfile || {},
+          expertProfile: isMembersOverview ? {} : member.expertProfile || {},
+        },
+      })));
     visible.sort((a,b) => b.submittedAt.localeCompare(a.submittedAt));
     return NextResponse.json({ items: visible });
   } catch (error) {
@@ -87,8 +104,10 @@ export async function PATCH(request: NextRequest) {
     const requests = member.upgradeRequests || [];
     const current = requests.find(item => item.id === body.requestId);
     if (!current) return NextResponse.json({ error: "درخواست ارتقا پیدا نشد." }, { status: 404 });
-    if (!["ceo", "deputy", "members"].includes(auth.user.role) && current.assignedRole !== auth.user.role) {
-      return NextResponse.json({ error: "این درخواست به کارتابل واحد شما ارجاع نشده است." }, { status: 403 });
+    // The members team may monitor request status but cannot make specialist decisions.
+    // Only the assigned specialist unit can decide; CEO/deputy retain explicit oversight.
+    if (!["ceo", "deputy"].includes(auth.user.role) && current.assignedRole !== auth.user.role) {
+      return NextResponse.json({ error: "تصمیم‌گیری فقط برای واحد تخصصی مسئول این درخواست مجاز است." }, { status: 403 });
     }
     if (current.status !== "pending" && current.status !== "needs_info") {
       return NextResponse.json({ error: "این درخواست قبلاً تعیین تکلیف شده است." }, { status: 409 });
