@@ -13,6 +13,7 @@ type Submission = {
   text?: string; fileUrl?: string; filePathname?: string; fileName?: string; contentType?: string; size?: number;
   memberId: string; memberName: string; memberEmail: string; status: "pending_media" | "rejected_media" | "approved_media" | "forwarded_admin" | "published" | "rejected_admin";
   createdAt: string; updatedAt: string; mediaNote?: string; adminNote?: string; reviewedBy?: string; forwardedAt?: string;
+  reviewHistory?: { id: string; action: string; actor: string; at: string; note: string; fromStatus: string; toStatus: string }[];
 };
 const collection = "member-content";
 const jsonError = (message: string, status: number) => NextResponse.json({ error: message }, { status });
@@ -29,10 +30,12 @@ export async function POST(request: NextRequest) {
     const title = String(form.get("title") || "").trim().slice(0, 160);
     const description = String(form.get("description") || "").trim().slice(0, 3000);
     if (!title || !["text", "image", "video"].includes(kind)) return jsonError("نوع و عنوان محتوا الزامی است.", 400);
+    const submittedAt = new Date().toISOString();
     const item: Submission = {
       id: randomUUID(), kind: kind as Submission["kind"], title, description,
       memberId: user.memberId, memberName: member.fullName, memberEmail: member.email,
-      status: "pending_media", createdAt: new Date().toISOString(), updatedAt: new Date().toISOString()
+      status: "pending_media", createdAt: submittedAt, updatedAt: submittedAt,
+      reviewHistory: [{ id: randomUUID(), action: "submit", actor: user.name, at: submittedAt, note: "", fromStatus: "", toStatus: "pending_media" }],
     };
     if (kind === "text") {
       const text = String(form.get("text") || "").trim();
@@ -96,7 +99,24 @@ export async function GET(request: NextRequest) {
     const items = await listStored<Submission>(collection);
     const visible = items.filter(item => user.role === "member" ? item.memberId === user.memberId : user.role === "media" ? ["pending_media", "approved_media", "rejected_media"].includes(item.status) : ["forwarded_admin", "published", "rejected_admin"].includes(item.status));
     visible.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-    return NextResponse.json({ items: visible.map(({ filePathname, ...item }) => ({ ...item, fileUrl: filePathname ? `/api/member-content/files/${encodeURIComponent(item.id)}` : undefined })) }, { headers: { "Cache-Control": "private, no-store" } });
+    const safeItems = visible.map(({ filePathname, ...item }) => {
+      const safeItem = {
+        ...item,
+        fileUrl: filePathname ? `/api/member-content/files/${encodeURIComponent(item.id)}` : undefined,
+      };
+      if (user.role !== "member") return safeItem;
+      return {
+        ...safeItem,
+        memberEmail: "",
+        reviewedBy: undefined,
+        mediaNote: item.status === "rejected_media" ? item.mediaNote : undefined,
+        adminNote: item.status === "rejected_admin" ? item.adminNote : undefined,
+        reviewHistory: (item.reviewHistory || [])
+          .filter((event) => ["rejected_media", "rejected_admin"].includes(event.toStatus))
+          .map((event) => ({ ...event, actor: "سامانه" })),
+      };
+    });
+    return NextResponse.json({ items: safeItems }, { headers: { "Cache-Control": "private, no-store" } });
   } catch (error) {
     return jsonError(error instanceof Error ? error.message : "دریافت کارتابل محتوا ناموفق بود.", 503);
   }
@@ -130,10 +150,17 @@ export async function PATCH(request: NextRequest) {
         status = "rejected_admin";
       } else return jsonError("این اقدام با وضعیت فعلی محتوا سازگار نیست.", 409);
     }
+    const actionAt = new Date().toISOString();
     const updated: Submission = {
-      ...current, status, updatedAt: new Date().toISOString(),
+      ...current,
+      status,
+      updatedAt: actionAt,
+      reviewHistory: [...(current.reviewHistory || []), {
+        id: randomUUID(), action: body.action, actor: user.name, at: actionAt, note,
+        fromStatus: current.status, toStatus: status,
+      }],
       ...(user.role === "media" ? { mediaNote: note, reviewedBy: user.name } : { adminNote: note, reviewedBy: user.name }),
-      ...(body.action === "forward" ? { forwardedAt: new Date().toISOString() } : {})
+      ...(body.action === "forward" ? { forwardedAt: actionAt } : {})
     };
     await putStored(collection, updated);
     return NextResponse.json({ item: updated }, { headers: { "Cache-Control": "private, no-store" } });
