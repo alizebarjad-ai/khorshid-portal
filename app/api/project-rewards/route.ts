@@ -69,6 +69,19 @@ export async function GET() {
       rewardBase: 0,
       settlementDate: "",
       settlementNote: "",
+      people: Array.isArray(item.people)
+        ? (item.people as Array<Record<string, unknown>>).map((person) => ({
+            id: person.id,
+            name: person.name,
+            role: person.role,
+            relationship: person.relationship,
+            roleApprovalStatus: person.roleApprovalStatus,
+            roleBaseWeight: 0,
+            rolePercent: 0,
+            weight: 0,
+            notes: "",
+          }))
+        : [],
     });
     const redactProposalFinance = (item: Record<string, unknown>, forBeneficiary = false) => ({
       ...item,
