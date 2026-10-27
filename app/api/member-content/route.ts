@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
-import { put } from "@vercel/blob";
+import { del, put } from "@vercel/blob";
 import { COOKIE_NAME, decodeSession } from "@/lib/auth";
 import { listStored, putStored } from "@/lib/persistent-store";
 import { readMembers } from "@/lib/records-store";
@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 
 type Submission = {
   id: string; kind: "text" | "image" | "video"; title: string; description: string;
-  text?: string; fileUrl?: string; fileName?: string; contentType?: string; size?: number;
+  text?: string; fileUrl?: string; pathname?: string; fileName?: string; contentType?: string; size?: number;
   memberId: string; memberName: string; memberEmail: string; status: "pending_media" | "rejected_media" | "approved_media" | "forwarded_admin" | "published" | "rejected_admin";
   createdAt: string; updatedAt: string; mediaNote?: string; adminNote?: string; reviewedBy?: string; forwardedAt?: string;
 };
@@ -21,6 +21,7 @@ export async function POST(request: NextRequest) {
   const user = decodeSession(request.cookies.get(COOKIE_NAME)?.value);
   if (!user) return jsonError("برای ادامه وارد سامانه شوید.", 401);
   if (user.role !== "member" || !user.memberId) return jsonError("ارسال محتوا فقط از حساب عضو امکان‌پذیر است.", 403);
+  let uploadedPathname: string | undefined;
   try {
     const member = (await readMembers()).find(item => item.id === user.memberId && item.status === "active");
     if (!member) return jsonError("پرونده عضو فعال پیدا نشد.", 404);
@@ -47,14 +48,19 @@ export async function POST(request: NextRequest) {
       if (!process.env.BLOB_READ_WRITE_TOKEN) return jsonError("ذخیره‌سازی فایل هنوز در محیط سامانه پیکربندی نشده است.", 503);
       const safeName = file.name.replace(/[^\p{L}\p{N}._-]+/gu, "_").slice(-120) || "upload";
       const blob = await put(`member-content/${user.memberId}/${randomUUID()}-${safeName}`, file, {
-        access: "public", addRandomSuffix: false, contentType: file.type, token: process.env.BLOB_READ_WRITE_TOKEN
+        access: "private", addRandomSuffix: false, contentType: file.type, token: process.env.BLOB_READ_WRITE_TOKEN
       });
-      item.fileUrl = blob.url; item.fileName = file.name.slice(0, 240); item.contentType = file.type; item.size = file.size;
+      uploadedPathname = blob.pathname;
+      item.pathname = blob.pathname;
+      item.fileUrl = `/api/member-content/files/${item.id}`;
+      item.fileName = file.name.slice(0, 240); item.contentType = file.type; item.size = file.size;
     }
     await putStored(collection, item);
     return NextResponse.json({ item: { ...item, memberEmail: undefined } }, { status: 201, headers: { "Cache-Control": "private, no-store" } });
   } catch (error) {
-    return jsonError(error instanceof Error ? error.message : "ارسال محتوا انجام نشد.", 400);
+    if (uploadedPathname) await del(uploadedPathname).catch(() => undefined);
+    console.error("Member content submission failed", error instanceof Error ? error.name : "UnknownError");
+    return jsonError("ارسال محتوا انجام نشد. لطفاً دوباره تلاش کنید.", 400);
   }
 }
 
