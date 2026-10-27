@@ -85,31 +85,23 @@ export async function PATCH(request: NextRequest) {
   if (user.role !== "media") return jsonError("تغییر وضعیت محتوا فقط برای معاونت رسانه مجاز است.", 403);
   try {
     const body = await request.json() as { id?: string; action?: string; note?: string };
-    if (!body.id || !["approve", "reject", "forward", "publish", "reject_admin"].includes(String(body.action))) return jsonError("درخواست تصمیم‌گیری معتبر نیست.", 400);
+    if (!body.id || !["approve", "reject", "forward"].includes(String(body.action))) return jsonError("درخواست تصمیم‌گیری معتبر نیست.", 400);
     const items = await listStored<Submission>(collection);
     const current = items.find(item => item.id === body.id);
     if (!current) return jsonError("محتوا پیدا نشد.", 404);
     const note = String(body.note || "").trim().slice(0, 3000);
     let status: Submission["status"] = current.status;
-    if (user.role === "media") {
-      if (body.action === "approve" && current.status === "pending_media") status = "approved_media";
-      else if (body.action === "reject" && current.status === "pending_media") {
-        if (!note) return jsonError("برای رد محتوا، توضیح لازم است.", 400);
-        status = "rejected_media";
-      } else if (body.action === "forward" && current.status === "approved_media") {
-        if (note.length < 20) return jsonError("برای ارجاع به ادمین، توضیح انتشار دست‌کم ۲۰ نویسه‌ای لازم است.", 400);
-        status = "forwarded_admin";
-      } else return jsonError("این اقدام با وضعیت فعلی محتوا سازگار نیست.", 409);
-    } else {
-      if (body.action === "publish" && current.status === "forwarded_admin") status = "published";
-      else if (body.action === "reject_admin" && current.status === "forwarded_admin") {
-        if (!note) return jsonError("برای رد محتوا، توضیح لازم است.", 400);
-        status = "rejected_admin";
-      } else return jsonError("این اقدام با وضعیت فعلی محتوا سازگار نیست.", 409);
-    }
+    if (body.action === "approve" && current.status === "pending_media") status = "approved_media";
+    else if (body.action === "reject" && current.status === "pending_media") {
+      if (!note) return jsonError("برای رد محتوا، توضیح لازم است.", 400);
+      status = "rejected_media";
+    } else if (body.action === "forward" && current.status === "approved_media") {
+      if (note.length < 20) return jsonError("برای ارجاع به ادمین سایت، توضیح انتشار دست‌کم ۲۰ نویسه‌ای لازم است.", 400);
+      status = "forwarded_admin";
+    } else return jsonError("این اقدام با وضعیت فعلی محتوا سازگار نیست.", 409);
     const updated: Submission = {
       ...current, status, updatedAt: new Date().toISOString(),
-      ...(user.role === "media" ? { mediaNote: note, reviewedBy: user.name } : { adminNote: note, reviewedBy: user.name }),
+      mediaNote: note, reviewedBy: user.name,
       ...(body.action === "forward" ? { forwardedAt: new Date().toISOString() } : {})
     };
     await putStored(collection, updated);
