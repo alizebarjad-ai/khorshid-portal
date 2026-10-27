@@ -115,6 +115,7 @@ export async function POST(request: NextRequest) {
     const assigned = assignedRole(target);
     const files = form.getAll("documents").filter((value): value is File => value instanceof File && value.size > 0);
 
+    if (files.length === 0) return NextResponse.json({ error: "برای بررسی صلاحیت، دست‌کم یک مدرک یا نمونه‌کار پیوست کنید." }, { status: 400 });
     if (files.length > maxFiles) return NextResponse.json({ error: "حداکثر ۴ فایل می‌توانید پیوست کنید." }, { status: 413 });
     const totalBytes = files.reduce((sum, file) => sum + file.size, 0);
     if (totalBytes > maxTotalBytes || files.some(file => file.size > maxFileBytes)) {
