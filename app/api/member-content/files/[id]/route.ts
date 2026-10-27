@@ -25,6 +25,7 @@ const jsonError = (message: string, status: number) =>
 export async function GET(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   const user = decodeSession(request.cookies.get(COOKIE_NAME)?.value);
   if (!user) return jsonError("برای ادامه وارد سامانه شوید.", 401);
+  if (user.role === "ceo" || user.role === "deputy") return jsonError("دسترسی به محتوای ارجاع‌شده فقط برای ادمین سایت مجاز است.", 403);
 
   const { id } = await context.params;
   try {
