@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 function auth(request: NextRequest) {
   const user = decodeSession(request.cookies.get(COOKIE_NAME)?.value);
   if (!user) return { user: null, response: NextResponse.json({ error: "برای ادامه وارد سامانه شوید." }, { status: 401 }) };
-  const allowed = ["members", "economic", "csr", "media", "artists", "education", "ceo", "deputy"];
+  const allowed = ["members", "economic", "finance", "csr", "media", "artists", "education", "ceo", "deputy"];
   if (!allowed.includes(user.role)) return { user: null, response: NextResponse.json({ error: "دسترسی به کارتابل درخواست‌ها مجاز نیست." }, { status: 403 }) };
   return { user, response: null };
 }
