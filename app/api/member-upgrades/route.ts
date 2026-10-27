@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { del, put } from "@vercel/blob";
 import { NextRequest, NextResponse } from "next/server";
 import { COOKIE_NAME, decodeSession } from "@/lib/auth";
 import { deleteStored, listStored, putStored } from "@/lib/persistent-store";
@@ -11,7 +12,13 @@ type Target = "artist" | "expert" | "consultant";
 type LegacyTarget = Target;
 type Status = "pending" | "approved" | "rejected" | "needs_info";
 type UpgradeDocument = { id: string; fileName: string; mimeType: string; size: number; uploadedAt: string };
-type StoredUpgradeDocument = UpgradeDocument & { memberId: string; requestId: string; dataBase64: string };
+type StoredUpgradeDocument = UpgradeDocument & {
+  memberId: string;
+  requestId: string;
+  pathname?: string;
+  /** Read-only compatibility for documents uploaded before private Blob storage was enabled. */
+  dataBase64?: string;
+};
 const DOCUMENTS = "member-upgrade-documents";
 const assignedRole = (target: LegacyTarget) => target === "artist" ? "artists" : target === "expert" ? "education" : "csr";
 const allowedMimeTypes = new Set([
@@ -63,7 +70,8 @@ export async function GET(request: NextRequest) {
     visible.sort((a,b) => b.submittedAt.localeCompare(a.submittedAt));
     return NextResponse.json({ items: visible }, { headers: { "Cache-Control": "private, no-store" } });
   } catch (error) {
-    return NextResponse.json({ error: error instanceof Error ? error.message : "دریافت درخواست‌ها ناموفق بود." }, { status: 503 });
+    console.error("Member upgrade requests could not be loaded", error instanceof Error ? error.name : "UnknownError");
+    return NextResponse.json({ error: "دریافت درخواست‌ها ناموفق بود." }, { status: 503 });
   }
 }
 
@@ -73,6 +81,7 @@ export async function POST(request: NextRequest) {
   if (user.role !== "member" || !user.memberId) return NextResponse.json({ error: "ثبت درخواست ارتقا فقط از حساب عضو امکان‌پذیر است." }, { status: 403 });
 
   const newlyStoredIds: string[] = [];
+  const newlyUploadedPathnames: string[] = [];
   try {
     const form = await request.formData();
     const target = String(form.get("target") || "") as Target;
@@ -111,25 +120,30 @@ export async function POST(request: NextRequest) {
     if (totalBytes > maxTotalBytes || files.some(file => file.size > maxFileBytes)) {
       return NextResponse.json({ error: "حجم هر فایل حداکثر ۲ مگابایت و مجموع فایل‌ها حداکثر ۴ مگابایت است." }, { status: 413 });
     }
-    for (const file of files) {
-      if (!allowedMimeTypes.has(file.type)) {
-        return NextResponse.json({ error: "فقط فایل‌های PDF، Word و تصویرهای JPG، PNG یا WEBP پذیرفته می‌شوند." }, { status: 415 });
-      }
+    if (files.some(file => !allowedMimeTypes.has(file.type))) {
+      return NextResponse.json({ error: "فقط فایل‌های PDF، Word و تصویرهای JPG، PNG یا WEBP پذیرفته می‌شوند." }, { status: 415 });
     }
 
     const uploadedAt = new Date().toISOString();
     const documents: UpgradeDocument[] = [];
     for (const file of files) {
       const id = randomUUID();
+      const fileName = file.name.replace(/[\\/\u0000-\u001f]/g, "_").slice(0, 180) || "document";
+      const pathname = `member-upgrades/${member.id}/${requestId}/${id}-${fileName}`;
+      // Private Blob keeps document bytes out of PostgreSQL JSON records and prevents public URL access.
+      const blob = await put(pathname, file, {
+        access: "private",
+        contentType: file.type,
+        addRandomSuffix: true,
+      });
+      newlyUploadedPathnames.push(blob.pathname);
       const document: StoredUpgradeDocument = {
-        id, memberId: member.id, requestId,
-        fileName: file.name.replace(/[\/\u0000-\u001f]/g, "_").slice(0, 180) || "document",
-        mimeType: file.type, size: file.size, uploadedAt,
-        dataBase64: Buffer.from(await file.arrayBuffer()).toString("base64"),
+        id, memberId: member.id, requestId, fileName, mimeType: file.type,
+        size: file.size, uploadedAt, pathname: blob.pathname,
       };
       await putStored(DOCUMENTS, document);
       newlyStoredIds.push(id);
-      documents.push({ id, fileName: document.fileName, mimeType: document.mimeType, size: document.size, uploadedAt });
+      documents.push({ id, fileName, mimeType: file.type, size: file.size, uploadedAt });
     }
 
     const previousProfile = member.professionalProfiles?.[target] || (target === "artist" ? member.artistProfile : member.expertProfile) || {};
@@ -158,7 +172,11 @@ export async function POST(request: NextRequest) {
     if (!updated) throw new Error("ثبت پرونده تخصصی انجام نشد.");
     return NextResponse.json({ request: requestItem, member: updated }, { status: open ? 200 : 201, headers: { "Cache-Control": "private, no-store" } });
   } catch (error) {
-    await Promise.all(newlyStoredIds.map(id => deleteStored(DOCUMENTS, id).catch(() => undefined)));
+    await Promise.all([
+      ...newlyStoredIds.map(id => deleteStored(DOCUMENTS, id).catch(() => undefined)),
+      ...newlyUploadedPathnames.map(pathname => del(pathname).catch(() => undefined)),
+    ]);
+    console.error("Member upgrade submission failed", error instanceof Error ? error.name : "UnknownError");
     return NextResponse.json({ error: error instanceof Error ? error.message : "ثبت درخواست ارتقا انجام نشد." }, { status: 400 });
   }
 }
@@ -201,6 +219,7 @@ export async function PATCH(request: NextRequest) {
     const updatedMember = updated as MemberRecord | null;
     return NextResponse.json({ item: updatedMember, request: updatedMember?.upgradeRequests?.find(item => item.id === current.id) });
   } catch (error) {
-    return NextResponse.json({ error: error instanceof Error ? error.message : "ثبت تصمیم انجام نشد." }, { status: 400 });
+    console.error("Member upgrade decision failed", error instanceof Error ? error.name : "UnknownError");
+    return NextResponse.json({ error: "ثبت تصمیم انجام نشد." }, { status: 400 });
   }
 }
