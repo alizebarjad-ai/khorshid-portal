@@ -42,11 +42,16 @@ export async function GET(request: NextRequest) {
       const item = payload.item;
       if (!item) return NextResponse.json({ error: "درخواست پیدا نشد." }, { status: 404 });
       if (item.requestType === "membership") return NextResponse.json({ error: "این درخواست در کارتابل عضویت بررسی می‌شود." }, { status: 409 });
+      if (item.assignedUnit === "admin") return NextResponse.json({ error: "این درخواست در کارتابل ادمین سایت بررسی می‌شود." }, { status: 404 });
       if (!canSeeAll(checked.user.role) && item.assignedUnit !== checked.user.role) return NextResponse.json({ error: "این درخواست به واحد شما ارجاع نشده است." }, { status: 403 });
       return response;
     }
     const path = canSeeAll(checked.user.role) ? "" : "?unit=" + encodeURIComponent(checked.user.role);
-    return await upstream(path);
+    const response = await upstream(path);
+    if (!response.ok) return response;
+    const payload = await response.json();
+    if (Array.isArray(payload.items)) payload.items = payload.items.filter((item: { assignedUnit?: string }) => item.assignedUnit !== "admin");
+    return NextResponse.json(payload, { headers: { "Cache-Control": "private, no-store" } });
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : "دریافت کارتابل ناموفق بود." }, { status: 503 });
   }
@@ -65,6 +70,7 @@ export async function PATCH(request: NextRequest) {
     const payload = await current.clone().json();
     const item = payload.item;
     if (!item || item.requestType === "membership") return NextResponse.json({ error: "درخواست عمومی پیدا نشد." }, { status: 404 });
+    if (item.assignedUnit === "admin") return NextResponse.json({ error: "این درخواست در کارتابل ادمین سایت بررسی می‌شود." }, { status: 404 });
     if (!canSeeAll(checked.user.role) && item.assignedUnit !== checked.user.role) return NextResponse.json({ error: "این درخواست به واحد شما ارجاع نشده است." }, { status: 403 });
 
     return await upstream("", {
