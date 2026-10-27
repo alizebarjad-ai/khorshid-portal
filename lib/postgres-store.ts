@@ -113,6 +113,12 @@ export async function consumeMemberActivationToken<T extends Item>(
   return (result.rowCount || 0) === 1;
 }
 
+/** Atomically consumes a password-reset token and replaces the password hash once. */
+export async function consumeMemberPasswordResetToken<T extends Item>(item:T, expectedTokenHash:string, nowIso:string):Promise<boolean>{
+ await importLegacy("member-accounts");
+ const result=await db().query("UPDATE portal_records SET data=$1::jsonb,updated_at=NOW() WHERE collection='member-accounts' AND id=$2 AND data->>'passwordResetTokenHash'=$3 AND data->>'passwordResetExpiresAt' > $4 AND data->>'status'='active'",[JSON.stringify(item),item.id,expectedTokenHash,nowIso]);
+ return (result.rowCount||0)===1;
+}
 /** Serialize cross-instance workflows by a stable advisory-lock key. */
 export async function withPostgresAdvisoryLock<T>(key: string, action: () => Promise<T>): Promise<T> {
   if (!url) throw new Error("اتصال پایگاه داده PostgreSQL تنظیم نشده است.");

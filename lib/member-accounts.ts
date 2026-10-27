@@ -1,5 +1,5 @@
 import { createHash, randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
-import { consumeMemberActivationToken, listStored, putStored } from "@/lib/persistent-store";
+import { consumeMemberActivationToken, consumeMemberPasswordResetToken as consumePostgresPasswordResetToken, listStored, putStored } from "@/lib/persistent-store";
 import { randomUUID } from "node:crypto";
 
 export type MemberAccount = {
@@ -13,6 +13,8 @@ export type MemberAccount = {
   passwordHash: string;
   activationTokenHash?: string;
   activationExpiresAt?: string;
+  passwordResetTokenHash?: string;
+  passwordResetExpiresAt?: string;
   createdAt: string;
   updatedAt: string;
   lastLoginAt?: string;
@@ -52,6 +54,24 @@ export async function findMemberAccountByUsername(username: string) {
   return accounts.find((account) => account.username === normalized) || null;
 }
 
+export async function findMemberAccountByEmail(email: string) {
+ const normalized=email.trim().toLowerCase(); const accounts=await listStored<MemberAccount>("member-accounts");
+ return accounts.find(a=>a.email.trim().toLowerCase()===normalized)||null;
+}
+export async function setMemberPasswordResetToken(account:MemberAccount,token:string) {
+ const updated={...account,passwordResetTokenHash:tokenHash(token),passwordResetExpiresAt:new Date(Date.now()+30*60*1000).toISOString(),updatedAt:new Date().toISOString()};
+ await putStored("member-accounts",updated); return updated;
+}
+export async function findMemberAccountByPasswordResetToken(token:string) {
+ if(!token||token.length<40)return null; const hash=tokenHash(token); const accounts=await listStored<MemberAccount>("member-accounts");
+ const account=accounts.find(a=>a.passwordResetTokenHash===hash)||null;
+ if(!account||account.status!=="active"||!account.passwordResetExpiresAt||new Date(account.passwordResetExpiresAt).getTime()<=Date.now())return null;
+ return account;
+}
+export async function consumeMemberPasswordResetToken(account:MemberAccount,token:string,password:string) {
+ const updated:MemberAccount={...account,passwordHash:passwordHash(password),passwordResetTokenHash:undefined,passwordResetExpiresAt:undefined,updatedAt:new Date().toISOString()};
+ return consumePostgresPasswordResetToken(updated,tokenHash(token),new Date().toISOString());
+}
 export async function prepareMemberActivation(input: { memberId: string; phone: string; fullName: string; email: string }) {
   const username = normalizeMemberUsername(input.phone);
   if (username.length < 8) throw new Error("شماره تماس عضو برای ساخت نام کاربری معتبر نیست.");

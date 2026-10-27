@@ -59,7 +59,6 @@ const CONFIG: Record<ManagementRole, DashboardConfig> = {
     actions: [
       { label: "کارتابل تصمیم‌گیری", description: "مشاهده پرونده‌ها و اقدامات مدیریتی", href: "/internal/opportunities", primary: true },
       { label: "ثبت پیشنهاد یا فرصت جدید", description: "ثبت فرصت همکاری، پروژه یا حامی جدید", href: "/internal/submit-proposal" },
-      { label: "پرونده اعضا و باشگاه‌ها", description: "مدیریت اطلاعات اعضا، مفاخر و باشگاه‌های تخصصی", href: "/internal/members" },
       { label: "سامانه پرونده‌ها و پاداش", description: "مشاهده اطلاعات پروژه و پاداش‌های ثبت‌شده", href: "/internal/project-rewards" },
       { label: "کارتابل محتوای تأییدشده", description: "دریافت محتوای ارجاع‌شده از معاون رسانه و ثبت نتیجه بارگذاری در سایت", href: "/internal/content-review", primary: true },
     ],
@@ -76,7 +75,6 @@ const CONFIG: Record<ManagementRole, DashboardConfig> = {
     priorities: ["بررسی اولیه پیشنهادهای تازه و تعیین اولویت", "بازگرداندن پرونده‌های ناقص برای تکمیل اطلاعات", "پیگیری پرونده‌های در گردش و هماهنگی واحدها"],
     actions: [
       { label: "کارتابل و گردش کار", description: "بررسی، تکمیل و ارجاع پرونده‌ها", href: "/internal/opportunities", primary: true },
-      { label: "مدیریت اعضا و باشگاه‌ها", description: "دسترسی مدیریتی به پرونده اعضا و باشگاه‌های تخصصی", href: "/internal/members" },
       { label: "ثبت فرصت جدید", description: "ثبت فرصت‌های راهبردی و همکاری", href: "/internal/submit-proposal" },
     ],
     attentionStatuses: ["در حال بررسی قائم‌مقام", "نیازمند تکمیل"],
@@ -186,7 +184,7 @@ const CONFIG: Record<ManagementRole, DashboardConfig> = {
     priorities: ["پیگیری پیشنهادها و پرونده‌های مرتبط با اعضا و مفاخر", "هماهنگی مشارکت اعضا در پروژه‌ها و برنامه‌ها", "آماده‌سازی اطلاعات موردنیاز برای مدیریت باشگاه‌ها"],
     actions: [
       { label: "مدیریت پرونده اعضا", description: "ثبت، جست‌وجو و به‌روزرسانی اطلاعات اعضا و مفاخر", href: "/internal/members", primary: true },
-      { label: "پیگیری درخواست‌های ارتقای تخصصی", description: "مشاهده وضعیت درخواست‌های هنرمندی، تخصص و مشاوره", href: "/internal/member-upgrades" },
+      { label: "کارتابل درخواست‌های ارتقای متخصصان", description: "بررسی رزومه، مدارک و سوابق متقاضیان عنوان متخصص", href: "/internal/member-upgrades", primary: true },
       { label: "کارتابل درخواست‌های عضویت", description: "بررسی مدارک، تعیین نوع عضویت، درخواست تکمیل و تأیید متقاضیان سایت", href: "/internal/membership-requests", primary: true },
       { label: "مدیریت باشگاه‌ها", description: "تعریف باشگاه‌ها و مشاهده اعضای مرتبط", href: "/internal/clubs" },
       { label: "پرونده‌های مرتبط با اعضا", description: "پیگیری پرونده‌های ارجاع‌شده به واحد", href: "/internal/opportunities" },
@@ -224,6 +222,7 @@ export default function RoleDashboard({ role }: { role: ManagementRole }) {
   const config = CONFIG[role];
   const [items, setItems] = useState<Opportunity[]>([]);
   const [clubSummary, setClubSummary] = useState<ClubSummary | null>(null);
+  const [clubSummaryExpanded, setClubSummaryExpanded] = useState(false);
   const [membershipOverview, setMembershipOverview] = useState<MembershipOverview | null>(null);
   const [upgradeItems, setUpgradeItems] = useState<MembershipOverview["upgrades"]>([]);
   const [userName, setUserName] = useState("");
@@ -277,7 +276,7 @@ export default function RoleDashboard({ role }: { role: ManagementRole }) {
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "دریافت اطلاعات داشبورد انجام نشد.");
       setItems(Array.isArray(data.items) ? data.items : []);
-      if (["members", "ceo", "deputy"].includes(role)) {
+      if (role === "members") {
         try {
           const recordsResponse = await fetch("/api/records", { cache: "no-store" });
           const recordsData = await recordsResponse.json();
@@ -555,9 +554,10 @@ export default function RoleDashboard({ role }: { role: ManagementRole }) {
                 <h3 className="text-lg font-extrabold">نمای مدیریتی اعضا و باشگاه‌ها</h3>
                 <p className="mt-1 text-sm leading-6 text-[#687783]">آمار از پرونده‌های اعضا و باشگاه‌های ثبت‌شده در سامانه محاسبه می‌شود. تعداد اعضای هر باشگاه بر اساس ارتباط ثبت‌شده در پرونده عضو است.</p>
               </div>
+              {(role === "ceo" || role === "deputy") && <button type="button" aria-expanded={clubSummaryExpanded} onClick={() => setClubSummaryExpanded((value) => !value)} className="rounded-xl bg-[#172F48] px-3 py-2 text-sm font-bold text-white">{clubSummaryExpanded ? "بستن جزئیات" : "نمایش جزئیات"}</button>}
               <button type="button" onClick={() => void load()} className="rounded-xl border border-[#E3E0D8] bg-white px-3 py-2 text-sm font-bold">به‌روزرسانی گزارش</button>
             </div>
-            {clubSummary ? (
+            {clubSummaryExpanded && (clubSummary ? (
               <>
                 <div className="mt-4 grid grid-cols-2 gap-3 xl:grid-cols-4">
                   {[
@@ -609,14 +609,10 @@ export default function RoleDashboard({ role }: { role: ManagementRole }) {
                     )}
                   </div>
                 </div>
-                <div className="mt-4 flex flex-wrap gap-3 border-t border-[#E3E0D8] pt-4">
-                  <a href="/internal/members" className="rounded-xl bg-[#172F48] px-4 py-2.5 text-sm font-bold text-white">بازکردن پرونده اعضا</a>
-                  <a href="/internal/clubs" className="rounded-xl border border-[#E3E0D8] bg-white px-4 py-2.5 text-sm font-bold">مدیریت باشگاه‌ها</a>
-                </div>
               </>
             ) : (
               <p className="mt-4 rounded-2xl bg-[#F7F5F0] p-5 text-sm text-[#687783]">گزارش اعضا و باشگاه‌ها فعلاً دریافت نشد. اطلاعات این بخش از API مستقل خوانده می‌شود و خطای آن روی کارتابل فرصت‌ها اثری ندارد.</p>
-            )}
+            ))}
           </section>
         )}
 
@@ -673,7 +669,7 @@ export default function RoleDashboard({ role }: { role: ManagementRole }) {
               </ol>
             </div>
             <div className="rounded-2xl border border-[#E3E0D8] bg-white p-4 text-xs leading-6 text-[#687783]">
-              این داشبورد نمای کاری نقش فعلی است. دسترسی نهایی به اطلاعات و عملیات در سمت سرور کنترل می‌شود. مدیریت اعضا و باشگاه‌ها در دسترس است؛ ابزارهای مستقل تقویم محتوا و مدیریت برنامه‌های آموزشی هنوز نیازمند پیاده‌سازی هستند.
+              این داشبورد نمای کاری نقش فعلی است. دسترسی نهایی به اطلاعات و عملیات در سمت سرور کنترل می‌شود. افزودن، ویرایش و حذف پرونده اعضا و باشگاه‌ها فقط در اختیار معاونت اعضا است؛ ابزارهای مستقل تقویم محتوا و مدیریت برنامه‌های آموزشی هنوز نیازمند پیاده‌سازی هستند.
             </div>
           </aside>
         </section>

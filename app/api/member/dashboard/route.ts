@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { COOKIE_NAME, decodeSession } from "@/lib/auth";
-import { readClubs, readMembers } from "@/lib/records-store";
+import { readClubs, readMembers, readMemberPointLedger } from "@/lib/records-store";
 import { listStored } from "@/lib/persistent-store";
 
 export const runtime = "nodejs";
@@ -35,10 +35,10 @@ export async function GET(request: NextRequest) {
     const member = members.find((item) => item.id === user.memberId && item.status === "active");
     if (!member) return NextResponse.json({ error: "پرونده عضو فعال پیدا نشد." }, { status: 404 });
 
-    const [programRows, pointRows, clubRecords] = await Promise.all([
+    const [programRows, clubRecords, pointRows] = await Promise.all([
       listStored<StoredItem>("club-programs"),
-      listStored<StoredItem>("member-points"),
       readClubs(),
+      readMemberPointLedger(member.id),
     ]);
     const clubIds = new Set(member.clubIds || []);
     const now = Date.now();
@@ -134,30 +134,13 @@ export async function GET(request: NextRequest) {
       }];
     }).sort((a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime()).slice(0, 20);
 
-    const allPointEvents = pointRows.flatMap((item) => {
-      const itemMemberId = text(item.memberId);
-      const itemUsername = text(item.username || item.memberUsername);
-      const itemMemberIds = strings(item.memberIds);
-      if (itemMemberId !== member.id && itemUsername !== user.username && !itemMemberIds.includes(member.id)) return [];
-      const points = number(item.points ?? item.delta);
-      return [{
-        id: text(item.id) || `point-${member.id}-${String(item.createdAt || item.date || "")}`,
-        title: text(item.title || item.activity || item.label || "فعالیت ثبت‌شده"),
-        points,
-        createdAt: text(item.createdAt || item.date || ""),
-        note: text(item.note || item.description || ""),
-      }];
-    }).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-    const effectivePointEvents = allPointEvents.length ? allPointEvents : (member.pointEvents || []).map((rawEvent) => {
-      const event = rawEvent as unknown as StoredItem;
-      return {
-        id: text(event.id) || `point-${member.id}-${text(event.createdAt)}`,
-        title: text(event.title || event.activity || "فعالیت ثبت‌شده"),
-        points: number(event.points ?? event.delta),
-        createdAt: text(event.createdAt || event.date),
-        note: text(event.note || event.description),
-      };
-    }).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    const effectivePointEvents = pointRows.map((event) => ({
+      id: event.id,
+      title: event.title || "فعالیت ثبت‌شده",
+      points: number(event.points),
+      createdAt: event.createdAt,
+      note: event.note || "",
+    }));
     const pointsBalance = effectivePointEvents.reduce((sum, event) => sum + event.points, 0);
     const pointEvents = effectivePointEvents.slice(0, 50);
 

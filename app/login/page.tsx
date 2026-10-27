@@ -8,8 +8,11 @@ const SITE_ADMIN_LOGIN = "https://www.khorshid-mafakher.ir/api/admin/login";
 export default function LoginPage() {
   const router = useRouter();
   const [adminError, setAdminError] = useState(false);
+  const [passwordReset, setPasswordReset] = useState(false);
   useEffect(() => {
-    setAdminError(new URLSearchParams(window.location.search).get("adminError") === "1");
+    const params = new URLSearchParams(window.location.search);
+    setAdminError(params.get("adminError") === "1");
+    setPasswordReset(params.get("passwordReset") === "1");
   }, []);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -93,11 +96,14 @@ export default function LoginPage() {
         </div>
         <form onSubmit={submit} className="login-form mt-5 rounded-3xl p-6 shadow-sm">
           <label className="block text-sm font-semibold">نام کاربری
-            <input className="login-input mt-2 w-full rounded-xl px-4 py-3 outline-none" autoComplete="username" value={username} onChange={(e) => setUsername(e.target.value)} required />
+            <input className="login-input mt-2 w-full rounded-xl px-4 py-3 outline-none" autoComplete="username" placeholder="برای اعضا: شماره تلفن ثبت‌شده" value={username} onChange={(e) => setUsername(e.target.value)} required />
+            <span className="mt-1 block text-xs font-normal leading-5 text-[#687783]">نام کاربری اعضا همان شماره تلفن ثبت‌شده در پرونده است؛ شماره را با ارقام لاتین وارد کنید. همکاران از نام کاربری سازمانی خود استفاده کنند.</span>
           </label>
+          {passwordReset && <div role="status" className="mb-4 rounded-xl bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-900">رمز عبور با موفقیت تغییر کرد. با رمز جدید وارد شوید.</div>}
           <label className="mt-4 block text-sm font-semibold">رمز عبور
             <input className="login-input mt-2 w-full rounded-xl px-4 py-3 outline-none" type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} required />
           </label>
+          <div className="mt-2 text-left"><a href="/forgot-password" className="text-sm font-semibold text-[#18304A] underline">رمز عبور را فراموش کرده‌اید؟</a></div>
           {(error || adminError) && <div className="mt-4 rounded-xl bg-[#FDECEC] px-4 py-3 text-sm font-semibold text-[#A33A3A]">{error || "ورود مدیر سایت ناموفق بود. نام کاربری یا رمز عبور را بررسی کنید."}</div>}
           <button className="login-submit btn-primary mt-6 w-full px-5 py-3 disabled:opacity-50" disabled={busy}>{busy ? "در حال ورود..." : "ورود"}</button>
         </form>

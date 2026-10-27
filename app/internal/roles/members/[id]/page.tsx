@@ -20,7 +20,7 @@ type Member = {
   clubIds: string[];
 };
 type PointEvent = { id: string; memberId: string; memberName?: string; points: number; title: string; note: string; createdAt: string; actor?: string; createdBy?: string };
-const rankLabels: Record<string, string> = { volunteer: "داوطلب", professional: "حرفه‌ای", club_manager: "مدیر باشگاه" };
+const rankLabels: Record<string, string> = { volunteer: "داوطلب", active_volunteer: "داوطلب فعال", professional: "داوطلب فعال", club_manager: "مسئول باشگاه" };
 const input = "mt-2 w-full rounded-xl border border-[#D8D0C4] bg-white px-3 py-3 text-sm text-[#18304A] outline-none focus:border-[#B07800]";
 const fmt = (n: number) => new Intl.NumberFormat("fa-IR").format(n);
 const date = (s: string) => {
@@ -113,7 +113,7 @@ export default function MemberDossierPage() {
           <a href="/internal/roles/members" className="text-sm font-bold text-[#F2A900]">← بازگشت به فهرست اعضا</a>
           <p className="mt-4 text-sm text-[#E6EAF0]">پرونده اختصاصی عضو</p>
           <h1 className="mt-1 text-3xl font-extrabold">{member?.fullName || "پرونده عضو"}</h1>
-          <p className="mt-2 text-sm text-[#E6EAF0]">نوع عضویت: عضو وابسته · رده فعلی: {rankLabels[member?.membershipRank || "volunteer"] || "داوطلب"}</p>
+          <p className="mt-2 text-sm text-[#E6EAF0]">نوع عضویت: عضو وابسته · وضعیت مشارکت فعلی: {rankLabels[member?.membershipRank || "volunteer"] || "داوطلب"}</p>
         </header>
 
         {error && <p role="alert" className="mt-4 rounded-xl bg-red-50 p-3 text-sm text-red-800">{error}</p>}
@@ -139,7 +139,7 @@ export default function MemberDossierPage() {
                 ))}
               </div>
               <div className="mt-5">
-                <h3 className="font-extrabold">سوابق ارتقای رده</h3>
+                <h3 className="font-extrabold">سوابق تغییر وضعیت مشارکت</h3>
                 {(member.rankHistory || []).length ? (
                   <div className="mt-3 space-y-3">
                     {(member.rankHistory || []).slice().reverse().map((item, index) => (
@@ -154,13 +154,13 @@ export default function MemberDossierPage() {
             </section>
 
             <section className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-[#D8D0C4] md:p-6">
-              <h2 className="text-xl font-extrabold">ثبت امتیاز یا ارتقای رده</h2>
+              <h2 className="text-xl font-extrabold">ثبت امتیاز یا تغییر وضعیت مشارکت</h2>
               <form onSubmit={submit} className="mt-4 space-y-4">
-                <label className="block text-sm font-bold">رده عضویت
+                <label className="block text-sm font-bold">وضعیت مشارکت
                   <select className={input} value={rank} onChange={(e) => setRank(e.target.value)}>
                     <option value="volunteer">داوطلب</option>
-                    <option value="professional">حرفه‌ای</option>
-                    <option value="club_manager">مدیر باشگاه</option>
+                    <option value="active_volunteer">داوطلب فعال</option>
+                    <option value="club_manager">مسئول باشگاه</option>
                   </select>
                 </label>
                 <div className="rounded-xl bg-[#F7F5F0] p-4">

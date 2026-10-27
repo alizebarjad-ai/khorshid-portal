@@ -1,8 +1,8 @@
 import { randomUUID } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { COOKIE_NAME, decodeSession } from "@/lib/auth";
-import { readMembers, updateRecord, type MembershipRank } from "@/lib/records-store";
-import { listStored, putStored } from "@/lib/persistent-store";
+import { readMembers, readMemberPointLedger, updateRecord, type MembershipRank } from "@/lib/records-store";
+import { putStored } from "@/lib/persistent-store";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -19,11 +19,11 @@ type PointEvent = {
   actor?: string;
 };
 
-const allowedRoles = new Set(["members", "deputy", "ceo"]);
-const ranks: MembershipRank[] = ["volunteer", "professional", "club_manager"];
+const allowedRoles = new Set(["members"]);
+const ranks: MembershipRank[] = ["volunteer", "active_volunteer", "club_manager"];
 const rankLabels: Record<MembershipRank, string> = {
   volunteer: "داوطلب",
-  professional: "حرفه‌ای",
+  active_volunteer: "داوطلب فعال",
   club_manager: "مدیر باشگاه",
 };
 
@@ -43,20 +43,12 @@ export async function GET(request: NextRequest) {
   try {
     const [members, entries] = await Promise.all([
       readMembers(),
-      listStored<PointEvent>("member-points"),
+      readMemberPointLedger(memberId),
     ]);
     const member = members.find((item) => item.id === memberId);
     if (!member) return NextResponse.json({ error: "پرونده عضو پیدا نشد." }, { status: 404 });
 
-    const pointEvents = entries
-      .filter((entry) => entry.memberId === memberId)
-      .map((entry) => ({
-        ...entry,
-        points: Number(entry.points) || 0,
-        actor: entry.actor || entry.createdBy || "سامانه",
-      }))
-      .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
-      .slice(0, 100);
+    const pointEvents = entries.map((entry) => ({ ...entry, points: Number(entry.points) || 0, actor: entry.actor || entry.createdBy || "سامانه" })).slice(0, 100);
 
     return NextResponse.json({
       member: {
@@ -68,7 +60,7 @@ export async function GET(request: NextRequest) {
         rankHistory: member.rankHistory || [],
       },
       pointEvents,
-      pointsBalance: entries.filter((entry) => entry.memberId === memberId).reduce((sum, event) => sum + (Number(event.points) || 0), 0),
+      pointsBalance: entries.reduce((sum, event) => sum + (Number(event.points) || 0), 0),
     }, { headers: { "Cache-Control": "private, no-store, max-age=0" } });
   } catch (error) {
     console.error("Member progress could not be loaded", error);
@@ -93,12 +85,17 @@ export async function POST(request: NextRequest) {
     if (title && (!Number.isInteger(Number(body.points)) || Number(body.points) === 0 || Math.abs(Number(body.points)) > 10000)) {
       return NextResponse.json({ error: "امتیاز باید عدد صحیح غیرصفر بین ۱۰۰۰۰- تا ۱۰۰۰۰ باشد." }, { status: 400 });
     }
-    if (hasRankInput && !hasRank) return NextResponse.json({ error: "رده عضویت معتبر نیست." }, { status: 400 });
+    if (hasRankInput && !hasRank) return NextResponse.json({ error: "وضعیت مشارکت معتبر نیست." }, { status: 400 });
 
     const members = await readMembers();
     const member = members.find((item) => item.id === memberId);
     if (!member) return NextResponse.json({ error: "پرونده عضو پیدا نشد." }, { status: 404 });
-    if (member.status !== "active") return NextResponse.json({ error: "ثبت امتیاز یا ارتقای رده فقط برای عضو فعال امکان‌پذیر است." }, { status: 409 });
+    if (member.status !== "active") return NextResponse.json({ error: "ثبت امتیاز یا تغییر وضعیت مشارکت فقط برای عضو فعال امکان‌پذیر است." }, { status: 409 });
+
+    const existingPointEvents = title ? await readMemberPointLedger(memberId) : [];
+    const currentPointBalance = existingPointEvents.filter((event) => event.memberId === memberId).reduce((sum, event) => sum + (Number(event.points) || 0), 0);
+    if (title && Number(body.points) < 0 && note.length < 5) return NextResponse.json({ error: "برای کسر امتیاز، دلیل حداقل ۵ نویسه‌ای ثبت کنید." }, { status: 400 });
+    if (title && currentPointBalance + Number(body.points) < 0) return NextResponse.json({ error: "امتیاز قابل کسر از موجودی فعلی بیشتر است." }, { status: 409 });
 
     const currentRank = ranks.includes(member.membershipRank as MembershipRank) ? member.membershipRank as MembershipRank : "volunteer";
     let updatedMember = member;
@@ -106,13 +103,14 @@ export async function POST(request: NextRequest) {
       const currentIndex = ranks.indexOf(currentRank);
       const nextIndex = ranks.indexOf(body.membershipRank as MembershipRank);
       if (nextIndex < currentIndex) return NextResponse.json({ error: "کاهش رده از این مسیر مجاز نیست." }, { status: 409 });
-      if (nextIndex > currentIndex && note.length < 5) return NextResponse.json({ error: "برای ارتقای رده، دلیل حداقل ۵ نویسه‌ای ثبت کنید." }, { status: 400 });
+      if (nextIndex > currentIndex && note.length < 5) return NextResponse.json({ error: "برای ارتقای وضعیت مشارکت، دلیل حداقل ۵ نویسه‌ای ثبت کنید." }, { status: 400 });
 
       const updated = await updateRecord("member", memberId, {
         membershipType: "affiliate",
         membershipTier: "affiliate",
         membershipRank: body.membershipRank,
-        membershipRankReason: note,
+        membershipGrade: body.membershipRank,
+        rankReason: note,
       }, { username: checked.user.username });
       if (!updated || updated.kind !== "member") return NextResponse.json({ error: "ثبت رده جدید انجام نشد." }, { status: 500 });
       updatedMember = updated;
@@ -134,8 +132,8 @@ export async function POST(request: NextRequest) {
       await putStored("member-points", pointEvent);
     }
 
-    const allEvents = await listStored<PointEvent>("member-points");
-    const pointsBalance = allEvents.filter((event) => event.memberId === memberId).reduce((sum, event) => sum + (Number(event.points) || 0), 0);
+    const allEvents = await readMemberPointLedger(memberId);
+    const pointsBalance = allEvents.reduce((sum, event) => sum + (Number(event.points) || 0), 0);
     return NextResponse.json({
       success: true,
       pointEvent,

@@ -3,25 +3,25 @@
 import { useEffect, useMemo, useState, type ChangeEvent, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 
-type UpgradeRequest = { id:string; target:"artist"|"expert"|"consultant"; status:"pending"|"approved"|"rejected"|"needs_info"; assignedRole:"artists"|"csr"; submittedAt:string; reviewedAt?:string; reviewer?:string; note?:string };
-type ProfessionalProfile = { headline?:string; specialties?:string|string[]; education?:string; educationField?:string; experience?:string; portfolio?:string; biography?:string; website?:string; resumeText?:string; submittedAt?:string; verified?:boolean };
-type Member = { id:string; fullName:string; memberType:string; membershipTier?:string; membershipGrade?:string; phone:string; email:string; city:string; expertise:string; biography:string; status:string; clubIds:string[]; artistProfile?:ProfessionalProfile; expertProfile?:ProfessionalProfile; upgradeRequests?:UpgradeRequest[] };
+type UpgradeRequest = { id:string; target:"artist"|"expert"|"consultant"; status:"pending"|"approved"|"rejected"|"needs_info"; assignedRole:"artists"|"education"|"csr"; submittedAt:string; reviewedAt?:string; reviewer?:string; note?:string; documents?:{id:string;fileName:string;mimeType:string;size:number;uploadedAt:string}[] };
+type ProfessionalProfile = { headline?:string; specialties?:string|string[]; education?:string; educationField?:string; experience?:string; portfolio?:string; biography?:string; website?:string; resumeText?:string; submittedAt?:string; verified?:boolean; designation?:"artist"|"expert"|"consultant" };
+type Member = { id:string; username?:string; fullName:string; memberType:string; membershipTier?:string; membershipGrade?:string; membershipRank?:string; professionalMemberships?:("artist"|"expert"|"consultant")[]; professionalProfiles?:Partial<Record<"artist"|"expert"|"consultant",ProfessionalProfile>>; phone:string; email:string; city:string; expertise:string; biography:string; status:string; clubIds:string[]; artistProfile?:ProfessionalProfile; expertProfile?:ProfessionalProfile; upgradeRequests?:UpgradeRequest[] };
 type Club = { id:string; name:string; clubType:string; city:string; description:string; status:string };
 type Program = { id:string; title:string; description:string; startsAt:string; location:string; clubName:string; format:string; href?:string };
 type ClubFeedItem = { id:string; kind:string; title:string; description?:string; dateLabel?:string; href?:string; clubIds?:string[]; showToMembers?:boolean };
 type PointEvent = { id:string; title:string; points:number; createdAt:string; note:string };
 type ContentSubmission = { id:string; title:string; kind:"text"|"image"|"video"; status:string; createdAt:string; description?:string; mediaNote?:string; adminNote?:string };
 type DashboardData = { pointsBalance:number; pointEvents:PointEvent[]; programs:Program[] };
-const tierLabels:Record<string,string>={affiliate:"عضو وابسته",professional:"عضو حرفه‌ای / تخصصی",supporter_partner:"حامی مالی / شریک سازمانی"};
-const typeLabels:Record<string,string>={individual:"شخص حقیقی",artist:"هنرمند",figure:"چهره و صاحب‌نظر",supporter:"حامی",expert:"متخصص",organization:"شخصیت حقوقی",media:"رسانه"};
-const gradeLabels:Record<string,string>={volunteer:"داوطلب",professional:"حرفه‌ای",club_manager:"مدیر باشگاه"};
+const tierLabels:Record<string,string>={affiliate:"عضو وابسته",professional:"عضو وابسته",supporter_partner:"حامی مالی / شریک سازمانی"};
+const typeLabels:Record<string,string>={individual:"شخص حقیقی",artist:"شخص حقیقی",figure:"چهره و صاحب‌نظر",supporter:"حامی",expert:"شخص حقیقی",organization:"شخصیت حقوقی",media:"رسانه"};
+const gradeLabels:Record<string,string>={volunteer:"داوطلب",active_volunteer:"داوطلب فعال",professional:"داوطلب فعال",club_manager:"مسئول باشگاه"};
 const inputClass="w-full rounded-xl border border-[#D8D0C4] bg-white px-3 py-3 text-sm text-[#18304A] outline-none focus:border-[#B99450]";
 const services = [
- {icon:"✦",title:"برنامه‌ها و نشست‌های اعضا",description:"دسترسی به برنامه‌های اعلام‌شده برای باشگاه‌ها و رده عضویت شما.",status:"قابل استفاده",ready:true},
+ {icon:"✦",title:"برنامه‌ها و نشست‌های اعضا",description:"دسترسی به برنامه‌های اعلام‌شده برای باشگاه‌ها و وضعیت مشارکت شما.",status:"قابل استفاده",ready:true},
  {icon:"◎",title:"باشگاه‌های تخصصی",description:"پیگیری باشگاه‌هایی که عضویت شما در آن‌ها ثبت شده است.",status:"قابل استفاده",ready:true},
  {icon:"↗",title:"ارسال اثر و محتوای تولیدی",description:"ثبت متن، تصویر یا ویدیو برای بررسی و انتشار توسط تیم مربوطه.",status:"ارسال به کارتابل معاون رسانه",ready:true},
  {icon:"◇",title:"فرصت‌های آموزشی و همکاری",description:"اطلاع‌رسانی فرصت‌های مرتبط پس از ثبت رسمی در سامانه.",status:"به‌تدریج فعال می‌شود",ready:false},
- {icon:"＋",title:"خدمات و مزایای ویژه اعضا",description:"نمایش مزایای فعال بر اساس رده عضویت و توافق‌های نهایی سازمان.",status:"در حال تکمیل",ready:false},
+ {icon:"＋",title:"خدمات و مزایای ویژه اعضا",description:"نمایش مزایای فعال بر اساس ضوابط و توافق‌های نهایی سازمان.",status:"در حال تکمیل",ready:false},
 ];
 const money = (value:number) => new Intl.NumberFormat("fa-IR").format(value);
 const dateLabel = (value:string) => { if(!value) return "زمان متعاقباً اعلام می‌شود"; const d=new Date(value); return Number.isNaN(d.getTime())?value:new Intl.DateTimeFormat("fa-IR",{dateStyle:"medium",timeStyle:"short"}).format(d); };
@@ -32,6 +32,7 @@ export default function MemberHomePage(){
  const [clubs,setClubs]=useState<Club[]>([]);
  const [dashboard,setDashboard]=useState<DashboardData>({pointsBalance:0,pointEvents:[],programs:[]});
  const [loading,setLoading]=useState(true);
+ const [activeSection,setActiveSection]=useState("home");
  const [currentPassword,setCurrentPassword]=useState("");
  const [newPassword,setNewPassword]=useState("");
  const [confirm,setConfirm]=useState("");
@@ -42,7 +43,7 @@ export default function MemberHomePage(){
  const [city,setCity]=useState("");
  const [expertise,setExpertise]=useState("");
  const [biography,setBiography]=useState("");
- const [upgradeTarget,setUpgradeTarget]=useState<"artist"|"expert"|"consultant">("artist");
+ const [upgradeTarget,setUpgradeTarget]=useState<"artist"|"expert">("artist");
  const [professionalHeadline,setProfessionalHeadline]=useState("");
  const [professionalSpecialties,setProfessionalSpecialties]=useState("");
  const [professionalEducation,setProfessionalEducation]=useState("");
@@ -50,6 +51,7 @@ export default function MemberHomePage(){
  const [professionalPortfolio,setProfessionalPortfolio]=useState("");
  const [professionalBio,setProfessionalBio]=useState("");
  const [professionalWebsite,setProfessionalWebsite]=useState("");
+ const [professionalFiles,setProfessionalFiles]=useState<File[]>([]);
  const [upgradeBusy,setUpgradeBusy]=useState(false);
 
  const [contentType,setContentType]=useState<"text"|"image"|"video">("text");
@@ -97,8 +99,13 @@ export default function MemberHomePage(){
  },[router]);
 
  useEffect(()=>{
-   const profile = upgradeTarget==="artist" ? member?.artistProfile : member?.expertProfile;
-   if(!profile) return;
+   const profile = member?.professionalProfiles?.[upgradeTarget] || (upgradeTarget==="artist" ? member?.artistProfile : member?.expertProfile);
+   setProfessionalFiles([]);
+   if(!profile){
+     setProfessionalHeadline("");setProfessionalSpecialties("");setProfessionalEducation("");
+     setProfessionalExperience("");setProfessionalPortfolio("");setProfessionalBio("");setProfessionalWebsite("");
+     return;
+   }
    setProfessionalHeadline(String(profile.educationField||profile.headline||""));
    const specialties=profile.specialties;
    setProfessionalSpecialties(Array.isArray(specialties)?specialties.join("، "):typeof specialties==="string"?specialties:"");
@@ -135,11 +142,24 @@ export default function MemberHomePage(){
  async function submitUpgrade(e:FormEvent){
    e.preventDefault();setError("");setNotice("");setUpgradeBusy(true);
    try{
-     const response=await fetch("/api/member-upgrades",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({target:upgradeTarget,headline:professionalHeadline,education:professionalEducation,educationField:professionalHeadline,experience:professionalExperience,specialties:professionalSpecialties,portfolio:professionalPortfolio,website:professionalWebsite,biography:professionalBio,resumeText:""})});
+     const form=new FormData();
+     form.set("target",upgradeTarget);
+     form.set("headline",professionalHeadline);
+     form.set("education",professionalEducation);
+     form.set("educationField",professionalHeadline);
+     form.set("experience",professionalExperience);
+     form.set("specialties",professionalSpecialties);
+     form.set("portfolio",professionalPortfolio);
+     form.set("website",professionalWebsite);
+     form.set("biography",professionalBio);
+     form.set("resumeText","");
+     professionalFiles.forEach(file=>form.append("documents",file));
+     const response=await fetch("/api/member-upgrades",{method:"POST",body:form});
      const data=await response.json();
      if(!response.ok)throw new Error(data.error||"ثبت درخواست ارتقا انجام نشد.");
-     setMember(prev=>prev?{...prev,upgradeRequests:data.member?.upgradeRequests||prev.upgradeRequests,artistProfile:data.member?.artistProfile||prev.artistProfile,expertProfile:data.member?.expertProfile||prev.expertProfile}:prev);
-     setNotice("درخواست شما ثبت شد و برای بررسی به کارتابل معاونت مربوطه ارسال شده است.");
+     setMember(prev=>prev?{...prev,upgradeRequests:data.member?.upgradeRequests||prev.upgradeRequests,professionalProfiles:data.member?.professionalProfiles||prev.professionalProfiles}:prev);
+     setProfessionalFiles([]);
+     setNotice("درخواست شما ثبت شد و برای بررسی به معاونت مربوطه ارجاع شد. وضعیت مشارکت شما همچنان مستقل باقی می‌ماند.");
    }catch(err){setError(err instanceof Error?err.message:"ثبت درخواست ارتقا انجام نشد.");}
    finally{setUpgradeBusy(false);}
  }
@@ -180,44 +200,44 @@ export default function MemberHomePage(){
  const activeClubs=clubs.filter(c=>c.status==="active");
  const memberTier=tierLabels[member?.membershipTier||""]||"عضو خورشید";
  const memberType=typeLabels[member?.memberType||""]||member?.memberType||"عضو";
- const memberGrade=gradeLabels[member?.membershipGrade||""]||"داوطلب";
- const sections=[["home","نمای کلی"],["programs","برنامه‌ها"],["clubs","باشگاه‌های من"],["services","خدمات و امتیاز"],["content","ارسال محتوا"],["profile","پرونده من"]];
+ const memberGrade=gradeLabels[member?.membershipRank||member?.membershipGrade||""]||"داوطلب";
+ const sections=[["home","نمای کلی"],["programs","برنامه‌ها"],["clubs","باشگاه‌های من"],["services","خدمات و امتیاز"],["upgrades","درخواست هنرمند یا متخصص"],["content","ارسال محتوا"],["settings","تنظیمات حساب"]];
 
  return <main className="internal-app min-h-screen pb-24 text-[#172F48]">
    <div className="sticky top-0 z-30 border-b border-[#E3E0D8] bg-[#F7F5F0]/95 shadow-sm backdrop-blur">
      <div className="container-site flex items-center justify-between gap-3 py-3">
-       <a href="#home" className="flex min-w-0 items-center gap-2"><span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[#172F48] text-lg font-black text-[#B99450]">خ</span><span className="min-w-0"><strong className="block truncate text-sm">خورشید مفاخر</strong><span className="block text-[11px] text-[#687783]">باشگاه اعضا</span></span></a>
+       <button type="button" onClick={()=>setActiveSection("home")} className="flex min-w-0 items-center gap-2 text-right"><span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[#172F48] text-lg font-black text-[#B99450]">خ</span><span className="min-w-0"><strong className="block truncate text-sm">خورشید مفاخر</strong><span className="block text-[11px] text-[#687783]">باشگاه اعضا</span></span></button>
        <div className="flex shrink-0 items-center gap-2"><a href="https://www.khorshid-mafakher.ir/" className="hidden rounded-lg px-3 py-2 text-xs font-bold text-[#526173] sm:inline-flex">وب‌سایت اصلی ↗</a><button onClick={logout} disabled={loggingOut} className="rounded-xl border border-[#D8D0C4] bg-white px-3 py-2 text-xs font-bold disabled:opacity-50">{loggingOut?"در حال خروج…":"خروج"}</button></div>
      </div>
      <nav aria-label="منوی اعضا" className="container-site flex gap-2 overflow-x-auto pb-3">
-       {sections.map(([id,label])=><a key={id} href={"#"+id} className="shrink-0 rounded-full border border-[#E3E0D8] bg-white px-4 py-2 text-xs font-bold text-[#526173] transition hover:border-[#B99450] hover:bg-[#F0DFB8] hover:text-[#172F48]">{label}</a>)}
+       {sections.map(([id,label])=><button type="button" key={id} onClick={()=>setActiveSection(id)} aria-current={activeSection===id?"page":undefined} className={"shrink-0 rounded-full border px-4 py-2 text-xs font-bold transition hover:border-[#B99450] hover:bg-[#F0DFB8] hover:text-[#172F48] "+(activeSection===id?"border-[#B99450] bg-[#F0DFB8] text-[#172F48]":"border-[#E3E0D8] bg-white text-[#526173]")}>{label}</button>)}
      </nav>
    </div>
    <div className="container-site pt-5 md:pt-8">
      {error&&<p role="alert" className="mb-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800">{error}</p>}
      {notice&&<p role="status" className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">{notice}</p>}
      {loading?<div className="rounded-3xl border border-[#E3E0D8] bg-white p-8 text-center">در حال دریافت پرونده شما…</div>:member?<>
-       <section id="home" className="scroll-mt-36 overflow-hidden rounded-[28px] bg-[#172F48] p-5 text-white shadow-lg md:p-8">
+       <section id="home" className={(activeSection==="home"?"":"hidden ")+"scroll-mt-36 overflow-hidden rounded-[28px] bg-[#172F48] p-5 text-white shadow-lg md:p-8"}>
          <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
-           <div className="min-w-0"><p className="text-xs font-bold tracking-wide text-[#D7B978]">جامعه اعضای خورشید مفاخر</p><h1 className="mt-2 text-2xl font-extrabold md:text-3xl">سلام {member.fullName}</h1><p className="mt-2 max-w-2xl text-sm leading-7 text-[#E6EAF0]">اینجا مرکز شخصی شما برای برنامه‌های باشگاهی، خدمات عضویت، امتیازها و ارسال آثار است.</p><div className="mt-4 flex flex-wrap gap-2"><span className="rounded-full bg-white/10 px-3 py-1.5 text-xs font-bold">{memberType}</span><span className="rounded-full bg-[#F0DFB8] px-3 py-1.5 text-xs font-bold text-[#172F48]">{memberTier}</span><span className="rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-bold">{memberGrade}</span><span className="rounded-full bg-emerald-100 px-3 py-1.5 text-xs font-bold text-emerald-800">عضویت فعال</span></div></div>
+           <div className="min-w-0"><p className="text-xs font-bold tracking-wide text-[#D7B978]">جامعه اعضای خورشید مفاخر</p><h1 className="mt-2 text-2xl font-extrabold md:text-3xl">سلام {member.fullName}</h1><p className="mt-2 max-w-2xl text-sm leading-7 text-[#E6EAF0]">اینجا مرکز شخصی شما برای برنامه‌های باشگاهی، خدمات عضویت، امتیازها و ارسال آثار است.</p><div className="mt-4 flex flex-wrap gap-2"><span className="rounded-full bg-white/10 px-3 py-1.5 text-xs font-bold">{memberType}</span><span className="rounded-full bg-[#F0DFB8] px-3 py-1.5 text-xs font-bold text-[#172F48]">{memberTier}</span><span className="rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-bold">{memberGrade}</span>{(member.professionalMemberships||[]).map(role=><span key={role} className="rounded-full bg-[#DCEFE4] px-3 py-1.5 text-xs font-bold text-[#1D6543]">{role==="artist"?"عنوان تأییدشده: هنرمند":role==="consultant"?"عنوان تأییدشده: مشاور":"عنوان تأییدشده: متخصص"}</span>)}<span className="rounded-full bg-emerald-100 px-3 py-1.5 text-xs font-bold text-emerald-800">عضویت فعال</span></div><p className="mt-3 text-xs text-[#E6EAF0]">نام کاربری ورود: <bdi dir="ltr" className="font-bold">{member.username||member.phone}</bdi> · برای ورود بعدی از شماره تلفن ثبت‌شده استفاده کنید.</p><button type="button" onClick={()=>setActiveSection("content")} className="mt-4 inline-flex items-center justify-center rounded-xl bg-[#F0DFB8] px-5 py-3 text-sm font-extrabold text-[#172F48] transition hover:bg-[#E4C987]">ارسال اثر یا محتوای تولیدی ↗</button></div>
            <div className="grid w-full grid-cols-2 gap-3 sm:max-w-[270px]"><div className="rounded-2xl border border-white/10 bg-white/10 p-4"><span className="text-xs text-[#E6EAF0]">باشگاه‌های فعال</span><strong className="mt-1 block text-2xl">{money(activeClubs.length)}</strong></div><div className="rounded-2xl border border-white/10 bg-white/10 p-4"><span className="text-xs text-[#E6EAF0]">امتیاز ثبت‌شده</span><strong className="mt-1 block text-2xl">{money(dashboard.pointsBalance)}</strong></div></div>
          </div>
        </section>
-       <section className="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
-         {[{label:"برنامه‌های پیش‌رو",value:upcomingPrograms.length,icon:"▦",href:"#programs"},{label:"باشگاه‌های من",value:clubs.length,icon:"◎",href:"#clubs"},{label:"خدمات قابل استفاده",value:services.filter(s=>s.ready).length,icon:"✦",href:"#services"},{label:"سوابق امتیاز",value:dashboard.pointEvents.length,icon:"◇",href:"#services"}].map(item=><a key={item.label} href={item.href} className="rounded-2xl border border-[#E3E0D8] bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-[#B99450]"><span className="text-lg text-[#B99450]">{item.icon}</span><strong className="mt-1 block text-2xl">{money(item.value)}</strong><span className="mt-1 block text-xs leading-5 text-[#687783]">{item.label}</span></a>)}
+       <section className={(activeSection==="home"?"":"hidden ")+"mt-4 grid grid-cols-2 gap-3 lg:grid-cols-4"}>
+         {[{label:"برنامه‌های پیش‌رو",value:upcomingPrograms.length,icon:"▦",href:"#programs"},{label:"باشگاه‌های من",value:clubs.length,icon:"◎",href:"#clubs"},{label:"خدمات قابل استفاده",value:services.filter(s=>s.ready).length,icon:"✦",href:"#services"},{label:"سوابق امتیاز",value:dashboard.pointEvents.length,icon:"◇",href:"#services"}].map(item=><button type="button" key={item.label} onClick={()=>setActiveSection(item.href.slice(1))} className="rounded-2xl border border-[#E3E0D8] bg-white p-4 text-right shadow-sm transition hover:-translate-y-0.5 hover:border-[#B99450]"><span className="text-lg text-[#B99450]">{item.icon}</span><strong className="mt-1 block text-2xl">{money(item.value)}</strong><span className="mt-1 block text-xs leading-5 text-[#687783]">{item.label}</span></button>)}
        </section>
 
-       <section id="programs" className="mt-8 scroll-mt-36">
+       <section id="programs" className={(activeSection==="programs"?"":"hidden ")+"mt-8 scroll-mt-36"}>
          <div className="mb-4 flex items-end justify-between gap-3"><div><p className="text-xs font-bold text-[#96763D]">تقویم اختصاصی</p><h2 className="mt-1 text-xl font-extrabold">برنامه‌های پیش‌رو</h2></div><span className="rounded-full bg-[#EEECE6] px-3 py-1 text-xs text-[#526173]">ویژه باشگاه‌های شما</span></div>
          {upcomingPrograms.length?<div className="grid gap-3 md:grid-cols-2">{upcomingPrograms.map(p=><article key={p.id} className="rounded-2xl border border-[#E3E0D8] bg-white p-5 shadow-sm"><div className="flex items-start justify-between gap-3"><span className="rounded-lg bg-[#F0DFB8] px-2.5 py-1 text-xs font-bold text-[#172F48]">{p.format||"برنامه باشگاهی"}</span><span className="text-xs text-[#687783]">{dateLabel(p.startsAt)}</span></div><h3 className="mt-3 font-extrabold">{p.href?<a href={p.href} target="_blank" rel="noopener noreferrer" className="hover:text-[#B07800]">{p.title} ↗</a>:p.title}</h3><p className="mt-2 text-sm leading-6 text-[#687783]">{p.description||"توضیحات تکمیلی متعاقباً اعلام می‌شود."}</p><div className="mt-3 flex flex-wrap gap-2 text-xs text-[#526173]"><span>باشگاه: {p.clubName||"خورشید مفاخر"}</span>{p.location&&<span>· مکان: {p.location}</span>}</div></article>)}</div>:<div className="rounded-2xl border border-dashed border-[#D8D0C4] bg-white p-6"><p className="font-bold">فعلاً برنامه‌ای برای باشگاه‌های شما ثبت نشده است.</p><p className="mt-2 text-sm leading-7 text-[#687783]">به‌محض اینکه برنامه‌ای برای یکی از باشگاه‌های عضو شما در سامانه ثبت و منتشر شود، زمان و جزئیات آن در همین بخش نمایش داده می‌شود.</p></div>}
        </section>
 
-       <section id="clubs" className="mt-8 scroll-mt-36">
+       <section id="clubs" className={(activeSection==="clubs"?"":"hidden ")+"mt-8 scroll-mt-36"}>
          <div className="mb-4"><p className="text-xs font-bold text-[#96763D]">شبکه ارتباطی شما</p><h2 className="mt-1 text-xl font-extrabold">باشگاه‌های من</h2></div>
          <div className="grid gap-3 md:grid-cols-2">{clubs.map(club=><article key={club.id} className="rounded-2xl border border-[#E3E0D8] bg-white p-5 shadow-sm"><div className="flex items-start justify-between gap-3"><h3 className="font-extrabold">{club.name}</h3><span className={"shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold "+(club.status==="active"?"bg-emerald-50 text-emerald-800":"bg-[#EEECE6] text-[#526173]")}>{club.status==="active"?"فعال":"در حال برنامه‌ریزی"}</span></div><p className="mt-2 text-xs text-[#687783]">{club.city||"سراسری"}{club.clubType? " · "+club.clubType:""}</p><p className="mt-3 text-sm leading-7 text-[#526173]">{club.description||"معرفی باشگاه هنوز تکمیل نشده است."}</p></article>)}{!clubs.length&&<div className="rounded-2xl border border-dashed border-[#D8D0C4] bg-white p-6 md:col-span-2"><p className="font-bold">هنوز باشگاهی به پرونده شما متصل نشده است.</p><p className="mt-2 text-sm leading-6 text-[#687783]">پس از ثبت عضویت شما در یک باشگاه توسط معاونت اعضا، اطلاعات آن در این بخش دیده می‌شود.</p></div>}</div>
        </section>
 
-       <section id="services" className="mt-8 scroll-mt-36">
+       <section id="services" className={(activeSection==="services"?"":"hidden ")+"mt-8 scroll-mt-36"}>
          <div className="mb-4"><p className="text-xs font-bold text-[#96763D]">مزایا و مشارکت</p><h2 className="mt-1 text-xl font-extrabold">امتیازها و خدمات اعضا</h2></div>
          <div className="grid gap-3 md:grid-cols-[0.8fr_1.2fr]">
            <article className="rounded-2xl bg-[#F0DFB8] p-5"><p className="text-sm font-bold text-[#526173]">موجودی امتیاز شما</p><div className="mt-2 flex items-baseline gap-2"><strong className="text-4xl">{money(dashboard.pointsBalance)}</strong><span className="text-sm">امتیاز</span></div><p className="mt-3 text-xs leading-6 text-[#526173]">امتیازها فقط پس از ثبت فعالیت و تصویب سازوکار امتیازدهی در این بخش محاسبه می‌شوند. عدد صفر به معنی ثبت‌نشدن امتیاز در سامانه است.</p></article>
@@ -226,7 +246,7 @@ export default function MemberHomePage(){
          <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{services.map(s=><article key={s.title} className="rounded-2xl border border-[#E3E0D8] bg-white p-5"><div className="flex items-start justify-between gap-2"><span className="grid h-10 w-10 place-items-center rounded-xl bg-[#F7F5F0] text-xl text-[#96763D]">{s.icon}</span><span className={"rounded-full px-2.5 py-1 text-[10px] font-bold "+(s.ready?"bg-emerald-50 text-emerald-800":"bg-[#EEECE6] text-[#687783]")}>{s.status}</span></div><h3 className="mt-3 font-extrabold">{s.title}</h3><p className="mt-2 text-sm leading-7 text-[#687783]">{s.description}</p></article>)}</div>
        </section>
 
-       <section id="content" className="mt-8 scroll-mt-36">
+       <section id="content" className={(activeSection==="content"?"":"hidden ")+"mt-8 scroll-mt-36"}>
          <div className="mb-4"><p className="text-xs font-bold text-[#96763D]">رسانه و مشارکت</p><h2 className="mt-1 text-xl font-extrabold">ارسال محتوای تولیدی</h2><p className="mt-2 text-sm leading-7 text-[#687783]">متن، تصویر یا ویدیوی تولید خود را ارسال کنید تا برای بررسی به کارتابل معاون رسانه برود. محتوای تأییدشده همراه با توضیحات انتشار به ادمین ارجاع می‌شود.</p></div>
          <form onSubmit={prepareContent} className="rounded-2xl border border-[#E3E0D8] bg-white p-5 shadow-sm md:p-6">
            <div className="grid gap-4 sm:grid-cols-2">
@@ -243,37 +263,44 @@ export default function MemberHomePage(){
          <div className="mt-4 rounded-2xl border border-[#E3E0D8] bg-white p-5"><h3 className="font-extrabold">پیگیری محتواهای ارسالی</h3>{contentSubmissions.length?<div className="mt-3 space-y-3">{contentSubmissions.slice().sort((a,b)=>b.createdAt.localeCompare(a.createdAt)).map(item=><article key={item.id} className="rounded-xl border border-[#E3E0D8] bg-[#F7F5F0] p-3"><div className="flex flex-wrap items-start justify-between gap-2"><strong className="text-sm">{item.title}</strong><span className="rounded-full bg-white px-2.5 py-1 text-xs font-bold">{({pending_media:"در انتظار معاون رسانه",approved_media:"تأییدشده، در انتظار ارجاع",rejected_media:"ردشده توسط رسانه",forwarded_admin:"ارجاع‌شده به ادمین",published:"بارگذاری‌شده در سایت",rejected_admin:"ردشده توسط ادمین"} as Record<string,string>)[item.status]||item.status}</span></div><p className="mt-1 text-xs text-[#687783]">{dateLabel(item.createdAt)} · {item.kind==="image"?"تصویر":item.kind==="video"?"ویدیو":"متن"}</p>{(item.mediaNote||item.adminNote)&&<p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-[#526173]">{item.adminNote||item.mediaNote}</p>}</article>)}</div>:<p className="mt-2 text-sm leading-6 text-[#687783]">هنوز محتوایی ارسال نکرده‌اید. پس از ارسال، وضعیت بررسی در همین بخش نمایش داده می‌شود.</p>}</div>
        </section>
 
-       <section id="profile" className="mt-8 scroll-mt-36">
-         <div className="mb-4"><p className="text-xs font-bold text-[#96763D]">حساب و اطلاعات شخصی</p><h2 className="mt-1 text-xl font-extrabold">پرونده من</h2></div>
-         <div className="grid gap-4 lg:grid-cols-2">
+       <section id="settings" className={(activeSection==="settings"?"":"hidden ")+"mt-8 scroll-mt-36"}>
+          <div className="mb-4"><p className="text-xs font-bold text-[#96763D]">حساب و اطلاعات شخصی</p><h2 className="mt-1 text-xl font-extrabold">تنظیمات حساب</h2><p className="mt-2 text-sm leading-6 text-[#687783]">اطلاعات پرونده و امنیت حساب را از این بخش مدیریت کنید.</p></div>
+          <div className="grid gap-4 lg:grid-cols-2">
            <section className="rounded-2xl border border-[#E3E0D8] bg-white p-5 shadow-sm"><div className="flex items-start justify-between gap-3"><div><h3 className="font-extrabold">اطلاعات عضویت</h3><p className="mt-1 text-xs text-[#687783]">برای تغییر نام و اطلاعات هویتی، با معاونت اعضا هماهنگ کنید.</p></div><button type="button" onClick={()=>setEditing(v=>!v)} className="shrink-0 rounded-xl border border-[#D8D0C4] px-3 py-2 text-xs font-bold">{editing?"لغو":"ویرایش"}</button></div>
-             <div className="mt-4 grid grid-cols-2 gap-3">{[["نام",member.fullName],["نوع عضویت",memberTier],["رده عضویت",memberGrade],["نوع عضو",memberType],["وضعیت","فعال"],["شماره تماس",member.phone],["ایمیل",member.email]].map(([label,value])=><div key={label} className="min-w-0 rounded-xl bg-[#F7F5F0] p-3"><p className="text-[11px] text-[#687783]">{label}</p><p className="mt-1 break-words text-sm font-bold">{value||"ثبت نشده"}</p></div>)}</div>
+             <div className="mt-4 grid grid-cols-2 gap-3">{[["نام",member.fullName],["نام کاربری ورود",member.username||member.phone],["نوع عضویت",memberTier],["وضعیت مشارکت",memberGrade],["عنوان تخصصی",(member.professionalMemberships||[]).map(role=>role==="artist"?"هنرمند":"متخصص").join("، ")||"هنوز تأیید نشده"],["نوع عضو",memberType],["وضعیت","فعال"],["شماره تماس",member.phone],["ایمیل",member.email]].map(([label,value])=><div key={label} className="min-w-0 rounded-xl bg-[#F7F5F0] p-3"><p className="text-[11px] text-[#687783]">{label}</p><p className="mt-1 break-words text-sm font-bold">{value||"ثبت نشده"}</p></div>)}</div>
              {editing&&<form onSubmit={saveProfile} className="mt-4 grid gap-3"><label className="text-sm font-bold">شهر<input className={inputClass+" mt-2"} maxLength={120} value={city} onChange={e=>setCity(e.target.value)}/></label><label className="text-sm font-bold">حوزه تخصصی<input className={inputClass+" mt-2"} maxLength={240} value={expertise} onChange={e=>setExpertise(e.target.value)}/></label><label className="text-sm font-bold">معرفی کوتاه<textarea className={inputClass+" mt-2"} rows={4} maxLength={3000} value={biography} onChange={e=>setBiography(e.target.value)}/></label><button disabled={busy} className="rounded-xl bg-[#172F48] px-4 py-3 text-sm font-bold text-white disabled:opacity-50">{busy?"در حال ذخیره…":"ذخیره پرونده"}</button></form>}
              {!editing&&<div className="mt-3 grid gap-3 sm:grid-cols-2"><div className="rounded-xl bg-[#F7F5F0] p-3"><p className="text-[11px] text-[#687783]">شهر</p><p className="mt-1 text-sm font-semibold">{member.city||"ثبت نشده"}</p></div><div className="rounded-xl bg-[#F7F5F0] p-3"><p className="text-[11px] text-[#687783]">تخصص</p><p className="mt-1 text-sm font-semibold">{member.expertise||"ثبت نشده"}</p></div><div className="rounded-xl bg-[#F7F5F0] p-3 sm:col-span-2"><p className="text-[11px] text-[#687783]">معرفی کوتاه</p><p className="mt-1 whitespace-pre-wrap text-sm leading-6">{member.biography||"هنوز معرفی کوتاهی ثبت نشده است."}</p></div></div>}
            </section>
-           <section className="rounded-2xl border border-[#E3E0D8] bg-white p-5 shadow-sm">
-             <h3 className="font-extrabold">پروفایل حرفه‌ای و درخواست ارتقا</h3>
-             <p className="mt-2 text-sm leading-6 text-[#687783]">اطلاعات حرفه‌ای را یک بار ثبت کنید. درخواست هنرمندی به معاونت امور هنرمندان و درخواست متخصص یا مشاور به معاونت اجتماعی برنامه‌های حمایتی ارجاع می‌شود. ثبت درخواست به‌تنهایی به معنی تأیید عنوان حرفه‌ای نیست.</p>
-             {(member.upgradeRequests||[]).length>0&&<div className="mt-4 space-y-2">{(member.upgradeRequests||[]).slice().reverse().map(req=><div key={req.id} className="rounded-xl border border-[#E3E0D8] bg-[#F7F5F0] p-3"><div className="flex flex-wrap items-center justify-between gap-2"><strong className="text-sm">{req.target==="artist"?"هنرمند":req.target==="expert"?"متخصص":"مشاور"}</strong><span className="rounded-full bg-white px-2.5 py-1 text-xs font-bold">{req.status==="pending"?"در انتظار بررسی":req.status==="approved"?"تأیید شده":req.status==="needs_info"?"نیازمند تکمیل اطلاعات":"رد شده"}</span></div><p className="mt-1 text-xs text-[#687783]">مسیر بررسی: {req.assignedRole==="artists"?"معاونت امور هنرمندان":"معاونت اجتماعی برنامه‌های حمایتی"} · {dateLabel(req.submittedAt)}</p>{req.note&&<p className="mt-2 text-sm leading-6">{req.note}</p>}</div>)}</div>}
+                      <section className="rounded-2xl border border-[#E3E0D8] bg-white p-5 shadow-sm"><h3 className="font-extrabold">تغییر رمز عبور</h3><p className="mt-2 text-sm leading-6 text-[#687783]">برای امنیت حساب، رمز جدید حداقل ۱۲ نویسه داشته باشد و با رمز فعلی متفاوت باشد.</p><form onSubmit={changePassword} className="mt-4 grid gap-3"><label className="text-sm font-bold">رمز فعلی<input className={inputClass+" mt-2"} type="password" autoComplete="current-password" value={currentPassword} onChange={e=>setCurrentPassword(e.target.value)} required/></label><label className="text-sm font-bold">رمز جدید<input className={inputClass+" mt-2"} type="password" autoComplete="new-password" minLength={12} value={newPassword} onChange={e=>setNewPassword(e.target.value)} required/></label><label className="text-sm font-bold">تکرار رمز جدید<input className={inputClass+" mt-2"} type="password" autoComplete="new-password" minLength={12} value={confirm} onChange={e=>setConfirm(e.target.value)} required/></label><button disabled={busy} className="rounded-xl bg-[#172F48] px-4 py-3 text-sm font-bold text-white disabled:opacity-50">{busy?"در حال تغییر…":"تغییر رمز عبور"}</button></form></section>
+          </div>
+        </section>
+        <section id="upgrades" className={(activeSection==="upgrades"?"":"hidden ")+"mt-8 scroll-mt-36"}>
+          <div className="mb-4"><p className="text-xs font-bold text-[#96763D]">تأیید صلاحیت تخصصی</p><h2 className="mt-1 text-xl font-extrabold">درخواست تأیید عنوان هنرمند یا متخصص</h2><p className="mt-2 text-sm leading-6 text-[#687783]">این درخواست از وضعیت مشارکت و امتیازهای شما مستقل است. تأیید عنوان هنرمند یا متخصص، به‌خودی‌خود نوع عضویت یا استحقاق دریافت خدمات حمایتی را تغییر نمی‌دهد.</p></div>
+
+          <div className="grid gap-4">
+             <section className="rounded-2xl border border-[#E3E0D8] bg-white p-5 shadow-sm">
+              <h3 className="font-extrabold">درخواست تأیید عنوان هنرمند یا متخصص</h3>
+             <p className="mt-2 text-sm leading-6 text-[#687783]">برای درخواست عنوان هنرمند، به معاونت امور هنرمندان و برای عنوان متخصص، به معاونت آموزش، پژوهش و نوآوری ارجاع می‌شوید. تأیید این عنوان‌ها مستقل از وضعیت مشارکت عضو وابسته است.</p>
+             {(member.upgradeRequests||[]).length>0&&<div className="mt-4 space-y-2">{(member.upgradeRequests||[]).slice().reverse().map(req=><div key={req.id} className="rounded-xl border border-[#E3E0D8] bg-[#F7F5F0] p-3"><div className="flex flex-wrap items-center justify-between gap-2"><strong className="text-sm">{req.target==="artist"?"هنرمند":req.target==="expert"?"متخصص":"مشاور (درخواست قدیمی)"}</strong><span className="rounded-full bg-white px-2.5 py-1 text-xs font-bold">{req.status==="pending"?"در انتظار بررسی":req.status==="approved"?"تأیید شده":req.status==="needs_info"?"نیازمند تکمیل اطلاعات":"رد شده"}</span></div><p className="mt-1 text-xs text-[#687783]">مسیر بررسی: {req.assignedRole==="artists"?"معاونت امور هنرمندان":req.assignedRole==="education"?"معاونت آموزش، پژوهش و نوآوری":"معاونت اجتماعی و حمایتی"} · {dateLabel(req.submittedAt)}</p>{req.note&&<p className="mt-2 text-sm leading-6">{req.note}</p>}{req.documents&&req.documents.length>0&&<div className="mt-2 flex flex-wrap gap-2">{req.documents.map(doc=><a key={doc.id} href={"/api/member-upgrades/documents/"+encodeURIComponent(doc.id)} className="rounded-lg border border-[#D8D0C4] bg-white px-2.5 py-1.5 text-xs font-bold">دریافت {doc.fileName}</a>)}</div>}</div>)}</div>}
              <form onSubmit={submitUpgrade} className="mt-4 grid gap-3">
-               <label className="text-sm font-bold">عنوان مورد درخواست<select className={inputClass+" mt-2"} value={upgradeTarget} onChange={e=>setUpgradeTarget(e.target.value as "artist"|"expert"|"consultant")}><option value="artist">هنرمند</option><option value="expert">متخصص</option><option value="consultant">مشاور</option></select></label>
-               <label className="text-sm font-bold">عنوان حرفه‌ای / زمینه فعالیت<input className={inputClass+" mt-2"} value={professionalHeadline} onChange={e=>setProfessionalHeadline(e.target.value)} maxLength={160} placeholder="مثلاً نقاش، پژوهشگر هنر، مشاور مسئولیت اجتماعی" required/></label>
+               <label className="text-sm font-bold">نوع پروفایل تخصصی<select className={inputClass+" mt-2"} value={upgradeTarget} onChange={e=>setUpgradeTarget(e.target.value as "artist"|"expert")}><option value="artist">هنرمند</option><option value="expert">متخصص</option></select></label>
+               <label className="text-sm font-bold">عنوان یا زمینه تخصصی<input className={inputClass+" mt-2"} value={professionalHeadline} onChange={e=>setProfessionalHeadline(e.target.value)} maxLength={160} placeholder="مثلاً نقاش، پژوهشگر هنر یا متخصص آموزش" required/></label>
                <label className="text-sm font-bold">تخصص‌ها و حوزه‌های کاری<textarea className={inputClass+" mt-2"} rows={3} value={professionalSpecialties} onChange={e=>setProfessionalSpecialties(e.target.value)} maxLength={1200} required/></label>
                <label className="text-sm font-bold">تحصیلات و گواهی‌های مرتبط<textarea className={inputClass+" mt-2"} rows={3} value={professionalEducation} onChange={e=>setProfessionalEducation(e.target.value)} maxLength={1200} required/></label>
-               <label className="text-sm font-bold">سوابق کاری و حرفه‌ای<textarea className={inputClass+" mt-2"} rows={4} value={professionalExperience} onChange={e=>setProfessionalExperience(e.target.value)} maxLength={3000} required/></label>
+               <label className="text-sm font-bold">سوابق کاری مرتبط<textarea className={inputClass+" mt-2"} rows={4} value={professionalExperience} onChange={e=>setProfessionalExperience(e.target.value)} maxLength={3000} required/></label>
                <label className="text-sm font-bold">نمونه آثار، پروژه‌ها یا پیوند نمونه‌کارها<textarea className={inputClass+" mt-2"} rows={3} value={professionalPortfolio} onChange={e=>setProfessionalPortfolio(e.target.value)} maxLength={2000} placeholder="لینک یا شرح نمونه‌کارها (اختیاری)"/></label>
-               <label className="text-sm font-bold">معرفی حرفه‌ای<textarea className={inputClass+" mt-2"} rows={3} value={professionalBio} onChange={e=>setProfessionalBio(e.target.value)} maxLength={3000} placeholder="معرفی کوتاه برای پروفایل تخصصی (اختیاری)"/></label>
-               <label className="text-sm font-bold">وب‌سایت یا صفحه حرفه‌ای<input className={inputClass+" mt-2"} value={professionalWebsite} onChange={e=>setProfessionalWebsite(e.target.value)} maxLength={300} placeholder="https://…"/></label>
-               <p className="rounded-xl bg-[#F7F5F0] p-3 text-xs leading-6 text-[#687783]">در این مرحله اطلاعات متنی ذخیره می‌شود. بارگذاری امن فایل رزومه و مدارک، و ساخت بانک اطلاعاتی نهایی Art Connect، تا تکمیل زیرساخت دریافت و مدیریت مدارک فعال نمی‌شود.</p>
-               <button disabled={upgradeBusy} className="rounded-xl bg-[#172F48] px-4 py-3 text-sm font-bold text-white disabled:opacity-50">{upgradeBusy?"در حال ثبت…":"ثبت درخواست ارتقا و پروفایل حرفه‌ای"}</button>
+               <label className="text-sm font-bold">معرفی کوتاه برای پرونده تخصصی<textarea className={inputClass+" mt-2"} rows={3} value={professionalBio} onChange={e=>setProfessionalBio(e.target.value)} maxLength={3000} placeholder="معرفی کوتاه برای پروفایل تخصصی (اختیاری)"/></label>
+               <label className="text-sm font-bold">وب‌سایت یا صفحه کاری<input className={inputClass+" mt-2"} value={professionalWebsite} onChange={e=>setProfessionalWebsite(e.target.value)} maxLength={300} placeholder="https://…"/></label>
+               <label className="text-sm font-bold">پیوست رزومه، مدارک یا نمونه‌کارها<input className={inputClass+" mt-2"} type="file" multiple accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.webp,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/jpeg,image/png,image/webp" onChange={e=>{const files=Array.from(e.target.files||[]);setProfessionalFiles(files);}}/><span className="mt-1 block text-xs font-normal leading-5 text-[#687783]">حداکثر ۴ فایل؛ هر فایل تا ۲ مگابایت و مجموع تا ۴ مگابایت. فایل‌ها خصوصی نگهداری می‌شوند و فقط نقش‌های مجاز می‌توانند دریافت کنند.</span></label>
+               {professionalFiles.length>0&&<ul className="rounded-xl bg-[#F7F5F0] p-3 text-xs text-[#526173]">{professionalFiles.map((file,index)=><li key={file.name+index} className="flex justify-between gap-2 py-1"><span className="break-all">{file.name}</span><span className="shrink-0">{(file.size/1024).toFixed(0)} KB</span></li>)}</ul>}
+               <button disabled={upgradeBusy} className="rounded-xl bg-[#172F48] px-4 py-3 text-sm font-bold text-white disabled:opacity-50">{upgradeBusy?"در حال ثبت…":"ثبت درخواست و ارسال به معاونت مربوطه"}</button>
              </form>
            </section>
-           <section className="rounded-2xl border border-[#E3E0D8] bg-white p-5 shadow-sm"><h3 className="font-extrabold">تغییر رمز عبور</h3><p className="mt-2 text-sm leading-6 text-[#687783]">برای امنیت حساب، رمز جدید حداقل ۱۲ نویسه داشته باشد و با رمز فعلی متفاوت باشد.</p><form onSubmit={changePassword} className="mt-4 grid gap-3"><label className="text-sm font-bold">رمز فعلی<input className={inputClass+" mt-2"} type="password" autoComplete="current-password" value={currentPassword} onChange={e=>setCurrentPassword(e.target.value)} required/></label><label className="text-sm font-bold">رمز جدید<input className={inputClass+" mt-2"} type="password" autoComplete="new-password" minLength={12} value={newPassword} onChange={e=>setNewPassword(e.target.value)} required/></label><label className="text-sm font-bold">تکرار رمز جدید<input className={inputClass+" mt-2"} type="password" autoComplete="new-password" minLength={12} value={confirm} onChange={e=>setConfirm(e.target.value)} required/></label><button disabled={busy} className="rounded-xl bg-[#172F48] px-4 py-3 text-sm font-bold text-white disabled:opacity-50">{busy?"در حال تغییر…":"تغییر رمز عبور"}</button></form></section>
-         </div>
-       </section>
+          </div>
+        </section>
      </>:<div className="rounded-2xl border border-[#E3E0D8] bg-white p-6">پرونده عضو پیدا نشد.</div>}
      <footer className="mt-8 border-t border-[#E3E0D8] py-5 text-center text-xs leading-6 text-[#687783]">سازمان مردم‌نهاد خورشید مفاخر · پنل اختصاصی اعضا · اطلاعات حساب فقط برای صاحب حساب و نقش‌های مجاز قابل دسترسی است.</footer>
    </div>
-   <nav aria-label="دسترسی سریع موبایل" className="fixed inset-x-0 bottom-0 z-40 border-t border-[#E3E0D8] bg-[#FFFEFA]/95 px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2 backdrop-blur md:hidden"><div className="mx-auto flex max-w-lg justify-around gap-1">{[["home","خانه","⌂"],["programs","برنامه‌ها","▦"],["clubs","باشگاه","◎"],["content","ارسال اثر","↗"],["profile","حساب","◉"]].map(([id,label,icon])=><a key={id} href={"#"+id} className="flex min-w-0 flex-1 flex-col items-center gap-0.5 rounded-xl px-1 py-1 text-[10px] font-bold text-[#526173] hover:bg-[#F0DFB8]"><span className="text-base text-[#96763D]">{icon}</span><span>{label}</span></a>)}</div></nav>
+   <nav aria-label="دسترسی سریع موبایل" className="fixed inset-x-0 bottom-0 z-40 border-t border-[#E3E0D8] bg-[#FFFEFA]/95 px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2 backdrop-blur md:hidden"><div className="mx-auto flex max-w-lg justify-around gap-1">{[["home","خانه","⌂"],["programs","برنامه‌ها","▦"],["clubs","باشگاه","◎"],["upgrades","ارتقا","✦"],["content","ارسال اثر","↗"],["settings","تنظیمات","⚙"]].map(([id,label,icon])=><button type="button" key={id} onClick={()=>setActiveSection(id)} aria-current={activeSection===id?"page":undefined} className={"flex min-w-0 flex-1 flex-col items-center gap-0.5 rounded-xl px-1 py-1 text-[10px] font-bold hover:bg-[#F0DFB8] "+(activeSection===id?"bg-[#F0DFB8] text-[#172F48]":"text-[#526173]")}><span className="text-base text-[#96763D]">{icon}</span><span>{label}</span></button>)}</div></nav>
  </main>;
 }
