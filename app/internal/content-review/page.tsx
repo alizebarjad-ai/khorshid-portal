@@ -58,7 +58,7 @@ export default function ContentReviewPage() {
     }
   }, [router]);
 
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => { const timer = window.setTimeout(() => { void load(); }, 0); return () => window.clearTimeout(timer); }, [load]);
 
   async function act(item: Item, action: "approve" | "reject" | "forward") {
     const note = (notes[item.id] || "").trim();
