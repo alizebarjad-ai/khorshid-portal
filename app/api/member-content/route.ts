@@ -66,12 +66,12 @@ export async function POST(request: NextRequest) {
         : (["video/mp4", "video/quicktime"].includes(file.type) && isMp4)
           || (file.type === "video/webm" && isWebm);
       if (!signatureMatches) return jsonError("محتوای فایل با نوع اعلام‌شده سازگار نیست یا قالب فایل پشتیبانی نمی‌شود.", 415);
-      if (!process.env.PRIVATE_BLOB_STORE_ID || !process.env.PRIVATE_BLOB_READ_WRITE_TOKEN) {
+      if (!process.env.BLOB_STORE_ID) {
         return jsonError("ذخیره‌سازی خصوصی هنوز به این محیط متصل نشده است؛ فایل ارسال نشد.", 503);
       }
       const safeName = file.name.replace(/[^\p{L}\p{N}._-]+/gu, "_").slice(-120) || "upload";
       const blob = await put(`member-content/${user.memberId}/${randomUUID()}-${safeName}`, file, {
-        access: "private", addRandomSuffix: false, contentType: file.type, token: process.env.PRIVATE_BLOB_READ_WRITE_TOKEN
+        access: "private", addRandomSuffix: false, contentType: file.type
       });
       item.filePathname = blob.pathname;
       item.fileUrl = `/api/member-content/files/${item.id}`;
