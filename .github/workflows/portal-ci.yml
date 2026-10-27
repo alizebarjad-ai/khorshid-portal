@@ -7,8 +7,7 @@ on:
       - "integration/**"
   push:
     branches:
-      - "feat/**"
-      - "fix/**"
+      - main
       - "integration/**"
 
 permissions:
