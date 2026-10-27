@@ -29,7 +29,11 @@ export async function proxy(request: NextRequest) {
   const user = decodeSession(token);
   if (!user) return NextResponse.next();
 
-  if (user.role === "member" && !MEMBER_ALLOWED_PATHS.has(path)) {
+  const memberUpgradeApiAllowed =
+    (path === "/api/member-upgrades" && request.method === "POST") ||
+    (/^\/api\/member-upgrades\/documents\/[^/]+$/.test(path) && request.method === "GET");
+
+  if (user.role === "member" && !MEMBER_ALLOWED_PATHS.has(path) && !memberUpgradeApiAllowed) {
     const response = path.startsWith("/api/")
       ? NextResponse.json({ error: "این بخش برای حساب عضو در دسترس نیست." }, { status: 403 })
       : NextResponse.redirect(new URL("/internal/member-home", request.url));
