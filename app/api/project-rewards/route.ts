@@ -149,39 +149,81 @@ export async function PUT(request: NextRequest) {
     }
 
     if (!existing) {
-      if (!proposalRoles.includes(user.role)) return fail("ثبت پیشنهاد برای نقش شما مجاز نیست.", 403);
+      if (user.role !== "beneficiary") return fail("پیشنهاد جدید فقط از مسیر حساب ذی‌نفع ثبت می‌شود؛ کارکنان باید از گردش فرصت‌ها استفاده کنند.", 403);
+      const title = String(item.title || "").trim().slice(0, 160);
+      const description = String(item.description || "").trim().slice(0, 3000);
+      if (!title || !description) return fail("عنوان و شرح پیشنهاد الزامی است.", 400);
+      const createdAt = today();
       const newItem: Record<string, unknown> & { id: string } = {
         ...item,
         id: item.id,
+        title,
+        description,
         creator: user.username,
         creatorName: user.name,
+        status: "در حال بررسی قائم‌مقام",
+        assignedTo: "deputy",
+        assignedToName: "قائم‌مقام",
+        contractNo: "",
+        contractValue: 0,
+        contractDate: "",
+        financeNote: "",
+        history: [{ id: randomUUID(), date: createdAt, actor: user.name, action: "ثبت پیشنهاد اولیه", note: "" }],
       };
-      if (user.role === "beneficiary") {
-        newItem.status = "در حال بررسی قائم‌مقام";
-        newItem.assignedTo = "deputy";
-        newItem.assignedToName = "قائم‌مقام";
-      }
       return NextResponse.json({ item: await putStored(collection, newItem as Record<string, unknown> & { id: string }) }, { status: 201 });
     }
 
     if (user.role === "beneficiary") return fail("پس از ثبت، ویرایش پیشنهاد باید از مسیر گردش کار انجام شود.", 403);
     const allowedByRole: Record<string, string[]> = {
-      deputy: ["status", "assignedTo", "assignedToName", "specialistBrief", "proposalDetails", "negotiationNote", "contractNo", "contractValue", "contractDate", "financeNote", "history"],
-      ceo: ["status", "assignedTo", "assignedToName", "proposalDetails", "negotiationNote", "contractNo", "contractValue", "contractDate", "financeNote", "history"],
-      finance: ["status", "contractNo", "contractValue", "contractDate", "financeNote", "history"],
-      economic: ["status", "proposalDetails", "negotiationNote", "history"],
-      csr: ["status", "specialistBrief", "proposalDetails", "history"],
-      media: ["status", "specialistBrief", "proposalDetails", "history"],
-      artists: ["status", "specialistBrief", "proposalDetails", "history"],
-      education: ["status", "specialistBrief", "proposalDetails", "history"],
-      members: ["status", "specialistBrief", "proposalDetails", "history"],
+      deputy: ["status", "assignedTo", "assignedToName", "specialistBrief", "proposalDetails", "negotiationNote", "contractNo", "contractValue", "contractDate", "financeNote"],
+      ceo: ["status", "assignedTo", "assignedToName", "proposalDetails", "negotiationNote", "contractNo", "contractValue", "contractDate", "financeNote"],
+      finance: ["status", "contractNo", "contractValue", "contractDate", "financeNote"],
     };
     const changes = changedKeys(existing, item);
+    const changesWithoutHistory = changes.filter((key) => key !== "history");
     const allowed = allowedByRole[user.role] || [];
-    if (changes.some((key) => !allowed.includes(key))) {
+    if (!changesWithoutHistory.length) return fail("هیچ تغییر معتبری برای ثبت ارسال نشده است.", 400);
+    if (changesWithoutHistory.some((key) => !allowed.includes(key))) {
       return fail("تغییرات ارسالی خارج از محدوده دسترسی این نقش است.", 403);
     }
-    return NextResponse.json({ item: await putStored(collection, item as Record<string, unknown> & { id: string }) });
+
+    if (typeof item.status === "string" && item.status !== existing.status) {
+      const from = String(existing.status || "");
+      const to = item.status;
+      const deputyTransitions: Record<string, string[]> = {
+        "ثبت اولیه": ["در حال بررسی قائم‌مقام", "نیازمند تکمیل", "رد شده"],
+        "در حال بررسی قائم‌مقام": ["تأیید اولیه", "نیازمند تکمیل", "رد شده"],
+        "نیازمند تکمیل": ["تأیید اولیه", "رد شده"],
+        "تأیید اولیه": ["در حال تدوین پروپوزال"],
+        "در حال تدوین پروپوزال": ["بازگشت به قائم‌مقام"],
+        "بازگشت به قائم‌مقام": ["آماده مذاکره"],
+        "آماده مذاکره": ["در حال مذاکره", "قرارداد در حال تنظیم", "ارجاع به مالی", "رد شده", "متوقف شده"],
+        "در حال مذاکره": ["قرارداد در حال تنظیم", "ارجاع به مالی", "رد شده", "متوقف شده"],
+        "قرارداد در حال تنظیم": ["ارجاع به مالی", "متوقف شده"],
+      };
+      const allowedTransition = user.role === "deputy"
+        ? (deputyTransitions[from] || []).includes(to)
+        : user.role === "finance"
+          ? from === "ارجاع به مالی" && to === "ثبت‌شده"
+          : user.role === "ceo"
+            ? ["رد شده", "متوقف شده"].includes(to) && !["ثبت‌شده", "رد شده", "متوقف شده"].includes(from)
+            : false;
+      if (!allowedTransition) return fail("تغییر وضعیت با گردش‌کار و اختیارات نقش شما سازگار نیست.", 403);
+    }
+
+    const incomingHistory = Array.isArray(item.history) ? item.history as Array<Record<string, unknown>> : [];
+    const priorHistory = Array.isArray(existing.history) ? existing.history as Array<Record<string, unknown>> : [];
+    const candidate = incomingHistory.length > priorHistory.length ? incomingHistory[incomingHistory.length - 1] : undefined;
+    const auditNote = typeof candidate?.note === "string" ? candidate.note.trim().slice(0, 2000) : "";
+    const actionLabel = existing.status !== item.status
+      ? `تغییر وضعیت از «${String(existing.status || "")}» به «${String(item.status || "")}»`
+      : "به‌روزرسانی اطلاعات پیشنهاد";
+    const nextItem = {
+      ...existing,
+      ...item,
+      history: [...priorHistory, { id: randomUUID(), date: today(), actor: user.name, action: actionLabel, note: auditNote }],
+    };
+    return NextResponse.json({ item: await putStored(collection, nextItem as Record<string, unknown> & { id: string }) });
   } catch (error) {
     console.error("PUT /api/project-rewards failed", error);
     return fail(error instanceof Error ? error.message : "ذخیره اطلاعات انجام نشد.", 503);
