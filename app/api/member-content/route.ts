@@ -78,7 +78,8 @@ export async function POST(request: NextRequest) {
       item.fileName = file.name.slice(0, 240); item.contentType = file.type; item.size = file.size;
     }
     await putStored(collection, item);
-    const { filePathname: _privatePathname, ...safeItem } = item;
+    const safeItem = { ...item };
+    delete safeItem.filePathname;
     return NextResponse.json({ item: { ...safeItem, memberEmail: undefined } }, { status: 201, headers: { "Cache-Control": "private, no-store" } });
   } catch (error) {
     console.error("[member-content] upload failed", error instanceof Error ? { name: error.name } : { name: "UnknownError" });
