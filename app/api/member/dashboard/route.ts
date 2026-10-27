@@ -18,7 +18,6 @@ type SiteContentItem = {
   linkLabel: string;
   clubIds: string[];
   details?: string;
-  linkLabel?: string;
   targetGrades?: string[];
   isoDate?: string;
 };
