@@ -30,7 +30,7 @@ export default function MemberUpgradesPage(){
   const r=await fetch("/api/member-upgrades",{cache:"no-store"});const d=await r.json();if(!r.ok)throw new Error(d.error||"دریافت کارتابل ناموفق بود.");
   setItems(Array.isArray(d.items)?d.items:[]);setError("");
  }catch(e){setError(e instanceof Error?e.message:"دریافت کارتابل ناموفق بود.");}finally{setLoading(false)}},[router]);
- useEffect(()=>{void load()},[load]);
+ useEffect(()=>{let cancelled=false;void Promise.resolve().then(()=>{if(!cancelled) return load()});return()=>{cancelled=true}},[load]);
  async function decide(item:Item,status:"approved"|"rejected"|"needs_info"){
   const note=notes[item.id]||"";
   if((status==="rejected"||status==="needs_info")&&!note.trim()){setError("برای رد یا درخواست تکمیل، توضیح ثبت کنید.");return}
