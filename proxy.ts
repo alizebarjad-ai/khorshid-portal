@@ -33,7 +33,8 @@ export async function proxy(request: NextRequest) {
     (path === "/api/member-upgrades" && request.method === "POST") ||
     (/^\/api\/member-upgrades\/documents\/[^/]+$/.test(path) && request.method === "GET");
   const memberContentApiAllowed =
-    path === "/api/member-content" && ["GET", "POST"].includes(request.method);
+    (path === "/api/member-content" && ["GET", "POST"].includes(request.method)) ||
+    (/^\/api\/member-content\/files\/[^/]+$/.test(path) && request.method === "GET");
 
   if (user.role === "member" && !MEMBER_ALLOWED_PATHS.has(path) && !memberUpgradeApiAllowed && !memberContentApiAllowed) {
     const response = path.startsWith("/api/")
