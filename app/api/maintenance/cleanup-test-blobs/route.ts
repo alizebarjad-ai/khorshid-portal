@@ -6,6 +6,9 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
+  if (process.env.VERCEL_ENV !== "preview") {
+    return new NextResponse(null, { status: 404, headers: { "Cache-Control": "no-store" } });
+  }
   const expected = process.env.LEGACY_BLOB_CLEANUP_KEY;
   const provided = request.nextUrl.searchParams.get("key") || "";
   const providedBytes = Buffer.from(provided);
