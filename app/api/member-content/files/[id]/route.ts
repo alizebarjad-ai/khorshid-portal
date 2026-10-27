@@ -43,12 +43,12 @@ export async function GET(
       return jsonError("این فایل هنوز به مرحله بررسی مدیریتی نرسیده است.", 403);
     }
 
-    if (!process.env.BLOB_STORE_ID) return jsonError("اتصال فضای ذخیره‌سازی خصوصی ناقص است.", 503);
+    if (!process.env.PRIVATE_BLOB_READ_WRITE_TOKEN) return jsonError("اتصال فضای ذخیره‌سازی خصوصی ناقص است.", 503);
     if (!item.filePathname.startsWith(`member-content/${item.memberId}/`)) {
       return jsonError("مسیر فایل معتبر نیست.", 404);
     }
 
-    const blob = await get(item.filePathname, { access: "private" });
+    const blob = await get(item.filePathname, { access: "private", token: process.env.PRIVATE_BLOB_READ_WRITE_TOKEN });
     if (!blob || blob.statusCode !== 200 || !blob.stream) {
       return jsonError("فایل خصوصی پیدا نشد یا دریافت آن ممکن نیست.", 404);
     }
