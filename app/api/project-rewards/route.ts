@@ -9,7 +9,6 @@ export const dynamic = "force-dynamic";
 
 type SessionUser = { username: string; name: string; role: string };
 const projectRoles = ["finance", "ceo", "deputy", "economic", "csr", "media", "artists", "education", "members", "beneficiary"];
-const proposalRoles = ["finance", "ceo", "deputy", "economic", "csr", "media", "artists", "education", "members", "beneficiary"];
 
 async function currentUser(): Promise<SessionUser | null> {
   const store = await cookies();
@@ -161,6 +160,7 @@ export async function PUT(request: NextRequest) {
         description,
         creator: user.username,
         creatorName: user.name,
+        createdAt,
         status: "در حال بررسی قائم‌مقام",
         assignedTo: "deputy",
         assignedToName: "قائم‌مقام",
@@ -168,6 +168,9 @@ export async function PUT(request: NextRequest) {
         contractValue: 0,
         contractDate: "",
         financeNote: "",
+        specialistBrief: "",
+        proposalDetails: "",
+        negotiationNote: "",
         history: [{ id: randomUUID(), date: createdAt, actor: user.name, action: "ثبت پیشنهاد اولیه", note: "" }],
       };
       return NextResponse.json({ item: await putStored(collection, newItem as Record<string, unknown> & { id: string }) }, { status: 201 });
@@ -183,6 +186,8 @@ export async function PUT(request: NextRequest) {
     const changesWithoutHistory = changes.filter((key) => key !== "history");
     const allowed = allowedByRole[user.role] || [];
     if (!changesWithoutHistory.length) return fail("هیچ تغییر معتبری برای ثبت ارسال نشده است.", 400);
+    if (changesWithoutHistory.some((key) => item[key] === undefined)) return fail("برای تغییر فیلدها، مقدار معتبر ارسال کنید.", 400);
+    if (changesWithoutHistory.includes("status") && typeof item.status !== "string") return fail("وضعیت جدید معتبر نیست.", 400);
     if (changesWithoutHistory.some((key) => !allowed.includes(key))) {
       return fail("تغییرات ارسالی خارج از محدوده دسترسی این نقش است.", 403);
     }
