@@ -1,7 +1,10 @@
 "use client";
 
+/* eslint-disable react-hooks/set-state-in-effect -- these effects synchronize async request loading and the selected record form. */
+
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 type RequestItem = {
   id: string;
@@ -98,7 +101,7 @@ export default function GeneralRequestsPage() {
     if (!selected) return;
     setAssignedUnit(selected.assignedUnit || "deputy");
     setFeedback(selected.reviewFeedback || "");
-  }, [selectedId, selected?.updatedAt]);
+  }, [selected]);
 
   async function act(action: string) {
     if (!selected) return;
@@ -126,9 +129,41 @@ export default function GeneralRequestsPage() {
     }
   }
 
+  async function deleteSelected() {
+    if (!selected) return;
+    if (!["completed", "rejected"].includes(selected.reviewStatus || "")) {
+      setError("فقط درخواست بسته‌شده یا ردشده قابل حذف است.");
+      return;
+    }
+    if (!selected.assignedUnit) {
+      setError("واحد مسئول این درخواست مشخص نیست؛ حذف متوقف شد.");
+      return;
+    }
+    if (!window.confirm("این درخواست بسته‌شده برای همیشه حذف شود؟ این اقدام قابل بازگشت نیست.")) return;
+    setBusy(true);
+    setError("");
+    setNotice("");
+    try {
+      const response = await fetch("/api/requests", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: selected.id, unit: selected.assignedUnit }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "حذف درخواست انجام نشد.");
+      setNotice("درخواست بسته‌شده حذف شد و رویداد آن در سوابق سایت ثبت شد.");
+      setSelectedId("");
+      await load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "حذف درخواست انجام نشد.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return <main className="internal-app min-h-screen px-4 pb-16 pt-28 text-[#18304A]"><div className="container-site">
     <header className="rounded-3xl bg-[#18304A] p-6 text-white md:p-8">
-      <a href="/internal/roles/members" className="text-sm text-[#F2A900]">← بازگشت به داشبورد</a>
+      <Link href="/internal/roles/members" className="text-sm text-[#F2A900]">← بازگشت به داشبورد</Link>
       <h1 className="mt-3 text-3xl font-extrabold">کارتابل درخواست‌های عمومی</h1>
       <p className="mt-2 max-w-3xl text-sm leading-7 text-[#E6EAF0]">درخواست‌های حمایت، مسئولیت اجتماعی، پیشنهاد پروژه، همکاری هنری و رسانه‌ای در این کارتابل مدیریت می‌شوند. درخواست عضویت در کارتابل اختصاصی معاونت اعضا باقی می‌ماند.</p>
       <div className="mt-5 flex flex-wrap gap-3"><span className="rounded-xl bg-white/10 px-4 py-2">درخواست‌های این کارتابل: {items.length}</span><a href="/internal/membership-requests" className="rounded-xl border border-white/30 px-4 py-2 font-bold">کارتابل عضویت</a></div>
@@ -155,7 +190,7 @@ export default function GeneralRequestsPage() {
             <label className="mt-4 block text-sm font-bold">ارجاع به واحد مسئول<select className={fieldClass} value={assignedUnit} onChange={(e) => setAssignedUnit(e.target.value)}>{unitOptions.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
             <button disabled={busy} onClick={() => void act("assign")} className="mt-3 rounded-xl border border-[#D8D0C4] px-4 py-3 font-bold disabled:opacity-50">ارجاع / تغییر واحد مسئول</button>
             <label className="mt-4 block text-sm font-bold">خلاصه اقدام یا نتیجه پیگیری<textarea className={fieldClass + " min-h-32"} value={feedback} onChange={(e) => setFeedback(e.target.value)} placeholder="نتیجه تماس، جلسه، بررسی یا اقدام انجام‌شده را ثبت کنید." /></label>
-            <div className="mt-4 flex flex-wrap gap-3"><button disabled={busy} onClick={() => void act("request-revision")} className="rounded-xl border border-[#D8D0C4] px-4 py-3 font-bold disabled:opacity-50">درخواست تکمیل از متقاضی</button><button disabled={busy} onClick={() => void act("mark-in-review")} className="rounded-xl bg-[#FFF0C2] px-4 py-3 font-bold text-[#654300] disabled:opacity-50">شروع / ادامه بررسی</button><button disabled={busy} onClick={() => { if (window.confirm("درخواست با این خلاصه اقدام بسته شود؟")) void act("complete"); }} className="rounded-xl bg-[#F2A900] px-4 py-3 font-extrabold text-[#18304A] disabled:opacity-50">ثبت نتیجه و بستن درخواست</button></div>
+            <div className="mt-4 flex flex-wrap gap-3"><button disabled={busy} onClick={() => void act("request-revision")} className="rounded-xl border border-[#D8D0C4] px-4 py-3 font-bold disabled:opacity-50">درخواست تکمیل از متقاضی</button><button disabled={busy} onClick={() => void act("mark-in-review")} className="rounded-xl bg-[#FFF0C2] px-4 py-3 font-bold text-[#654300] disabled:opacity-50">شروع / ادامه بررسی</button><button disabled={busy} onClick={() => { if (window.confirm("درخواست با این خلاصه اقدام بسته شود؟")) void act("complete"); }} className="rounded-xl bg-[#F2A900] px-4 py-3 font-extrabold text-[#18304A] disabled:opacity-50">ثبت نتیجه و بستن درخواست</button>{["completed", "rejected"].includes(selected.reviewStatus || "") && <button disabled={busy} onClick={() => void deleteSelected()} className="rounded-xl border border-red-300 bg-red-50 px-4 py-3 font-bold text-red-800 disabled:opacity-50">حذف درخواست بسته‌شده</button>}</div>
             <p className="mt-3 text-xs leading-6 text-[#65717B]">ارجاع به واحد دیگر فقط برای مدیرعامل و قائم‌مقام مجاز است. واحد مسئول می‌تواند روند بررسی و نتیجه را ثبت کند.</p>
           </div>
         </section> : <section className="rounded-3xl bg-white p-8 text-sm">برای مشاهده جزئیات، یک درخواست را از فهرست انتخاب کنید.</section>}

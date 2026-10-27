@@ -17,7 +17,11 @@ const MEMBER_ALLOWED_PATHS = new Set([
   "/api/auth/change-password",
   "/api/member/profile",
   "/api/member/dashboard",
+  "/api/club-feed",
+  "/api/member-content",
+  "/api/member-upgrades",
 ]);
+const MEMBER_ALLOWED_PREFIXES = ["/api/member-content/files/"];
 
 export async function proxy(request: NextRequest) {
   const path = request.nextUrl.pathname;
@@ -27,7 +31,7 @@ export async function proxy(request: NextRequest) {
   const user = decodeSession(token);
   if (!user) return NextResponse.next();
 
-  if (user.role === "member" && !MEMBER_ALLOWED_PATHS.has(path)) {
+  if (user.role === "member" && !MEMBER_ALLOWED_PATHS.has(path) && !MEMBER_ALLOWED_PREFIXES.some((prefix) => path.startsWith(prefix))) {
     const response = path.startsWith("/api/")
       ? NextResponse.json({ error: "این بخش برای حساب عضو در دسترس نیست." }, { status: 403 })
       : NextResponse.redirect(new URL("/internal/member-home", request.url));

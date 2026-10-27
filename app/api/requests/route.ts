@@ -75,3 +75,37 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ error: error instanceof Error ? error.message : "ثبت تغییرات درخواست ناموفق بود." }, { status: 503 });
   }
 }
+
+export async function DELETE(request: NextRequest) {
+  const checked = auth(request);
+  if (!checked.user) return checked.response!;
+  try {
+    const body = await request.json() as { id?: unknown; unit?: unknown };
+    const id = typeof body.id === "string" ? body.id.trim().slice(0, 100) : "";
+    const unit = typeof body.unit === "string" ? body.unit : "";
+    const allowedUnits = ["economic", "finance", "csr", "media", "artists", "education", "members", "deputy"];
+    if (!id) return NextResponse.json({ error: "شناسه درخواست معتبر نیست." }, { status: 400 });
+    if (!allowedUnits.includes(unit)) return NextResponse.json({ error: "واحد مسئول معتبر نیست." }, { status: 400 });
+    if (!canSeeAll(checked.user.role) && unit !== checked.user.role) {
+      return NextResponse.json({ error: "حذف فقط در محدوده کارتابل واحد خودتان مجاز است." }, { status: 403 });
+    }
+
+    const current = await upstream("?id=" + encodeURIComponent(id));
+    if (!current.ok) return current;
+    const payload = await current.clone().json();
+    const item = payload.item;
+    if (!item || item.requestType === "membership" || item.assignedUnit !== unit) {
+      return NextResponse.json({ error: "درخواست در کارتابل این واحد پیدا نشد." }, { status: 404 });
+    }
+    if (!["completed", "rejected"].includes(item.reviewStatus)) {
+      return NextResponse.json({ error: "فقط درخواست بسته‌شده یا ردشده قابل حذف است." }, { status: 409 });
+    }
+
+    return await upstream("", {
+      method: "DELETE",
+      body: JSON.stringify({ id, unit, actor: checked.user.name }),
+    });
+  } catch (error) {
+    return NextResponse.json({ error: error instanceof Error ? error.message : "حذف درخواست ناموفق بود." }, { status: 503 });
+  }
+}

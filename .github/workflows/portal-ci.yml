@@ -1,0 +1,63 @@
+name: Portal CI
+
+on:
+  pull_request:
+    branches:
+      - main
+      - "integration/**"
+  push:
+    branches:
+      - main
+      - "integration/**"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: portal-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Typecheck and production build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      AUTH_SECRET: "ci-only-secret-that-is-at-least-thirty-two-characters"
+      DATABASE_URL: "postgresql://portal:portal@127.0.0.1:5432/portal"
+      AUTH_OWNER_USERNAME: "ci-owner"
+      AUTH_OWNER_PASSWORD: "ci-only-password-not-for-production"
+      AUTH_FINANCE_USERNAME: "ci-finance"
+      AUTH_FINANCE_PASSWORD: "ci-only-password-not-for-production"
+      AUTH_CEO_USERNAME: "ci-ceo"
+      AUTH_CEO_PASSWORD: "ci-only-password-not-for-production"
+      AUTH_DEPUTY_USERNAME: "ci-deputy"
+      AUTH_DEPUTY_PASSWORD: "ci-only-password-not-for-production"
+      AUTH_ECONOMIC_USERNAME: "ci-economic"
+      AUTH_ECONOMIC_PASSWORD: "ci-only-password-not-for-production"
+      AUTH_CSR_USERNAME: "ci-csr"
+      AUTH_CSR_PASSWORD: "ci-only-password-not-for-production"
+      AUTH_MEDIA_USERNAME: "ci-media"
+      AUTH_MEDIA_PASSWORD: "ci-only-password-not-for-production"
+      AUTH_ARTISTS_USERNAME: "ci-artists"
+      AUTH_ARTISTS_PASSWORD: "ci-only-password-not-for-production"
+      AUTH_EDUCATION_USERNAME: "ci-education"
+      AUTH_EDUCATION_PASSWORD: "ci-only-password-not-for-production"
+      AUTH_MEMBERS_USERNAME: "ci-members"
+      AUTH_MEMBERS_PASSWORD: "ci-only-password-not-for-production"
+      AUTH_BENEFICIARIES_JSON: '[{"username":"ci-beneficiary","password":"ci-only-password-not-for-production","name":"CI beneficiary"}]'
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install dependencies
+        run: npm install
+      - name: TypeScript check
+        run: npx tsc --noEmit
+      - name: Lint
+        run: npx eslint app/layout.tsx app/manifest.ts next.config.ts app/api/requests/route.ts app/internal/requests/page.tsx app/api/member-upgrades/route.ts app/internal/member-upgrades/page.tsx app/api/member-content/route.ts 'app/api/member-content/files/[id]/route.ts' app/api/project-rewards/route.ts eslint.config.mjs
+      - name: Production build
+        run: npm run build

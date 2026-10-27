@@ -10,9 +10,10 @@ export const dynamic = "force-dynamic";
 
 type Submission = {
   id: string; kind: "text" | "image" | "video"; title: string; description: string;
-  text?: string; fileUrl?: string; fileName?: string; contentType?: string; size?: number;
+  text?: string; fileUrl?: string; filePathname?: string; fileName?: string; contentType?: string; size?: number;
   memberId: string; memberName: string; memberEmail: string; status: "pending_media" | "rejected_media" | "approved_media" | "forwarded_admin" | "published" | "rejected_admin";
   createdAt: string; updatedAt: string; mediaNote?: string; adminNote?: string; reviewedBy?: string; forwardedAt?: string;
+  reviewHistory?: { id: string; action: string; actor: string; at: string; note: string; fromStatus: string; toStatus: string }[];
 };
 const collection = "member-content";
 const jsonError = (message: string, status: number) => NextResponse.json({ error: message }, { status });
@@ -29,10 +30,12 @@ export async function POST(request: NextRequest) {
     const title = String(form.get("title") || "").trim().slice(0, 160);
     const description = String(form.get("description") || "").trim().slice(0, 3000);
     if (!title || !["text", "image", "video"].includes(kind)) return jsonError("نوع و عنوان محتوا الزامی است.", 400);
+    const submittedAt = new Date().toISOString();
     const item: Submission = {
       id: randomUUID(), kind: kind as Submission["kind"], title, description,
       memberId: user.memberId, memberName: member.fullName, memberEmail: member.email,
-      status: "pending_media", createdAt: new Date().toISOString(), updatedAt: new Date().toISOString()
+      status: "pending_media", createdAt: submittedAt, updatedAt: submittedAt,
+      reviewHistory: [{ id: randomUUID(), action: "submit", actor: user.name, at: submittedAt, note: "", fromStatus: "", toStatus: "pending_media" }],
     };
     if (kind === "text") {
       const text = String(form.get("text") || "").trim();
@@ -42,19 +45,48 @@ export async function POST(request: NextRequest) {
       const file = form.get("file");
       if (!(file instanceof File) || file.size <= 0) return jsonError("فایل محتوا را انتخاب کنید.", 400);
       if (file.size > 25 * 1024 * 1024) return jsonError("حداکثر اندازه فایل ۲۵ مگابایت است.", 413);
-      const valid = kind === "image" ? file.type.startsWith("image/") : file.type.startsWith("video/");
-      if (!valid) return jsonError(kind === "image" ? "برای این نوع محتوا فایل تصویری انتخاب کنید." : "برای این نوع محتوا فایل ویدیویی انتخاب کنید.", 415);
-      if (!process.env.BLOB_READ_WRITE_TOKEN) return jsonError("ذخیره‌سازی فایل هنوز در محیط سامانه پیکربندی نشده است.", 503);
+      const allowedImageTypes = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
+      const allowedVideoTypes = new Set(["video/mp4", "video/webm", "video/quicktime"]);
+      const allowedTypes = kind === "image" ? allowedImageTypes : allowedVideoTypes;
+      if (!allowedTypes.has(file.type)) {
+        return jsonError(kind === "image"
+          ? "فقط تصویرهای JPEG، PNG، WebP یا GIF مجاز هستند؛ فایل SVG پذیرفته نمی‌شود."
+          : "فقط ویدیوهای MP4، WebM یا QuickTime مجاز هستند.", 415);
+      }
+      const signature = new Uint8Array(await file.slice(0, 16).arrayBuffer());
+      const ascii = (start: number, end: number) => String.fromCharCode(...signature.slice(start, end));
+      const isPng = signature.length >= 8 && [137, 80, 78, 71, 13, 10, 26, 10].every((value, index) => signature[index] === value);
+      const isJpeg = signature.length >= 3 && signature[0] === 0xff && signature[1] === 0xd8 && signature[2] === 0xff;
+      const isWebp = signature.length >= 12 && ascii(0, 4) === "RIFF" && ascii(8, 12) === "WEBP";
+      const isGif = signature.length >= 6 && ["GIF87a", "GIF89a"].includes(ascii(0, 6));
+      const isMp4 = signature.length >= 12 && ascii(4, 8) === "ftyp";
+      const isWebm = signature.length >= 4 && signature[0] === 0x1a && signature[1] === 0x45 && signature[2] === 0xdf && signature[3] === 0xa3;
+      const signatureMatches = kind === "image"
+        ? (file.type === "image/jpeg" && isJpeg)
+          || (file.type === "image/png" && isPng)
+          || (file.type === "image/webp" && isWebp)
+          || (file.type === "image/gif" && isGif)
+        : (["video/mp4", "video/quicktime"].includes(file.type) && isMp4)
+          || (file.type === "video/webm" && isWebm);
+      if (!signatureMatches) return jsonError("محتوای فایل با نوع اعلام‌شده سازگار نیست یا قالب فایل پشتیبانی نمی‌شود.", 415);
+      if (!process.env.PRIVATE_BLOB_READ_WRITE_TOKEN) {
+        return jsonError("ذخیره‌سازی خصوصی هنوز به این محیط متصل نشده است؛ فایل ارسال نشد.", 503);
+      }
       const safeName = file.name.replace(/[^\p{L}\p{N}._-]+/gu, "_").slice(-120) || "upload";
       const blob = await put(`member-content/${user.memberId}/${randomUUID()}-${safeName}`, file, {
-        access: "public", addRandomSuffix: false, contentType: file.type, token: process.env.BLOB_READ_WRITE_TOKEN
+        access: "private", token: process.env.PRIVATE_BLOB_READ_WRITE_TOKEN, addRandomSuffix: false, contentType: file.type
       });
-      item.fileUrl = blob.url; item.fileName = file.name.slice(0, 240); item.contentType = file.type; item.size = file.size;
+      item.filePathname = blob.pathname;
+      item.fileUrl = `/api/member-content/files/${item.id}`;
+      item.fileName = file.name.slice(0, 240); item.contentType = file.type; item.size = file.size;
     }
     await putStored(collection, item);
-    return NextResponse.json({ item: { ...item, memberEmail: undefined } }, { status: 201, headers: { "Cache-Control": "private, no-store" } });
+    const safeItem = { ...item };
+    delete safeItem.filePathname;
+    return NextResponse.json({ item: { ...safeItem, memberEmail: undefined } }, { status: 201, headers: { "Cache-Control": "private, no-store" } });
   } catch (error) {
-    return jsonError(error instanceof Error ? error.message : "ارسال محتوا انجام نشد.", 400);
+    console.error("[member-content] upload failed", error instanceof Error ? { name: error.name } : { name: "UnknownError" });
+    return jsonError("ارسال محتوا انجام نشد؛ دوباره تلاش کنید.", 503);
   }
 }
 
@@ -67,9 +99,27 @@ export async function GET(request: NextRequest) {
     const items = await listStored<Submission>(collection);
     const visible = items.filter(item => user.role === "member" ? item.memberId === user.memberId : user.role === "media" ? ["pending_media", "approved_media", "rejected_media"].includes(item.status) : ["forwarded_admin", "published", "rejected_admin"].includes(item.status));
     visible.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-    return NextResponse.json({ items: visible }, { headers: { "Cache-Control": "private, no-store" } });
+    const safeItems = visible.map(({ filePathname, ...item }) => {
+      const safeItem = {
+        ...item,
+        fileUrl: filePathname ? `/api/member-content/files/${encodeURIComponent(item.id)}` : undefined,
+      };
+      if (user.role !== "member") return safeItem;
+      return {
+        ...safeItem,
+        memberEmail: "",
+        reviewedBy: undefined,
+        mediaNote: item.status === "rejected_media" ? item.mediaNote : undefined,
+        adminNote: item.status === "rejected_admin" ? item.adminNote : undefined,
+        reviewHistory: (item.reviewHistory || [])
+          .filter((event) => ["rejected_media", "rejected_admin"].includes(event.toStatus))
+          .map((event) => ({ ...event, actor: "سامانه" })),
+      };
+    });
+    return NextResponse.json({ items: safeItems }, { headers: { "Cache-Control": "private, no-store" } });
   } catch (error) {
-    return jsonError(error instanceof Error ? error.message : "دریافت کارتابل محتوا ناموفق بود.", 503);
+    console.error("[member-content] inbox read failed", error instanceof Error ? { name: error.name } : { name: "UnknownError" });
+    return jsonError("دریافت کارتابل محتوا ناموفق بود.", 503);
   }
 }
 
@@ -101,14 +151,24 @@ export async function PATCH(request: NextRequest) {
         status = "rejected_admin";
       } else return jsonError("این اقدام با وضعیت فعلی محتوا سازگار نیست.", 409);
     }
+    const actionAt = new Date().toISOString();
     const updated: Submission = {
-      ...current, status, updatedAt: new Date().toISOString(),
+      ...current,
+      status,
+      updatedAt: actionAt,
+      reviewHistory: [...(current.reviewHistory || []), {
+        id: randomUUID(), action: body.action, actor: user.name, at: actionAt, note,
+        fromStatus: current.status, toStatus: status,
+      }],
       ...(user.role === "media" ? { mediaNote: note, reviewedBy: user.name } : { adminNote: note, reviewedBy: user.name }),
-      ...(body.action === "forward" ? { forwardedAt: new Date().toISOString() } : {})
+      ...(body.action === "forward" ? { forwardedAt: actionAt } : {})
     };
     await putStored(collection, updated);
-    return NextResponse.json({ item: updated }, { headers: { "Cache-Control": "private, no-store" } });
+    const safeUpdated = { ...updated };
+    delete safeUpdated.filePathname;
+    return NextResponse.json({ item: safeUpdated }, { headers: { "Cache-Control": "private, no-store" } });
   } catch (error) {
-    return jsonError(error instanceof Error ? error.message : "ثبت تصمیم انجام نشد.", 400);
+    console.error("[member-content] review update failed", error instanceof Error ? { name: error.name } : { name: "UnknownError" });
+    return jsonError("ثبت تصمیم انجام نشد.", 503);
   }
 }

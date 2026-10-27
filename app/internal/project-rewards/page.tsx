@@ -27,6 +27,25 @@ type CollectionStage = {
   status: "برنامه‌ریزی‌شده" | "در انتظار وصول" | "وصول شد" | "لغو شد"; notes: string;
 };
 
+type OpportunityRecord = {
+  id: string;
+  status?: string;
+  code?: string;
+  title?: string;
+  clientName?: string;
+  clientContact?: string;
+  description?: string;
+  contractNo?: string;
+  contractDate?: string;
+  contractValue?: number | string;
+  proposedPrice?: number | string;
+  directCost?: number | string;
+  rewardBase?: number | string;
+  creatorName?: string;
+  createdAt?: string;
+  financeNote?: string;
+};
+
 type ProposalStatus =
   | "ثبت اولیه"
   | "در حال بررسی قائم‌مقام"
@@ -258,7 +277,7 @@ function normalizeProject(raw: Partial<Project>): Project {
       Number(raw.tax || 0) +
       Number(raw.otherCosts || 0),
     received: Number(raw.received || 0),
-    rewardRate: Number(raw.rewardRate ?? 20) || 20,
+    rewardRate: raw.rewardRate === undefined ? 20 : Math.max(0, Math.min(100, Number(raw.rewardRate) || 0)),
     status: raw.status || "پیش‌نویس",
     people: (raw.people || []).map((p) => ({
       id: p.id || uid(),
@@ -279,8 +298,8 @@ function normalizeProject(raw: Partial<Project>): Project {
     financialTransactions: (raw.financialTransactions || []).map((t) => ({ id: t.id || uid(), type: t.type === "هزینه" ? "هزینه" : "وصول", description: t.description || "", amount: Number(t.amount || 0), date: t.date || "", status: t.status === "تأیید شده" ? "تأیید شده" : "در انتظار تأیید", notes: t.notes || "" })),
     collectionStages: (raw.collectionStages || []).map((s) => ({ id: s.id || uid(), title: s.title || "", plannedAmount: Number(s.plannedAmount || 0), receivedDate: s.receivedDate || "", status: s.status || "برنامه‌ریزی‌شده", notes: s.notes || "" })),
     financeNote: raw.financeNote || "", lastFinancialReview: raw.lastFinancialReview || "", paymentReceiptNo: raw.paymentReceiptNo || "",
-    rewardBase: Number((raw as any).rewardBase ?? raw.contractValue ?? raw.revenue ?? 0) || 0,
-    sourceOpportunityId: (raw as any).sourceOpportunityId || "",
+    rewardBase: Number(raw.rewardBase ?? raw.contractValue ?? raw.revenue ?? 0) || 0,
+    sourceOpportunityId: raw.sourceOpportunityId || "",
   };
 }
 
@@ -333,7 +352,6 @@ export default function ProjectRewardsPage() {
   const [proposalFinanceNote, setProposalFinanceNote] = useState("");
   const [proposalNote, setProposalNote] = useState("");
   const [sessionUser, setSessionUser] = useState<{ username: string; name: string; role: "finance" | "ceo" | "deputy" | "beneficiary" | "economic" | "csr" | "media" | "artists" | "education" | "members" } | null>(null);
-  const [authChecked, setAuthChecked] = useState(false);
   const canEdit = sessionUser?.role === "finance";
   const canEditTeam = sessionUser?.role === "ceo";
   const readOnly = !canEdit;
@@ -343,12 +361,6 @@ export default function ProjectRewardsPage() {
     const requestedView = params.get("view");
     const isNewProposal = params.get("new") === "1";
 
-    // مسیر پیشنهاد باید مستقل از زمان پاسخ API فوراً به نمای پیشنهادها برود.
-    if (requestedView === "proposals") {
-      setView("proposals");
-      if (isNewProposal) setSelectedProposal("");
-    }
-
     fetch("/api/auth/me")
       .then(async (response) => {
         if (!response.ok) return;
@@ -357,21 +369,16 @@ export default function ProjectRewardsPage() {
         if (data.user?.role === "ceo" || data.user?.role === "deputy") {
           setStep(2);
         }
-        if (data.user?.role === "beneficiary") {
+        if (requestedView === "proposals" || data.user?.role === "beneficiary") {
           setView("proposals");
           if (isNewProposal) setSelectedProposal("");
         }
       })
-      .catch(() => {})
-      .finally(() => setAuthChecked(true));
+      .catch(() => {});
   }, []);
 
   const selectedRole =
     ROLE_GUIDE.find((role) => role.name === personRole) ?? ROLE_GUIDE[0];
-
-  useEffect(() => {
-    setPersonRoleWeight(String(selectedRole.weight));
-  }, [selectedRole]);
 
   const effectiveWeight =
     (Number(personRoleWeight) || 0) *
@@ -406,14 +413,14 @@ export default function ProjectRewardsPage() {
         const opportunitiesResponse = await fetch("/api/opportunities", { cache: "no-store" });
         if (!opportunitiesResponse.ok || cancelled) return;
         const opportunitiesData = await opportunitiesResponse.json();
-        const completed = (opportunitiesData.items || []).filter((item: any) => item.status === "ثبت پروژه");
+        const completed = ((opportunitiesData.items || []) as OpportunityRecord[]).filter((item) => item.status === "ثبت پروژه");
         if (!completed.length) return;
 
         setProjects((current) => {
           const existingSources = new Set(current.map((item) => item.sourceOpportunityId).filter(Boolean));
           const imported = completed
-            .filter((item: any) => !existingSources.has(item.id))
-            .map((item: any) => normalizeProject({
+            .filter((item) => !existingSources.has(item.id))
+            .map((item) => normalizeProject({
               id: uid(),
               code: item.code || newCode(),
               name: item.title,
@@ -667,9 +674,18 @@ export default function ProjectRewardsPage() {
   }
 
   async function resetAll() {
-    if (!confirm("همه پرونده‌های پروژه در سامانه مشترک حذف شوند؟ این کار برای همه کاربران اثر دارد.")) return;
+    if (!confirm("هشدار: همه پرونده‌های پروژه در سامانه مشترک حذف می‌شوند و این اقدام قابل بازگشت نیست.")) return;
+    const confirmation = prompt("برای تأیید نهایی، عبارت «حذف همه پروژه‌ها» را دقیق وارد کنید.");
+    if (confirmation !== "حذف همه پروژه‌ها") {
+      setStorageError("تأیید نهایی انجام نشد؛ هیچ پرونده‌ای حذف نشد.");
+      return;
+    }
     try {
-      const response = await fetch("/api/project-rewards?kind=projects", { method: "DELETE" });
+      const response = await fetch("/api/project-rewards?kind=projects", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ confirmation }),
+      });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "پاک‌سازی پروژه‌ها انجام نشد.");
       savedProjectsRef.current = {};
@@ -1759,7 +1775,7 @@ export default function ProjectRewardsPage() {
                     <fieldset disabled={!canEditTeam} className="mt-5 rounded-2xl bg-[#F4EEE4] p-5 disabled:opacity-70">
                       <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
                         <Field label="نام فرد" value={personName} onChange={setPersonName} placeholder="نام و نام خانوادگی" />
-                        <SelectField label="نقش" value={personRole} onChange={setPersonRole} options={ROLE_GUIDE.map((r) => r.name)} />
+                        <SelectField label="نقش" value={personRole} onChange={(value) => { const selected = ROLE_GUIDE.find((item) => item.name === value) ?? ROLE_GUIDE[0]; setPersonRole(selected.name); setPersonRoleWeight(String(selected.weight)); }} options={ROLE_GUIDE.map((r) => r.name)} />
                         <SelectField label="نوع همکاری" value={personRelationship} onChange={setPersonRelationship} options={["عضو داخلی", "همکار تخصصی", "معرف", "شریک", "پیمانکار", "حامی / شریک اقتصادی", "سایر"]} />
                         <label className="block text-sm font-semibold">
                           درصد مشارکت در نقش
