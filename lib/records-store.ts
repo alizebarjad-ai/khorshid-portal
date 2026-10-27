@@ -2,9 +2,9 @@ import { deleteStored, listStored, putStored } from "@/lib/persistent-store";
 import { randomUUID } from "node:crypto";
 
 export type MembershipTier = "affiliate" | "professional" | "supporter_partner";
-export type MembershipGrade = "volunteer" | "professional" | "club_manager";
-export type MembershipRank = "volunteer" | "professional" | "club_manager";
-export type MembershipRankHistory = { from: MembershipRank | null; to: MembershipRank; at: string; actor: string; reason: string };
+export type MembershipGrade = "volunteer" | "active_volunteer" | "club_manager";
+export type MembershipRank = "volunteer" | "active_volunteer" | "club_manager";
+export type MembershipRankHistory = { from: MembershipRank | "professional" | null; to: MembershipRank | "professional"; at: string; actor: string; reason: string };
 export type ProfessionalTarget = "artist" | "expert" | "consultant";
 export type ProfessionalProfileRecord = {
   headline?: string; education?: string; educationField?: string; experience?: string;
@@ -114,8 +114,8 @@ async function readRecords<T extends StoredRecord>(kind: "member" | "club"): Pro
       ...member,
       membershipType: "affiliate" as const,
       membershipTier: "affiliate" as const,
-      membershipRank: isMembershipRank(member.membershipRank) ? member.membershipRank : (isMembershipGrade(member.membershipGrade) ? member.membershipGrade : "volunteer" as const),
-      membershipGrade: isMembershipRank(member.membershipRank) ? member.membershipRank : (isMembershipGrade(member.membershipGrade) ? member.membershipGrade : "volunteer" as const),
+      membershipRank: normalizeMembershipRank(member.membershipRank) || normalizeMembershipRank(member.membershipGrade) || "volunteer",
+      membershipGrade: normalizeMembershipRank(member.membershipRank) || normalizeMembershipRank(member.membershipGrade) || "volunteer",
       professionalMemberships: Array.isArray(member.professionalMemberships) ? member.professionalMemberships.filter((value): value is ProfessionalTarget => value === "artist" || value === "expert" || value === "consultant") : [],
       professionalProfiles: normalizeProfessionalProfiles(member),
       rankHistory: Array.isArray(member.rankHistory) ? member.rankHistory : [],
@@ -137,8 +137,13 @@ function normalizeProfessionalProfiles(member: MemberRecord): Partial<Record<Pro
   return { ...(artist && !existing.artist ? { artist } : {}), ...(expert && !existing[legacyTarget] ? { [legacyTarget]: expert } : {}), ...existing };
 }
 function isMembershipTier(value: unknown): value is MembershipTier { return value === "affiliate" || value === "professional" || value === "supporter_partner"; }
-function isMembershipGrade(value: unknown): value is MembershipGrade { return value === "volunteer" || value === "professional" || value === "club_manager"; }
-function isMembershipRank(value: unknown): value is MembershipRank { return value === "volunteer" || value === "professional" || value === "club_manager"; }
+function normalizeMembershipRank(value: unknown): MembershipRank | null {
+  if (value === "professional" || value === "active_volunteer") return "active_volunteer";
+  if (value === "volunteer" || value === "club_manager") return value;
+  return null;
+}
+function isMembershipGrade(value: unknown): value is MembershipGrade { return value === "volunteer" || value === "active_volunteer" || value === "club_manager"; }
+function isMembershipRank(value: unknown): value is MembershipRank { return value === "volunteer" || value === "active_volunteer" || value === "club_manager"; }
 function validPointEvents(value: unknown): MemberPointEvent[] { return Array.isArray(value) ? value.filter((x): x is MemberPointEvent => !!x && typeof x === "object" && typeof x.id === "string" && Number.isFinite(Number(x.points)) && typeof x.title === "string").slice(-300) : []; }
 
 export const readMembers = () => readRecords<MemberRecord>("member");
@@ -186,8 +191,8 @@ export async function createRecord(kind: "member" | "club", data: Record<string,
       memberType: (data.memberType || "artist") as MemberRecord["memberType"],
       membershipType: "affiliate",
       membershipTier: "affiliate",
-      membershipGrade: isMembershipGrade(data.membershipGrade) ? data.membershipGrade : "volunteer",
-      membershipRank: isMembershipRank(data.membershipRank) ? data.membershipRank : "volunteer",
+      membershipGrade: normalizeMembershipRank(data.membershipRank) || normalizeMembershipRank(data.membershipGrade) || "volunteer",
+      membershipRank: normalizeMembershipRank(data.membershipRank) || normalizeMembershipRank(data.membershipGrade) || "volunteer",
       rankHistory: [],
       pointsBalance: Math.max(0, Number(data.pointsBalance) || 0),
       pointEvents: validPointEvents(data.pointEvents),

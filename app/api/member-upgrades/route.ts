@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
   try {
     const form = await request.formData();
     const target = String(form.get("target") || "") as Target;
-    if (!["artist", "expert", "consultant"].includes(target)) return NextResponse.json({ error: "نوع پروفایل تخصصی معتبر نیست." }, { status: 400 });
+    if (!["artist", "expert"].includes(target)) return NextResponse.json({ error: "فقط درخواست هنرمند یا متخصص پذیرفته می‌شود." }, { status: 400 });
 
     const members = await readMembers();
     const member = members.find(item => item.id === user.memberId);
