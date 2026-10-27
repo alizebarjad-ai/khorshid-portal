@@ -161,7 +161,7 @@ export async function GET(request: NextRequest) {
       pointsBalance,
       pointEvents,
       programs,
-      siteContent: siteContent.filter((item) => item.kind !== "member-service"),
+      siteContent: siteContent.filter((item) => item.kind === "announcement"),
       memberServices: siteContent.filter((item) => item.kind === "member-service"),
     }, { headers: { "Cache-Control": "private, no-store, max-age=0" } });
   } catch (error) {
