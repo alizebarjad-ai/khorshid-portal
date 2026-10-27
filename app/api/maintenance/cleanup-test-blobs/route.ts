@@ -8,8 +8,10 @@ export const dynamic = "force-dynamic";
 export async function GET(request: NextRequest) {
   const expected = process.env.LEGACY_BLOB_CLEANUP_KEY;
   const provided = request.nextUrl.searchParams.get("key") || "";
-  if (!expected || provided.length !== expected.length ||
-      !timingSafeEqual(Buffer.from(provided), Buffer.from(expected))) {
+  const providedBytes = Buffer.from(provided);
+  const expectedBytes = expected ? Buffer.from(expected) : Buffer.alloc(0);
+  if (!expected || providedBytes.length !== expectedBytes.length ||
+      !timingSafeEqual(providedBytes, expectedBytes)) {
     return new NextResponse(null, { status: 404, headers: { "Cache-Control": "no-store" } });
   }
 
