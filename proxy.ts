@@ -32,8 +32,10 @@ export async function proxy(request: NextRequest) {
   const memberUpgradeApiAllowed =
     (path === "/api/member-upgrades" && request.method === "POST") ||
     (/^\/api\/member-upgrades\/documents\/[^/]+$/.test(path) && request.method === "GET");
+  const memberContentApiAllowed =
+    path === "/api/member-content" && ["GET", "POST"].includes(request.method);
 
-  if (user.role === "member" && !MEMBER_ALLOWED_PATHS.has(path) && !memberUpgradeApiAllowed) {
+  if (user.role === "member" && !MEMBER_ALLOWED_PATHS.has(path) && !memberUpgradeApiAllowed && !memberContentApiAllowed) {
     const response = path.startsWith("/api/")
       ? NextResponse.json({ error: "این بخش برای حساب عضو در دسترس نیست." }, { status: 403 })
       : NextResponse.redirect(new URL("/internal/member-home", request.url));
