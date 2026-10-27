@@ -40,7 +40,7 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
       if (!["pending_media", "approved_media", "rejected_media"].includes(item.status)) {
         return jsonError("این محتوا در کارتابل رسانه نیست.", 403);
       }
-    } else if (["ceo", "deputy"].includes(user.role)) {
+    } else if (["owner", "ceo", "deputy"].includes(user.role)) {
       if (!["forwarded_admin", "published", "rejected_admin"].includes(item.status)) {
         return jsonError("این محتوا هنوز به کارتابل شما ارجاع نشده است.", 403);
       }
