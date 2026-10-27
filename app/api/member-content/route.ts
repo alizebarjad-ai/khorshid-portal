@@ -81,7 +81,8 @@ export async function POST(request: NextRequest) {
     const { filePathname: _privatePathname, ...safeItem } = item;
     return NextResponse.json({ item: { ...safeItem, memberEmail: undefined } }, { status: 201, headers: { "Cache-Control": "private, no-store" } });
   } catch (error) {
-    return jsonError(error instanceof Error ? error.message : "ارسال محتوا انجام نشد.", 400);
+    console.error("[member-content] upload failed", error instanceof Error ? { name: error.name } : { name: "UnknownError" });
+    return jsonError("ارسال محتوا انجام نشد؛ دوباره تلاش کنید.", 503);
   }
 }
 
