@@ -42,8 +42,30 @@ export async function POST(request: NextRequest) {
       const file = form.get("file");
       if (!(file instanceof File) || file.size <= 0) return jsonError("فایل محتوا را انتخاب کنید.", 400);
       if (file.size > 25 * 1024 * 1024) return jsonError("حداکثر اندازه فایل ۲۵ مگابایت است.", 413);
-      const valid = kind === "image" ? file.type.startsWith("image/") : file.type.startsWith("video/");
-      if (!valid) return jsonError(kind === "image" ? "برای این نوع محتوا فایل تصویری انتخاب کنید." : "برای این نوع محتوا فایل ویدیویی انتخاب کنید.", 415);
+      const allowedImageTypes = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
+      const allowedVideoTypes = new Set(["video/mp4", "video/webm", "video/quicktime"]);
+      const allowedTypes = kind === "image" ? allowedImageTypes : allowedVideoTypes;
+      if (!allowedTypes.has(file.type)) {
+        return jsonError(kind === "image"
+          ? "فقط تصویرهای JPEG، PNG، WebP یا GIF مجاز هستند؛ فایل SVG پذیرفته نمی‌شود."
+          : "فقط ویدیوهای MP4، WebM یا QuickTime مجاز هستند.", 415);
+      }
+      const signature = new Uint8Array(await file.slice(0, 16).arrayBuffer());
+      const ascii = (start: number, end: number) => String.fromCharCode(...signature.slice(start, end));
+      const isPng = signature.length >= 8 && [137, 80, 78, 71, 13, 10, 26, 10].every((value, index) => signature[index] === value);
+      const isJpeg = signature.length >= 3 && signature[0] === 0xff && signature[1] === 0xd8 && signature[2] === 0xff;
+      const isWebp = signature.length >= 12 && ascii(0, 4) === "RIFF" && ascii(8, 12) === "WEBP";
+      const isGif = signature.length >= 6 && ["GIF87a", "GIF89a"].includes(ascii(0, 6));
+      const isMp4 = signature.length >= 12 && ascii(4, 8) === "ftyp";
+      const isWebm = signature.length >= 4 && signature[0] === 0x1a && signature[1] === 0x45 && signature[2] === 0xdf && signature[3] === 0xa3;
+      const signatureMatches = kind === "image"
+        ? (file.type === "image/jpeg" && isJpeg)
+          || (file.type === "image/png" && isPng)
+          || (file.type === "image/webp" && isWebp)
+          || (file.type === "image/gif" && isGif)
+        : (["video/mp4", "video/quicktime"].includes(file.type) && isMp4)
+          || (file.type === "video/webm" && isWebm);
+      if (!signatureMatches) return jsonError("محتوای فایل با نوع اعلام‌شده سازگار نیست یا قالب فایل پشتیبانی نمی‌شود.", 415);
       if (!process.env.BLOB_READ_WRITE_TOKEN) return jsonError("ذخیره‌سازی فایل هنوز در محیط سامانه پیکربندی نشده است.", 503);
       const safeName = file.name.replace(/[^\p{L}\p{N}._-]+/gu, "_").slice(-120) || "upload";
       const blob = await put(`member-content/${user.memberId}/${randomUUID()}-${safeName}`, file, {
