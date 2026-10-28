@@ -64,14 +64,15 @@ export async function POST(request: NextRequest) {
         for (const key of ["pathname", "blobPathname", "storagePath"]) {
           if (typeof item[key] === "string" && item[key]) filePaths.set(item[key] as string, false);
         }
-        if (!item.pathname && typeof item.fileUrl === "string") {
+        for (const key of ["fileUrl", "imageUrl", "coverImageUrl", "attachmentUrl", "thumbnailUrl", "image", "url"]) {
+          if (typeof item[key] !== "string" || !item[key]) continue;
           try {
-            const legacyUrl = new URL(item.fileUrl);
+            const legacyUrl = new URL(item[key] as string);
             if (legacyUrl.protocol === "https:" && legacyUrl.hostname.endsWith(".blob.vercel-storage.com")) {
               filePaths.set(legacyUrl.toString(), true);
             }
           } catch {
-            // Ignore non-URL file references; only trusted Blob URLs are eligible for deletion.
+            // Ignore non-URL references; only trusted Vercel Blob URLs are eligible for deletion.
           }
         }
       }
