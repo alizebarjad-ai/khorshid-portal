@@ -20,9 +20,10 @@ export async function POST(request: NextRequest) {
     if (!memberId || !Number.isInteger(points) || points === 0 || Math.abs(points) > 100000 || !title) {
       return NextResponse.json({ error: "شناسه عضو، عنوان امتیاز و مقدار صحیحِ غیرصفر الزامی است." }, { status: 400 });
     }
-    if (points < 0 && !note) return NextResponse.json({ error: "برای کسر امتیاز، درج دلیل الزامی است." }, { status: 400 });
+    if (points < 0 && note.length < 5) return NextResponse.json({ error: "برای کسر امتیاز، دلیل حداقل ۵ نویسه‌ای الزامی است." }, { status: 400 });
     const member = (await readMembers()).find(item => item.id === memberId);
     if (!member) return NextResponse.json({ error: "پرونده عضو پیدا نشد." }, { status: 404 });
+    if (member.status !== "active") return NextResponse.json({ error: "ثبت امتیاز فقط برای عضو فعال مجاز است." }, { status: 409 });
     const existingEvents = await readMemberPointLedger(member.id);
     const currentBalance = existingEvents.reduce((sum, item) => sum + (Number(item.points) || 0), 0);
     if (currentBalance + points < 0) return NextResponse.json({ error: "امتیاز قابل کسر از موجودی فعلی بیشتر است." }, { status: 409 });
