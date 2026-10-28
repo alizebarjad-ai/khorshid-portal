@@ -65,7 +65,7 @@ export async function GET() {
       return safe;
     });
     const safeProposals = canViewFinancialDetails ? visibleProposals : visibleProposals.map((item) => {
-      const { contractValue, contractNo, contractDate, financeNote, budget, paymentTerms, financialDetails, costs, revenue, sponsorAmount, paymentStatus, ...safe } = item;
+      const { contractValue, contractNo, contractDate, financeNote, budget, paymentTerms, financialDetails, costs, revenue, sponsorAmount, paymentStatus, directCost, rewardBase, estimatedCost, proposedPrice, expectedValue, amount, cost, price, ...safe } = item;
       return safe;
     });
 
