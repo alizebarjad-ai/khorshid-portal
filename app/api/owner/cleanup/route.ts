@@ -61,7 +61,25 @@ export async function DELETE(request: NextRequest) {
     let deletedRecords = 0;
     let deletedFiles = 0;
     let failedFiles = 0;
+    let deletedWebsiteRequests = 0;
     const paths = new Set<string>();
+
+    // Membership applications are stored in the main website database, not the portal store.
+    // Clear that authoritative queue first; if the bridge is unavailable, leave portal records untouched.
+    if (category === "members") {
+      const base = process.env.WEBSITE_MEMBERSHIP_API_URL;
+      const key = process.env.PORTAL_MEMBERSHIP_API_KEY;
+      if (!base || !key) throw new Error("اتصال امن به صف درخواست‌های عضویت سایت تنظیم نشده است.");
+      const remote = await fetch(base.replace(/\\/$/, ""), {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json", "x-portal-membership-key": key },
+        body: JSON.stringify({ confirmation: "DELETE_MEMBERSHIP_REQUESTS" }),
+        cache: "no-store",
+      });
+      const remoteData = await remote.json().catch(() => ({})) as { error?: string; deletedRequests?: number };
+      if (!remote.ok) throw new Error(remoteData.error || "حذف درخواست‌های عضویت از سایت اصلی انجام نشد.");
+      deletedWebsiteRequests = Number(remoteData.deletedRequests) || 0;
+    }
 
     for (const collection of selected.collections) {
       const records = await listStored<Record<string, unknown>>(collection);
@@ -93,7 +111,7 @@ export async function DELETE(request: NextRequest) {
       actor: checked.user.username,
       action: "delete-data-category",
       target: category,
-      metadata: { categoryLabel: selected.label, collections: selected.collections.join(","), deletedRecords: String(deletedRecords), deletedFiles: String(deletedFiles) },
+      metadata: { categoryLabel: selected.label, collections: selected.collections.join(","), deletedRecords: String(deletedRecords), deletedFiles: String(deletedFiles), deletedWebsiteRequests: String(deletedWebsiteRequests) },
       at: new Date().toISOString(),
     }).then(() => true).catch(() => false);
 
@@ -102,6 +120,7 @@ export async function DELETE(request: NextRequest) {
       category,
       categoryLabel: selected.label,
       deletedRecords,
+      deletedWebsiteRequests,
       deletedFiles,
       failedFiles,
       preserved: ["staff-accounts", "security-audit", "record-audit", ...(category === "members" ? [] : ["members"]), ...(category === "clubs" ? [] : ["clubs"]), ...(category === "projects" ? [] : ["projects"])],
