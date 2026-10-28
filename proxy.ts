@@ -29,6 +29,16 @@ export async function proxy(request: NextRequest) {
   const user = decodeSession(token);
   if (!user) return NextResponse.next();
 
+  // Central CSRF defense for authenticated browser sessions. API-key bridge requests
+  // without a session cookie are handled separately and are not affected.
+  if (["POST", "PUT", "PATCH", "DELETE"].includes(request.method)) {
+    const origin = request.headers.get("origin");
+    const fetchSite = request.headers.get("sec-fetch-site");
+    if ((origin && origin !== request.nextUrl.origin) || fetchSite === "cross-site") {
+      return NextResponse.json({ error: "درخواست از مبدأ نامعتبر پذیرفته نشد." }, { status: 403 });
+    }
+  }
+
   const memberUpgradeApiAllowed =
     (path === "/api/member-upgrades" && request.method === "POST") ||
     (/^\/api\/member-upgrades\/documents\/[^/]+$/.test(path) && request.method === "GET");
