@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { COOKIE_NAME, decodeSession } from "@/lib/auth";
 import { readMembers, readMemberPointLedger, updateRecord, type MembershipRank } from "@/lib/records-store";
-import { putStored } from "@/lib/persistent-store";
+import { listStored, putStored } from "@/lib/persistent-store";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
