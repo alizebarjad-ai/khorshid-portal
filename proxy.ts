@@ -35,7 +35,7 @@ export async function proxy(request: NextRequest) {
   if (["POST", "PUT", "PATCH", "DELETE"].includes(request.method)) {
     const origin = request.headers.get("origin");
     const fetchSite = request.headers.get("sec-fetch-site");
-    if ((origin && origin !== request.nextUrl.origin) || fetchSite === "cross-site") {
+    if (!origin || origin !== request.nextUrl.origin || fetchSite === "cross-site") {
       return NextResponse.json({ error: "درخواست از مبدأ نامعتبر پذیرفته نشد." }, { status: 403 });
     }
   }
