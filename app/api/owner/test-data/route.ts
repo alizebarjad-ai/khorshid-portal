@@ -22,6 +22,8 @@ const TEST_COLLECTIONS = [
   "membership-documents",
   "record-audit",
   "member-contributions",
+  "login-throttle",
+  "password-reset-throttle",
 ] as const;
 
 function error(message: string, status: number) {
