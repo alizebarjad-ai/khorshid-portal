@@ -161,12 +161,22 @@ export async function DELETE(request: NextRequest) {
     if (current.kind !== "text" && !storageTarget) {
       return jsonError("مسیر فایل در مخزن ثبت نشده است؛ رکورد حذف نشد تا فایل یتیم باقی نماند.", 409);
     }
-    if (storageTarget) {
+    if (current.pathname) {
+      // Private uploads belong to BLOB_STORE_ID and use Vercel OIDC credentials.
       if (!process.env.BLOB_STORE_ID) return jsonError("مخزن خصوصی فایل‌ها در محیط سامانه پیکربندی نشده است.", 503);
       try {
-        await del(storageTarget);
+        await del(current.pathname);
       } catch (error) {
-        console.error("Media dashboard blob deletion failed", error instanceof Error ? error.name : "UnknownError");
+        console.error("Media dashboard private Blob deletion failed", error instanceof Error ? error.name : "UnknownError");
+        return jsonError("فایل از مخزن حذف نشد؛ رکورد برای جلوگیری از باقی‌ماندن فایل یتیم حفظ شد.", 503);
+      }
+    } else if (legacyBlobUrl) {
+      // Legacy public files were uploaded to the older records store.
+      if (!process.env.BLOB_READ_WRITE_TOKEN) return jsonError("تنظیمات حذف فایل قدیمی در مخزن موجود نیست.", 503);
+      try {
+        await del(legacyBlobUrl, { token: process.env.BLOB_READ_WRITE_TOKEN });
+      } catch (error) {
+        console.error("Media dashboard legacy Blob deletion failed", error instanceof Error ? error.name : "UnknownError");
         return jsonError("فایل از مخزن حذف نشد؛ رکورد برای جلوگیری از باقی‌ماندن فایل یتیم حفظ شد.", 503);
       }
     }
