@@ -82,7 +82,7 @@ export async function POST(request: Request) {
 
     let sessionUser: { username: string; name: string; role: "finance" | "ceo" | "deputy" | "beneficiary" | "economic" | "csr" | "media" | "artists" | "education" | "members" | "member" | "owner"; memberId?: string; mustChangePassword?: boolean; credentialVersion?: string };
     if (configuredUser?.role === "beneficiary" && configuredUser.password === password) {
-      sessionUser = { username: configuredUser.username, name: configuredUser.name, role: configuredUser.role };
+      sessionUser = { username: configuredUser.username, name: configuredUser.name, role: configuredUser.role, credentialVersion: throttleKey(configuredUser.password) };
     } else if (staffAccount) {
       await recordStaffLogin(staffAccount);
       sessionUser = { username: staffAccount.username, name: staffAccount.name || configuredUser?.name || staffAccount.username, role: staffAccount.role, mustChangePassword: staffAccount.mustChangePassword, credentialVersion: staffAccount.passwordChangedAt || staffAccount.createdAt };
