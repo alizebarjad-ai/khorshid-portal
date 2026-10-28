@@ -19,8 +19,8 @@ async function allowLoginAttempt(key: string) {
     const now = Date.now();
     const previous = await getStored<LoginThrottle>("login-throttle", key);
     if (previous?.blockedUntil && previous.blockedUntil > now) return false;
-    const inWindow = previous && now - previous.windowStartedAt < LOGIN_WINDOW_MS;
-    const attempts = inWindow ? previous.attempts : 0;
+    const inWindow = Boolean(previous && now - previous.windowStartedAt < LOGIN_WINDOW_MS);
+    const attempts = inWindow ? previous!.attempts : 0;
     if (attempts >= LOGIN_MAX_ATTEMPTS) {
       await putStored("login-throttle", { id: key, attempts, windowStartedAt: previous!.windowStartedAt, blockedUntil: now + LOGIN_WINDOW_MS });
       return false;
