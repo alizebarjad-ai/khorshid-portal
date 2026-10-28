@@ -20,7 +20,7 @@ type Member = {
   clubIds: string[];
 };
 type PointEvent = { id: string; memberId: string; memberName?: string; points: number; title: string; note: string; createdAt: string; actor?: string; createdBy?: string };
-const rankLabels: Record<string, string> = { volunteer: "داوطلب", active_volunteer: "داوطلب فعال", professional: "داوطلب فعال", club_manager: "مسئول باشگاه" };
+const rankLabels: Record<string, string> = { volunteer: "داوطلب", active_volunteer: "حرفه‌ای", professional: "حرفه‌ای", club_manager: "مدیر باشگاه" };
 const input = "mt-2 w-full rounded-xl border border-[#D8D0C4] bg-white px-3 py-3 text-sm text-[#18304A] outline-none focus:border-[#B07800]";
 const fmt = (n: number) => new Intl.NumberFormat("fa-IR").format(n);
 const date = (s: string) => {
@@ -159,8 +159,8 @@ export default function MemberDossierPage() {
                 <label className="block text-sm font-bold">وضعیت مشارکت
                   <select className={input} value={rank} onChange={(e) => setRank(e.target.value)}>
                     <option value="volunteer">داوطلب</option>
-                    <option value="active_volunteer">داوطلب فعال</option>
-                    <option value="club_manager">مسئول باشگاه</option>
+                    <option value="active_volunteer">حرفه‌ای</option>
+                    <option value="club_manager">مدیر باشگاه</option>
                   </select>
                 </label>
                 <div className="rounded-xl bg-[#F7F5F0] p-4">
