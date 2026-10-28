@@ -11,6 +11,7 @@ type Submission = {
   memberId: string;
   status: string;
   filePathname?: string;
+  contentType?: string;
 };
 
 const jsonError = (message: string, status: number) =>
