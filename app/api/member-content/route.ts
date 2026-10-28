@@ -80,7 +80,13 @@ export async function GET(request: NextRequest) {
       // Older records may have a pathname but no persisted fileUrl.
       .map(item => ({
         ...item,
-        fileUrl: item.kind !== "text" && item.pathname ? `/api/member-content/files/${encodeURIComponent(item.id)}` : undefined,
+        // New private uploads use the authenticated file route. Preserve legacy
+        // public Blob URLs for records created before private storage was enabled.
+        fileUrl: item.kind === "text"
+          ? undefined
+          : item.pathname
+            ? `/api/member-content/files/${encodeURIComponent(item.id)}`
+            : item.fileUrl,
       }));
     return NextResponse.json({ items: visible }, { headers: { "Cache-Control": "private, no-store" } });
   } catch (error) {
@@ -136,11 +142,27 @@ export async function DELETE(request: NextRequest) {
       return jsonError("این محتوا در کارتابل معاون رسانه قابل حذف نیست.", 409);
     }
 
-    // Delete the private file first. Keep the record if storage deletion fails.
-    if (current.pathname) {
+    // Delete the stored object before its database record. Support legacy public Blob
+    // URLs created before uploads were moved to private, pathname-based storage.
+    const legacyBlobUrl = (() => {
+      if (current.pathname || !current.fileUrl) return undefined;
+      try {
+        const url = new URL(current.fileUrl);
+        return url.protocol === "https:" && url.hostname.endsWith(".blob.vercel-storage.com")
+          ? url.toString()
+          : undefined;
+      } catch {
+        return undefined;
+      }
+    })();
+    const storageTarget = current.pathname || legacyBlobUrl;
+    if (current.kind !== "text" && !storageTarget) {
+      return jsonError("مسیر فایل در مخزن ثبت نشده است؛ رکورد حذف نشد تا فایل یتیم باقی نماند.", 409);
+    }
+    if (storageTarget) {
       if (!process.env.BLOB_READ_WRITE_TOKEN) return jsonError("تنظیمات حذف فایل در مخزن موجود نیست.", 503);
       try {
-        await del(current.pathname, { token: process.env.BLOB_READ_WRITE_TOKEN });
+        await del(storageTarget);
       } catch (error) {
         console.error("Media dashboard blob deletion failed", error instanceof Error ? error.name : "UnknownError");
         return jsonError("فایل از مخزن حذف نشد؛ رکورد برای جلوگیری از باقی‌ماندن فایل یتیم حفظ شد.", 503);

@@ -49,10 +49,8 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
       return jsonError("دسترسی به فایل محتوا مجاز نیست.", 403);
     }
 
-    const blobToken = process.env.BLOB_READ_WRITE_TOKEN;
-    if (!blobToken) return jsonError("تنظیمات دریافت فایل در مخزن موجود نیست.", 503);
-    // Use the same explicit store token as upload/delete; do not rely on a potentially different default store.
-    const result = await get(item.pathname, { access: "private", token: blobToken });
+    // Match the established private Blob access path used before the recent regression.
+    const result = await get(item.pathname, { access: "private" });
     if (!result || result.statusCode !== 200 || !result.stream) {
       return jsonError("فایل محتوا در مخزن پیدا نشد.", 404);
     }
