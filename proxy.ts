@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { COOKIE_NAME, decodeSession } from "@/lib/auth";
 import { findStaffAccount } from "@/lib/staff-accounts";
+import { findMemberAccountByUsername } from "@/lib/member-accounts";
 
 const PASSWORD_ALLOWED = new Set([
   "/api/auth/me",
@@ -46,6 +47,24 @@ export async function proxy(request: NextRequest) {
     (path === "/api/member-content" && ["GET", "POST"].includes(request.method)) ||
     (/^\/api\/member-content\/files\/[^/]+$/.test(path) && request.method === "GET");
 
+  if (user.role === "member") {
+    try {
+      const account = await findMemberAccountByUsername(user.username);
+      const credentialVersion = account?.passwordChangedAt || account?.createdAt;
+      if (!account || account.status !== "active" || account.memberId !== user.memberId || !user.credentialVersion || user.credentialVersion !== credentialVersion) {
+        const response = path.startsWith("/api/")
+          ? NextResponse.json({ error: "نشست شما منقضی شده یا وضعیت حساب تغییر کرده است؛ دوباره وارد شوید." }, { status: 401 })
+          : NextResponse.redirect(new URL("/login?access=revoked", request.url));
+        response.cookies.set(COOKIE_NAME, "", { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", path: "/", maxAge: 0 });
+        return response;
+      }
+    } catch {
+      return path.startsWith("/api/")
+        ? NextResponse.json({ error: "بررسی وضعیت حساب ممکن نشد؛ دوباره تلاش کنید." }, { status: 503 })
+        : NextResponse.redirect(new URL("/login?access=check-failed", request.url));
+    }
+  }
+
   if (user.role === "member" && !MEMBER_ALLOWED_PATHS.has(path) && !memberUpgradeApiAllowed && !memberContentApiAllowed) {
     const response = path.startsWith("/api/")
       ? NextResponse.json({ error: "این بخش برای حساب عضو در دسترس نیست." }, { status: 403 })
@@ -56,7 +75,8 @@ export async function proxy(request: NextRequest) {
   if (user.role !== "member" && user.role !== "beneficiary") {
     try {
       const account = await findStaffAccount(user.username);
-      if (!account || account.status === "disabled" || account.role !== user.role) {
+      const credentialVersion = account?.passwordChangedAt || account?.createdAt;
+      if (!account || account.status === "disabled" || account.role !== user.role || !user.credentialVersion || user.credentialVersion !== credentialVersion) {
         const response = path.startsWith("/api/")
           ? NextResponse.json({ error: "این حساب غیرفعال شده یا دسترسی آن تغییر کرده است." }, { status: 403 })
           : NextResponse.redirect(new URL("/login?access=revoked", request.url));
