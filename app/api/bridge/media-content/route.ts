@@ -1,5 +1,6 @@
+import { del } from "@vercel/blob";
 import { NextResponse } from "next/server";
-import { listStored, putStored } from "@/lib/persistent-store";
+import { deleteStored, listStored, putStored } from "@/lib/persistent-store";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -97,5 +98,39 @@ export async function PATCH(request: Request) {
   } catch (error) {
     console.error("Media bridge PATCH failed", error instanceof Error ? error.name : "UnknownError");
     return jsonError("ثبت تصمیم ادمین انجام نشد.", 400);
+  }
+}
+
+
+export async function DELETE(request: Request) {
+  if (!authorized(request)) return jsonError("دسترسی غیرمجاز است.", 401);
+  try {
+    const body = await request.json() as { id?: unknown };
+    const id = typeof body.id === "string" ? body.id.trim().slice(0, 100) : "";
+    if (!id) return jsonError("شناسه محتوا معتبر نیست.", 400);
+
+    const items = await listStored<Submission>(collection);
+    const current = items.find(item => item.id === id);
+    if (!current || !["forwarded_admin", "published", "rejected_admin"].includes(current.status)) {
+      return jsonError("محتوا در کارتابل ادمین پیدا نشد یا قبلاً حذف شده است.", 404);
+    }
+
+    // Remove the private uploaded file as well as the database record.
+    if (current.pathname) {
+      try {
+        await del(current.pathname);
+      } catch (error) {
+        console.error("Media bridge blob deletion failed", error instanceof Error ? error.name : "UnknownError");
+        return jsonError("فایل محتوا حذف نشد؛ رکورد برای جلوگیری از باقی‌ماندن فایل یتیم حفظ شد.", 503);
+      }
+    }
+
+    await deleteStored(collection, current.id);
+    return NextResponse.json({ deleted: true, id: current.id }, {
+      headers: { "Cache-Control": "private, no-store" },
+    });
+  } catch (error) {
+    console.error("Media bridge DELETE failed", error instanceof Error ? error.name : "UnknownError");
+    return jsonError("حذف محتوا انجام نشد؛ دوباره تلاش کنید.", 400);
   }
 }

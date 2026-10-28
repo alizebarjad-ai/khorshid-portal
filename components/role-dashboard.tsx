@@ -259,18 +259,7 @@ export default function RoleDashboard({ role }: { role: ManagementRole }) {
         return;
       }
       if (currentRole !== role) {
-        const pathByRole: Record<ManagementRole, string> = {
-          ceo: "/internal/roles/ceo",
-          deputy: "/internal/roles/deputy",
-          finance: "/internal/roles/finance",
-          economic: "/internal/roles/economic",
-          csr: "/internal/roles/csr",
-          media: "/internal/media-manager",
-          artists: "/internal/roles/artists",
-          education: "/internal/education-manager",
-          members: "/internal/roles/members",
-        };
-        router.replace(pathByRole[currentRole] || "/login");
+        router.replace(dashboardPathForRole(currentRole));
         return;
       }
       setUserName(authData.user.name || config.title);
