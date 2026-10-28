@@ -132,8 +132,8 @@ export async function DELETE(request: NextRequest) {
     if (!id) return jsonError("شناسه محتوا معتبر نیست.", 400);
     const items = await listStored<Submission>(collection);
     const current = items.find(item => item.id === id);
-    if (!current || !["approved_media", "rejected_media"].includes(current.status)) {
-      return jsonError("فقط محتوای تأیید یا ردشده را می‌توان از کارتابل رسانه حذف کرد.", 409);
+    if (!current || !["pending_media", "approved_media", "rejected_media"].includes(current.status)) {
+      return jsonError("این محتوا در کارتابل معاون رسانه قابل حذف نیست.", 409);
     }
 
     // Delete the private file first. Keep the record if storage deletion fails.
