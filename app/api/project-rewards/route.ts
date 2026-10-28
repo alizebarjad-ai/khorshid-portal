@@ -33,14 +33,42 @@ export async function GET() {
       listStored<Record<string, unknown>>("projects"),
       listStored<Record<string, unknown>>("project-proposals"),
     ]);
-    return NextResponse.json({
-      projects: user.role === "beneficiary"
-        ? projects.filter((item) => Array.isArray(item.people) && item.people.some((person: any) => person.name === user.name))
-        : projects,
-      proposals: user.role === "beneficiary"
-        ? proposals.filter((item) => item.creator === user.username)
-        : proposals,
+    const organizationWideRoles = new Set(["owner", "ceo", "deputy", "finance"]);
+    const visibleProjects = organizationWideRoles.has(user.role)
+      ? projects
+      : projects.filter((item) => {
+          const team = Array.isArray(item.team) ? item.team : [];
+          const people = Array.isArray(item.people) ? item.people : [];
+          return item.assignedUnit === user.role
+            || item.assignedTo === user.role
+            || item.ownerUnit === user.role
+            || team.includes(user.role)
+            || people.some((person: any) => person.username === user.username || person.name === user.name)
+            || (user.role === "beneficiary" && people.some((person: any) => person.name === user.name));
+        });
+
+    const visibleProposals = user.role === "beneficiary"
+      ? proposals.filter((item) => item.creator === user.username)
+      : organizationWideRoles.has(user.role)
+        ? proposals
+        : proposals.filter((item) =>
+            item.creator === user.username
+            || item.assignedTo === user.role
+            || item.assignedUnit === user.role
+            || item.ownerUnit === user.role
+            || item.subjectArea === user.role
+          );
+
+    const canViewFinancialDetails = ["owner", "ceo", "deputy", "finance"].includes(user.role);
+    const safeProposals = canViewFinancialDetails ? visibleProposals : visibleProposals.map((item) => {
+      const { contractValue, contractNo, contractDate, financeNote, budget, paymentTerms, ...safe } = item;
+      return safe;
     });
+
+    return NextResponse.json(
+      { projects: visibleProjects, proposals: safeProposals },
+      { headers: { "Cache-Control": "private, no-store, max-age=0" } },
+    );
   } catch (error) {
     console.error("GET /api/project-rewards failed", error);
     return fail(error instanceof Error ? error.message : "خواندن اطلاعات انجام نشد.", 503);
