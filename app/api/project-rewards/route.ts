@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 import { COOKIE_NAME, decodeSession } from "@/lib/auth";
-import { deleteCollection, getStored, listStored, putStored } from "@/lib/persistent-store";
+import { getStored, listStored, putStored } from "@/lib/persistent-store";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
