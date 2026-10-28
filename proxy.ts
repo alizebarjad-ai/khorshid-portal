@@ -1,5 +1,6 @@
+import { createHash } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
-import { COOKIE_NAME, decodeSession } from "@/lib/auth";
+import { COOKIE_NAME, decodeSession, getConfiguredUsers } from "@/lib/auth";
 import { findStaffAccount } from "@/lib/staff-accounts";
 import { findMemberAccountByUsername } from "@/lib/member-accounts";
 
@@ -20,6 +21,13 @@ const MEMBER_ALLOWED_PATHS = new Set([
   "/api/auth/change-password",
   "/api/member/profile",
   "/api/member/dashboard",
+]);
+const BENEFICIARY_PAGE_PATHS = new Set(["/internal/my-reward", "/internal/submit-proposal"]);
+const BENEFICIARY_API_METHODS = new Map<string, Set<string>>([
+  ["/api/auth/me", new Set(["GET"])],
+  ["/api/auth/logout", new Set(["POST"])],
+  ["/api/opportunities", new Set(["GET", "POST"])],
+  ["/api/project-rewards", new Set(["GET"])],
 ]);
 
 export async function proxy(request: NextRequest) {
@@ -62,6 +70,30 @@ export async function proxy(request: NextRequest) {
       return path.startsWith("/api/")
         ? NextResponse.json({ error: "بررسی وضعیت حساب ممکن نشد؛ دوباره تلاش کنید." }, { status: 503 })
         : NextResponse.redirect(new URL("/login?access=check-failed", request.url));
+    }
+  }
+
+  if (user.role === "beneficiary") {
+    const configured = getConfiguredUsers().find((item) => item.username === user.username && item.role === "beneficiary");
+    const expectedVersion = configured?.password
+      ? createHash("sha256").update(configured.password).digest("hex")
+      : "";
+    if (!configured || !user.credentialVersion || user.credentialVersion !== expectedVersion) {
+      const response = path.startsWith("/api/")
+        ? NextResponse.json({ error: "حساب ذی‌نفع غیرفعال شده یا اطلاعات ورود آن تغییر کرده است." }, { status: 403 })
+        : NextResponse.redirect(new URL("/login?access=revoked", request.url));
+      response.cookies.set(COOKIE_NAME, "", { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", path: "/", maxAge: 0 });
+      return response;
+    }
+    const allowedApiMethods = BENEFICIARY_API_METHODS.get(path);
+    const allowed = path.startsWith("/api/")
+      ? Boolean(allowedApiMethods?.has(request.method))
+      : BENEFICIARY_PAGE_PATHS.has(path);
+    if (!allowed) {
+      const response = path.startsWith("/api/")
+        ? NextResponse.json({ error: "این بخش برای حساب ذی‌نفع پروژه در دسترس نیست." }, { status: 403 })
+        : NextResponse.redirect(new URL("/internal/my-reward", request.url));
+      return response;
     }
   }
 
