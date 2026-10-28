@@ -113,7 +113,7 @@ export default function OwnerStaffPage() {
       const response = await fetch("/api/owner/test-data", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ confirmation }) });
       const body = await response.json();
       if (!response.ok) throw new Error(body.error || "پاک‌سازی داده‌های آزمایشی ناموفق بود.");
-      setNotice(`پاک‌سازی انجام شد: ${body.deletedRecords} رکورد و ${body.deletedFiles} فایل حذف شد.` + (body.auditRecorded === false ? " هشدار: ثبت سابقه امنیتی انجام نشد." : ""));
+      setNotice(`پاک‌سازی انجام شد: ${body.deletedRecords} رکورد و ${body.deletedFiles} فایل حذف شد.` + (body.failedFiles ? ` هشدار: حذف ${body.failedFiles} فایل انجام نشد و باید جداگانه بررسی شود.` : "") + (body.auditRecorded === false ? " هشدار: ثبت سابقه امنیتی انجام نشد." : ""));
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "پاک‌سازی داده‌های آزمایشی ناموفق بود.");
     } finally {
