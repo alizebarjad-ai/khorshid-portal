@@ -21,7 +21,7 @@ const allowedRoles = new Set(["members"]);
 const ranks: MembershipRank[] = ["volunteer", "active_volunteer", "club_manager"];
 const rankLabels: Record<MembershipRank, string> = {
   volunteer: "داوطلب",
-  active_volunteer: "داوطلب فعال",
+  active_volunteer: "حرفه‌ای",
   club_manager: "مدیر باشگاه",
 };
 
@@ -110,7 +110,7 @@ export async function POST(request: NextRequest) {
       const current = ranks.includes(member.membershipRank as MembershipRank) ? member.membershipRank as MembershipRank : "volunteer";
       const currentIndex = ranks.indexOf(current);
       if (currentIndex >= ranks.length - 1) {
-        return NextResponse.json({ error: "وضعیت «مسئول باشگاه» بالاترین سطح مشارکت تعریف‌شده فعلی است." }, { status: 409 });
+        return NextResponse.json({ error: "وضعیت «مدیر باشگاه» بالاترین سطح مشارکت تعریف‌شده فعلی است." }, { status: 409 });
       }
       const reason = typeof body.reason === "string" ? body.reason.trim() : "";
       if (reason.length < 5 || reason.length > 1000) {
