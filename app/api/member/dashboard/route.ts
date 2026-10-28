@@ -10,13 +10,26 @@ type StoredItem = Record<string, unknown>;
 type SiteContentItem = {
   id: string;
   kind: string;
+  type: string;
   title: string;
   description: string;
   image: string;
   dateLabel: string;
+  isoDate: string;
   href: string;
   linkLabel: string;
+  details: string;
+  targetGrades: string[];
   clubIds: string[];
+};
+type MemberServiceItem = {
+  id: string;
+  title: string;
+  description: string;
+  details: string;
+  href: string;
+  linkLabel: string;
+  targetGrades: string[];
 };
 
 const text = (value: unknown) => typeof value === "string" ? value : "";
@@ -72,6 +85,7 @@ export async function GET(request: NextRequest) {
         return found ? [found.slug] : [];
       }));
     let siteContent: SiteContentItem[] = [];
+    let memberServices: MemberServiceItem[] = [];
     try {
       const feedResponse = await fetch(websiteBase + "/api/club-feed", {
         cache: "no-store",
@@ -80,8 +94,30 @@ export async function GET(request: NextRequest) {
       });
       if (feedResponse.ok) {
         const feed = await feedResponse.json() as { items?: StoredItem[] };
-        siteContent = (Array.isArray(feed.items) ? feed.items : [])
-          .filter((item) => item.showToMembers === true && text(item.kind) !== "club-member")
+        const feedItems = Array.isArray(feed.items) ? feed.items : [];
+        const memberGrade = text(member.membershipRank || member.membershipGrade || "volunteer");
+
+        // Services are managed in the main-site admin panel and are shown only to matching member ranks.
+        memberServices = feedItems
+          .filter((item) => text(item.kind) === "member-service")
+          .filter((item) => strings(item.targetGrades).includes(memberGrade))
+          .map((item) => {
+            const rawHref = text(item.href);
+            return {
+              id: text(item.id),
+              title: text(item.title),
+              description: text(item.description),
+              details: text(item.details),
+              href: rawHref ? (rawHref.startsWith("http") ? rawHref : websiteBase + (rawHref.startsWith("/") ? rawHref : "/" + rawHref)) : "",
+              linkLabel: text(item.linkLabel) || "اطلاعات بیشتر",
+              targetGrades: strings(item.targetGrades),
+            };
+          })
+          .filter((item) => item.id && item.title)
+          .slice(0, 50);
+
+        siteContent = feedItems
+          .filter((item) => item.showToMembers === true && !["club-member", "member-service"].includes(text(item.kind)))
           .filter((item) => {
             const targetClubs = strings(item.clubIds);
             return targetClubs.length === 0 || targetClubs.some((slug) => memberClubSlugs.has(slug));
@@ -92,12 +128,16 @@ export async function GET(request: NextRequest) {
             return {
               id: text(item.id),
               kind: text(item.kind) || "content",
+              type: text(item.type),
               title: text(item.title),
               description: text(item.description),
               image: rawImage && rawImage.startsWith("/") ? websiteBase + rawImage : rawImage,
               dateLabel: text(item.dateLabel),
-              href: rawHref.startsWith("http") ? rawHref : websiteBase + (rawHref.startsWith("/") ? rawHref : "/" + rawHref),
-              linkLabel: text(item.linkLabel) || "مشاهده در سایت اصلی",
+              isoDate: text(item.isoDate),
+              href: rawHref ? (rawHref.startsWith("http") ? rawHref : websiteBase + (rawHref.startsWith("/") ? rawHref : "/" + rawHref)) : "",
+              linkLabel: text(item.linkLabel) || "مشاهده جزئیات",
+              details: text(item.details),
+              targetGrades: strings(item.targetGrades),
               clubIds: strings(item.clubIds),
             };
           })
@@ -106,7 +146,7 @@ export async function GET(request: NextRequest) {
       }
     } catch (feedError) {
       // The member dashboard remains usable if the public website feed is temporarily unavailable.
-      console.error("Khorshid website club feed is unavailable", feedError);
+      console.error("Khorshid website member content is unavailable", feedError);
     }
 
     const programs = programRows.flatMap((item) => {
@@ -166,6 +206,7 @@ export async function GET(request: NextRequest) {
       pointEvents,
       programs,
       siteContent,
+      memberServices,
     }, { headers: { "Cache-Control": "private, no-store, max-age=0" } });
   } catch (error) {
     console.error("Member dashboard data could not be loaded", error);
