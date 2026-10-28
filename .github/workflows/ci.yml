@@ -31,3 +31,5 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm run build
+      - name: Fail on high or critical dependency vulnerabilities
+        run: npm audit --audit-level=high
