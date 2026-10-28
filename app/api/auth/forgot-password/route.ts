@@ -62,7 +62,7 @@ export async function POST(request: Request) {
       body: JSON.stringify({
         name: account.fullName,
         email: account.email,
-        resetUrl: "https://khorshid-portal.vercel.app/reset-password?token=" + encodeURIComponent(token),
+        resetUrl: new URL("/reset-password?token=" + encodeURIComponent(token), portalOrigin).toString(),
       }),
       cache: "no-store",
     });
