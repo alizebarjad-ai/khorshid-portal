@@ -15,7 +15,7 @@ export async function POST(request: Request) {
     const active = await activateMemberAccount(account, password, token);
     if (!active) return NextResponse.json({ error: "این پیوند قبلاً استفاده شده یا منقضی شده است. برای فعال‌سازی، پیوند تازه درخواست کنید." }, { status: 409 });
     const response = NextResponse.json({ success: true, user: { username: active.username, name: active.fullName, role: "member", memberId: active.memberId } });
-    response.cookies.set(COOKIE_NAME, encodeSession({ username: active.username, name: active.fullName, role: "member", memberId: active.memberId }), {
+    response.cookies.set(COOKIE_NAME, encodeSession({ username: active.username, name: active.fullName, role: "member", memberId: active.memberId, credentialVersion: active.passwordChangedAt || active.createdAt }), {
       httpOnly: true,
       sameSite: "lax",
       secure: process.env.NODE_ENV === "production",
