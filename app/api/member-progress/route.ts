@@ -23,7 +23,7 @@ const allowedRoles = new Set(["members"]);
 const ranks: MembershipRank[] = ["volunteer", "active_volunteer", "club_manager"];
 const rankLabels: Record<MembershipRank, string> = {
   volunteer: "داوطلب",
-  active_volunteer: "داوطلب فعال",
+  active_volunteer: "حرفه‌ای",
   club_manager: "مدیر باشگاه",
 };
 
