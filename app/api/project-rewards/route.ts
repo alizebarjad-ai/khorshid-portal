@@ -7,7 +7,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 type SessionUser = { username: string; name: string; role: string };
-const projectRoles = ["finance", "ceo", "deputy", "economic", "csr", "media", "artists", "education", "members", "beneficiary"];
+const projectRoles = ["owner", "finance", "ceo", "deputy", "economic", "csr", "media", "artists", "education", "members", "beneficiary"];
 const proposalRoles = ["finance", "ceo", "deputy", "economic", "csr", "media", "artists", "education", "members", "beneficiary"];
 
 async function currentUser(): Promise<SessionUser | null> {
@@ -43,8 +43,7 @@ export async function GET() {
             || item.assignedTo === user.role
             || item.ownerUnit === user.role
             || team.includes(user.role)
-            || people.some((person: any) => person.username === user.username || person.name === user.name)
-            || (user.role === "beneficiary" && people.some((person: any) => person.name === user.name));
+            || people.some((person: any) => person.username === user.username);
         });
 
     const visibleProposals = user.role === "beneficiary"
@@ -65,7 +64,7 @@ export async function GET() {
         const people = Array.isArray(project.people) ? project.people as Array<Record<string, unknown>> : [];
         const totalWeight = people.reduce((sum, person) => sum + Math.max(0, Number(person.weight) || 0), 0);
         if (!totalWeight) return [];
-        const mine = people.filter((person) => person.name === user.name);
+        const mine = people.filter((person) => person.username === user.username);
         if (!mine.length) return [];
         const received = Math.max(0, Number(project.received) || 0);
         const costs = ["directCosts", "overheadCosts", "tax", "otherCosts"].reduce((sum, key) => sum + Math.max(0, Number(project[key]) || 0), 0);
