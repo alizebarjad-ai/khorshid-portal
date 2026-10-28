@@ -16,6 +16,7 @@ type Account = {
 type AuditItem = { actor: string; action: string; target: string; at: string; metadata?: Record<string, string> };
 type Snapshot = { accounts: Account[]; audit: AuditItem[] };
 type SecretResult = { username: string; temporaryPassword: string; note: string };
+type SiteAdminStatus = { username: string; enabled: boolean; managed: boolean };
 
 const ACTION_LABEL: Record<string, string> = {
   "reset-password": "بازنشانی رمز",
@@ -38,6 +39,10 @@ export default function OwnerStaffPage() {
   const [secret, setSecret] = useState<SecretResult | null>(null);
   const [successor, setSuccessor] = useState<Record<string, { username: string; name: string }>>({});
   const [cleanupBusy, setCleanupBusy] = useState("");
+  const [siteAdmin, setSiteAdmin] = useState<SiteAdminStatus>({ username: "admin", enabled: true, managed: false });
+  const [siteAdminError, setSiteAdminError] = useState("");
+  const [newAdminUsername, setNewAdminUsername] = useState("");
+  const [siteAdminBusy, setSiteAdminBusy] = useState(false);
 
   const load = useCallback(async () => {
     setError("");
@@ -53,7 +58,19 @@ export default function OwnerStaffPage() {
     }
   }, []);
 
-  useEffect(() => { void load(); }, [load]);
+  const loadSiteAdmin = useCallback(async () => {
+    setSiteAdminError("");
+    try {
+      const response = await fetch("/api/owner/site-admin", { cache: "no-store" });
+      const body = await response.json();
+      if (!response.ok) throw new Error(body.error || "دریافت وضعیت حساب ادمین سایت ناموفق بود.");
+      setSiteAdmin(body);
+    } catch (caught) {
+      setSiteAdminError(caught instanceof Error ? caught.message : "دریافت وضعیت حساب ادمین سایت ناموفق بود.");
+    }
+  }, []);
+
+  useEffect(() => { void load(); void loadSiteAdmin(); }, [load, loadSiteAdmin]);
 
   async function run(action: string, account: Account) {
     setError("");
@@ -127,6 +144,39 @@ export default function OwnerStaffPage() {
     }
   }
 
+  async function manageSiteAdmin(action: "reset-password" | "transfer") {
+    setError("");
+    setNotice("");
+    setSecret(null);
+    if (action === "transfer") {
+      const username = newAdminUsername.trim();
+      if (!/^[a-zA-Z0-9._-]{3,60}$/.test(username) || username.toLowerCase() === "owner") {
+        setError("نام کاربری جدید باید ۳ تا ۶۰ نویسه انگلیسی معتبر باشد.");
+        return;
+      }
+      if (!window.confirm(`مسئولیت مدیریت سایت از حساب «${siteAdmin.username}» به «${username}» منتقل شود؟ ورودهای بعدی فقط با نام کاربری جدید و رمز موقت ممکن خواهد بود.`)) return;
+    } else if (!window.confirm(`رمز حساب مدیریت سایت «${siteAdmin.username}» بازنشانی شود؟`)) {
+      return;
+    }
+    setSiteAdminBusy(true);
+    try {
+      const response = await fetch("/api/owner/site-admin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action, ...(action === "transfer" ? { newUsername: newAdminUsername.trim() } : {}) }),
+      });
+      const body = await response.json();
+      if (!response.ok) throw new Error(body.error || "عملیات حساب ادمین سایت ناموفق بود.");
+      setSecret({ username: body.username, temporaryPassword: body.temporaryPassword, note: (body.note || "رمز موقت فقط اکنون نمایش داده می‌شود.") + (body.auditRecorded === false ? " هشدار: ثبت سابقه امنیتی ناموفق بود." : "") });
+      setNewAdminUsername("");
+      await loadSiteAdmin();
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "عملیات حساب ادمین سایت ناموفق بود.");
+    } finally {
+      setSiteAdminBusy(false);
+    }
+  }
+
   async function logout() {
     await fetch("/api/auth/logout", { method: "POST" });
     window.location.href = "/login";
@@ -183,6 +233,25 @@ export default function OwnerStaffPage() {
             <p className="mt-3 text-xs leading-6">پس از بستن این بخش، رمز دوباره از سامانه بازیابی نمی‌شود؛ در صورت گم‌شدن باید رمز دیگری صادر کنید.</p>
           </section>
         )}
+
+        <section className="mt-6 rounded-3xl bg-white p-5 shadow-sm ring-1 ring-[#D9C48E] md:p-7">
+          <h2 className="text-xl font-extrabold">مدیریت ادمین سایت اصلی</h2>
+          <p className="mt-2 text-sm leading-7 text-[#687783]">این حساب از حساب‌های پرتال جداست. مالک می‌تواند رمز آن را بازنشانی کند یا مسئولیت مدیریت سایت را به نام کاربری دیگری منتقل کند. رمز موقت فقط یک بار نمایش داده می‌شود.</p>
+          {siteAdminError ? <p role="alert" className="mt-3 rounded-xl bg-amber-50 p-3 text-sm text-amber-900">{siteAdminError}</p> : (
+            <div className="mt-4 rounded-xl bg-[#F7F5F0] p-4 text-sm">
+              <p>نام کاربری فعلی: <strong dir="ltr">{siteAdmin.username}</strong></p>
+              <p className="mt-1">وضعیت: <strong>{siteAdmin.enabled ? "فعال" : "غیرفعال"}</strong></p>
+              {!siteAdmin.managed && <p className="mt-2 text-amber-800">حساب هنوز از تنظیمات اولیه سایت استفاده می‌کند؛ اولین بازنشانی یا انتقال، اعتبارنامه مدیریتی را به‌صورت امن در پایگاه داده ثبت می‌کند.</p>}
+            </div>
+          )}
+          <div className="mt-4 flex flex-wrap gap-3">
+            <button disabled={siteAdminBusy || Boolean(siteAdminError)} onClick={() => void manageSiteAdmin("reset-password")} className="rounded-xl bg-[#18304A] px-4 py-3 text-sm font-bold text-white disabled:opacity-50">{siteAdminBusy ? "در حال انجام…" : "بازنشانی رمز ادمین"}</button>
+          </div>
+          <div className="mt-5 grid gap-3 md:grid-cols-[1fr_auto]">
+            <input value={newAdminUsername} onChange={(event) => setNewAdminUsername(event.target.value)} dir="ltr" autoComplete="off" placeholder="نام کاربری مسئول جدید" className="rounded-xl border border-[#D8D0C4] px-4 py-3 text-sm" />
+            <button disabled={siteAdminBusy || Boolean(siteAdminError)} onClick={() => void manageSiteAdmin("transfer")} className="rounded-xl border border-[#D9C48E] px-4 py-3 text-sm font-bold text-[#18304A] disabled:opacity-50">انتقال مسئولیت مدیریت سایت</button>
+          </div>
+        </section>
 
         <section className="mt-6 rounded-3xl bg-white p-5 shadow-sm ring-1 ring-[#E3E0D8] md:p-7">
           <div className="flex flex-wrap items-center justify-between gap-3">
