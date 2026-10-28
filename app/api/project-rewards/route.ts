@@ -120,14 +120,5 @@ export async function PUT(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   const user = await currentUser();
   if (!user) return fail("برای ادامه وارد سامانه شوید.", 401);
-  if (user.role !== "finance") return fail("پاک‌سازی پرونده‌های پروژه فقط در اختیار واحد مالی است.", 403);
-  const kind = request.nextUrl.searchParams.get("kind");
-  if (kind !== "projects") return fail("درخواست حذف معتبر نیست.", 400);
-  try {
-    await deleteCollection("projects");
-    return NextResponse.json({ ok: true });
-  } catch (error) {
-    console.error("DELETE /api/project-rewards failed", error);
-    return fail(error instanceof Error ? error.message : "حذف اطلاعات انجام نشد.", 503);
-  }
+  return fail("حذف دائمی پروژه از این مسیر غیرفعال است. برای داده‌های آزمایشی از ابزار پاک‌سازی اختصاصی مالک سامانه استفاده کنید؛ پروژه‌های عملیاتی باید بایگانی شوند.", 405);
 }
