@@ -77,7 +77,7 @@ export async function GET() {
   }
 
   if (user.role === "finance") {
-    return NextResponse.json({ items: all.filter((item) => (item.team || []).includes(user.role) || item.status === "قرارداد تنظیم شد" || item.status === "ثبت پروژه") });
+    return NextResponse.json({ items: all.filter((item) => (item.team || []).includes(user.role) || item.status === "قرارداد تنظیم شد" || item.status === "ثبت پروژه") }, { headers: { "Cache-Control": "private, no-store, max-age=0" } });
   }
 
   if (unitRoles.includes(user.role as (typeof unitRoles)[number])) {
@@ -85,10 +85,10 @@ export async function GET() {
     // A topic-routed request is visible to its assigned unit before a team has been formed.
     return NextResponse.json({
       items: all.filter((item) => item.assignedTo === user.role || (item.team || []).includes(user.role)),
-    });
+    }, { headers: { "Cache-Control": "private, no-store, max-age=0" } });
   }
 
-  return NextResponse.json({ items: all });
+  return NextResponse.json({ items: all }, { headers: { "Cache-Control": "private, no-store, max-age=0" } });
 }
 
 export async function POST(request: Request) {
