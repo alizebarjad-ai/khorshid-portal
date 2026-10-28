@@ -60,13 +60,17 @@ export async function GET() {
           );
 
     const canViewFinancialDetails = ["owner", "ceo", "deputy", "finance"].includes(user.role);
+    const safeProjects = canViewFinancialDetails ? visibleProjects : visibleProjects.map((item) => {
+      const { contractValue, contractNo, contractDate, financeNote, budget, paymentTerms, financialDetails, costs, revenue, sponsorAmount, paymentStatus, ...safe } = item;
+      return safe;
+    });
     const safeProposals = canViewFinancialDetails ? visibleProposals : visibleProposals.map((item) => {
-      const { contractValue, contractNo, contractDate, financeNote, budget, paymentTerms, ...safe } = item;
+      const { contractValue, contractNo, contractDate, financeNote, budget, paymentTerms, financialDetails, costs, revenue, sponsorAmount, paymentStatus, ...safe } = item;
       return safe;
     });
 
     return NextResponse.json(
-      { projects: visibleProjects, proposals: safeProposals },
+      { projects: safeProjects, proposals: safeProposals },
       { headers: { "Cache-Control": "private, no-store, max-age=0" } },
     );
   } catch (error) {
@@ -156,7 +160,7 @@ export async function PUT(request: NextRequest) {
   }
 }
 
-export async function DELETE(request: NextRequest) {
+export async function DELETE() {
   const user = await currentUser();
   if (!user) return fail("برای ادامه وارد سامانه شوید.", 401);
   return fail("حذف دائمی پروژه از این مسیر غیرفعال است. برای داده‌های آزمایشی از ابزار پاک‌سازی اختصاصی مالک سامانه استفاده کنید؛ پروژه‌های عملیاتی باید بایگانی شوند.", 405);
