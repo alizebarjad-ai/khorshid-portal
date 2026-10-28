@@ -19,6 +19,13 @@ jobs:
         run: |
           npm audit --json > npm-audit.json || true
           node -e 'const a=require("./npm-audit.json"); console.log(JSON.stringify({metadata:a.metadata?.vulnerabilities, advisories:Object.entries(a.vulnerabilities||{}).map(([name,v])=>({name,severity:v.severity,range:v.range,fixAvailable:v.fixAvailable,via:v.via.map(x=>typeof x==="string"?x:x.title)}))},null,2))'
+      - name: Preserve generated lockfile for review
+        uses: actions/upload-artifact@v4
+        with:
+          name: portal-package-lock
+          path: package-lock.json
+          if-no-files-found: error
+          retention-days: 3
       - run: npm ci
       - run: npm run lint
       - run: npm run build
