@@ -78,8 +78,10 @@ export async function GET() {
 
   if (user.role === "beneficiary" || user.role === "member") {
     return NextResponse.json({
-      items: all.filter((item) => item.creator === user.username),
-    });
+      items: all
+        .filter((item) => item.creator === user.username)
+        .map((item) => redactOpportunityFinancials(item, user.role)),
+    }, { headers: { "Cache-Control": "private, no-store, max-age=0" } });
   }
 
   if (!managementRoles.includes(user.role as (typeof managementRoles)[number])) {
