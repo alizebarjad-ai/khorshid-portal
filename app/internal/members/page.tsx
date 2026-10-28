@@ -9,7 +9,7 @@ type Club = {id:string;kind?:"club";name:string;clubType:string;status:string;ci
 const blank = {fullName:"",memberType:"individual",membershipTier:"affiliate",membershipGrade:"volunteer",pointsBalance:0,status:"pending",phone:"",email:"",city:"",expertise:"",biography:"",clubIds:[] as string[],supplementalData:{} as Record<string,string>,notes:""};
 const typeLabel:Record<string,string>={individual:"شخص حقیقی / عضو وابسته",media:"رسانه",artist:"شخص حقیقی / عضو وابسته",figure:"چهره و صاحب‌نظر",supporter:"حامی",expert:"شخص حقیقی / عضو وابسته",organization:"شخصیت حقوقی"};
 const tierLabel:Record<string,string>={affiliate:"عضو وابسته",professional:"عضو حرفه‌ای / تخصصی",supporter_partner:"حامی مالی / شریک سازمانی"};
-const gradeLabel:Record<string,string>={volunteer:"داوطلب",professional:"حرفه‌ای",club_manager:"مدیر باشگاه"};
+const gradeLabel:Record<string,string>={volunteer:"داوطلب",active_volunteer:"حرفه‌ای",professional:"حرفه‌ای",club_manager:"مدیر باشگاه"};
 const statusLabel:Record<string,string>={pending:"در انتظار بررسی",active:"فعال",inactive:"غیرفعال",suspended:"تعلیق‌شده"};
 const inputClass="w-full rounded-xl border border-[#D8D0C4] bg-white px-3 py-2.5 text-sm text-[#18304A] outline-none focus:border-[#B07800]";
 export default function MembersPage(){

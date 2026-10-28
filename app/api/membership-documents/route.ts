@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 export async function GET(request: NextRequest) {
   const user = decodeSession(request.cookies.get(COOKIE_NAME)?.value);
   if (!user) return NextResponse.json({ error: "برای ادامه وارد سامانه شوید." }, { status: 401 });
-  if (!["members", "ceo", "deputy"].includes(user.role)) return NextResponse.json({ error: "دسترسی به مدارک عضویت مجاز نیست." }, { status: 403 });
+  if (user.role !== "members") return NextResponse.json({ error: "دسترسی به فایل خام مدارک عضویت فقط برای معاونت اعضا مجاز است." }, { status: 403 });
 
   const apiBase = process.env.WEBSITE_MEMBERSHIP_API_URL;
   const key = process.env.PORTAL_MEMBERSHIP_API_KEY;

@@ -1,18 +1,31 @@
 name: Portal CI
 
+permissions:
+  contents: read
+
 on:
   pull_request:
     branches: [main]
   push:
-    branches: [main, feat/membership-review-workflow, feat/unified-request-workflow]
+    branches: [main, feat/membership-review-workflow, feat/unified-request-workflow, security/role-access-hardening]
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - run: npm install
+          cache: npm
+      - run: npm ci
+      - name: Dependency audit summary
+        run: |
+          npm audit --json > npm-audit.json || true
+          node -e 'const a=require("./npm-audit.json"); console.log(JSON.stringify({metadata:a.metadata?.vulnerabilities, advisories:Object.entries(a.vulnerabilities||{}).map(([name,v])=>({name,severity:v.severity,range:v.range,via:v.via.map(x=>typeof x==="string"?x:x.title)}))},null,2))'
+      - run: npm run lint
       - run: npm run build
+      - name: Fail on high or critical dependency vulnerabilities
+        run: npm audit --audit-level=high

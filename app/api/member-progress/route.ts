@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { COOKIE_NAME, decodeSession } from "@/lib/auth";
 import { readMembers, readMemberPointLedger, updateRecord, type MembershipRank } from "@/lib/records-store";
-import { putStored } from "@/lib/persistent-store";
+import { putStored, withPersistentAdvisoryLock } from "@/lib/persistent-store";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -23,7 +23,7 @@ const allowedRoles = new Set(["members"]);
 const ranks: MembershipRank[] = ["volunteer", "active_volunteer", "club_manager"];
 const rankLabels: Record<MembershipRank, string> = {
   volunteer: "داوطلب",
-  active_volunteer: "داوطلب فعال",
+  active_volunteer: "حرفه‌ای",
   club_manager: "مدیر باشگاه",
 };
 
@@ -87,8 +87,9 @@ export async function POST(request: NextRequest) {
     }
     if (hasRankInput && !hasRank) return NextResponse.json({ error: "وضعیت مشارکت معتبر نیست." }, { status: 400 });
 
-    const members = await readMembers();
-    const member = members.find((item) => item.id === memberId);
+    return await withPersistentAdvisoryLock("member-points:" + memberId, async () => {
+      const members = await readMembers();
+      const member = members.find((item) => item.id === memberId);
     if (!member) return NextResponse.json({ error: "پرونده عضو پیدا نشد." }, { status: 404 });
     if (member.status !== "active") return NextResponse.json({ error: "ثبت امتیاز یا تغییر وضعیت مشارکت فقط برای عضو فعال امکان‌پذیر است." }, { status: 409 });
 
@@ -146,7 +147,8 @@ export async function POST(request: NextRequest) {
       },
       pointsBalance,
       rankLabels,
-    }, { status: 201 });
+    }, { status: 201, headers: { "Cache-Control": "private, no-store, max-age=0" } });
+    });
   } catch (error) {
     console.error("Member progress update failed", error);
     return NextResponse.json({ error: error instanceof Error ? error.message : "ثبت تغییرات پرونده انجام نشد." }, { status: 400 });

@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
   try {
     const limitValue = Number(request.nextUrl.searchParams.get("limit") || 200);
     const events = await readRecordAudit(Number.isFinite(limitValue) ? limitValue : 200);
-    return NextResponse.json({ events });
+    return NextResponse.json({ events }, { headers: { "Cache-Control": "private, no-store, max-age=0" } });
   } catch (error) {
     console.error("Record audit GET failed", error);
     return NextResponse.json({ error: "دریافت سوابق تغییرات انجام نشد." }, { status: 503 });

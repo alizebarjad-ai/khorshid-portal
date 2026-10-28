@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { COOKIE_NAME, decodeSession } from "@/lib/auth";
@@ -57,6 +58,16 @@ async function currentUser() {
   return decodeSession(cookieStore.get(COOKIE_NAME)?.value);
 }
 
+function redactOpportunityFinancials(item: Opportunity, role: string) {
+  if (["ceo", "deputy", "finance"].includes(role)) return item;
+  if (role === "economic") {
+    const { contractNo, contractValue, contractDate, financeNote, directCost, rewardBase, ...safe } = item;
+    return safe;
+  }
+  const { expectedValue, estimatedCost, proposedPrice, contractNo, contractValue, contractDate, financeNote, directCost, rewardBase, ...safe } = item;
+  return safe;
+}
+
 export async function GET() {
   const user = await currentUser();
   if (!user) {
@@ -67,8 +78,10 @@ export async function GET() {
 
   if (user.role === "beneficiary" || user.role === "member") {
     return NextResponse.json({
-      items: all.filter((item) => item.creator === user.username),
-    });
+      items: all
+        .filter((item) => item.creator === user.username)
+        .map((item) => redactOpportunityFinancials(item, user.role)),
+    }, { headers: { "Cache-Control": "private, no-store, max-age=0" } });
   }
 
   if (!managementRoles.includes(user.role as (typeof managementRoles)[number])) {
@@ -76,18 +89,18 @@ export async function GET() {
   }
 
   if (user.role === "finance") {
-    return NextResponse.json({ items: all.filter((item) => (item.team || []).includes(user.role) || item.status === "قرارداد تنظیم شد" || item.status === "ثبت پروژه") });
+    return NextResponse.json({ items: all.filter((item) => (item.team || []).includes(user.role) || item.status === "قرارداد تنظیم شد" || item.status === "ثبت پروژه").map((item) => redactOpportunityFinancials(item, user.role)) }, { headers: { "Cache-Control": "private, no-store, max-age=0" } });
   }
 
   if (unitRoles.includes(user.role as (typeof unitRoles)[number])) {
     // Only the current owner and explicitly selected project-team members receive this queue.
     // A topic-routed request is visible to its assigned unit before a team has been formed.
     return NextResponse.json({
-      items: all.filter((item) => item.assignedTo === user.role || (item.team || []).includes(user.role)),
-    });
+      items: all.filter((item) => item.assignedTo === user.role || (item.team || []).includes(user.role)).map((item) => redactOpportunityFinancials(item, user.role)),
+    }, { headers: { "Cache-Control": "private, no-store, max-age=0" } });
   }
 
-  return NextResponse.json({ items: all });
+  return NextResponse.json({ items: all }, { headers: { "Cache-Control": "private, no-store, max-age=0" } });
 }
 
 export async function POST(request: Request) {
@@ -99,15 +112,23 @@ export async function POST(request: Request) {
 
   const body = await request.json();
 
-  if (!String(body.title || "").trim() || !String(body.description || "").trim()) {
-    return NextResponse.json(
-      { error: "عنوان پیشنهاد و شرح کوتاه الزامی است." },
-      { status: 400 }
-    );
+  const title = String(body.title || "").trim();
+  const description = String(body.description || "").trim();
+  const type = String(body.type || "پروژه").trim().slice(0, 80);
+  const clientName = String(body.clientName || "").trim().slice(0, 180);
+  const clientContact = String(body.clientContact || "").trim().slice(0, 200);
+  const expectedValue = body.expectedValue === undefined || body.expectedValue === null || body.expectedValue === ""
+    ? 0
+    : Number(body.expectedValue);
+  if (!title || title.length > 180 || !description || description.length > 5000 || !type) {
+    return NextResponse.json({ error: "عنوان و شرح پیشنهاد الزامی است؛ عنوان حداکثر ۱۸۰ و شرح حداکثر ۵۰۰۰ نویسه باشد." }, { status: 400 });
+  }
+  if (!Number.isFinite(expectedValue) || expectedValue < 0 || expectedValue > 1_000_000_000_000) {
+    return NextResponse.json({ error: "مبلغ برآوردی معتبر نیست." }, { status: 400 });
   }
 
   const requestedArea = String(body.subjectArea || "");
-  const fallbackArea = ["مشتری", "اسپانسر", "فرصت همکاری"].includes(String(body.type || "")) ? "economic" : "deputy";
+  const fallbackArea = ["مشتری", "اسپانسر", "فرصت همکاری"].includes(type) ? "economic" : "deputy";
   const subjectArea = (SUBJECT_ROLES as readonly string[]).includes(requestedArea) ? requestedArea : fallbackArea;
   const routedTo = user.role === "deputy" ? "ceo" : subjectArea;
   const routedStatus = user.role === "deputy"
@@ -115,15 +136,15 @@ export async function POST(request: Request) {
     : subjectArea === "deputy" ? "در حال بررسی قائم‌مقام" : "ارجاع به واحد تخصصی";
 
   const proposal: Opportunity = {
-    id: uid(),
+    id: randomUUID(),
     code: `OP-${new Date().getFullYear()}-${String(Date.now()).slice(-6)}`,
-    type: body.type || "پروژه",
+    type,
     subjectArea,
-    title: String(body.title).trim(),
-    clientName: String(body.clientName || "").trim(),
-    clientContact: String(body.clientContact || "").trim(),
-    description: String(body.description).trim(),
-    expectedValue: Number(body.expectedValue) || 0,
+    title,
+    clientName,
+    clientContact,
+    description,
+    expectedValue,
     creator: user.username,
     creatorName: user.name,
     createdAt: today(),
@@ -262,6 +283,13 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: "شما مجاز به ویرایش این بخش از پرونده نیستید." }, { status: 403 });
   }
   if (teamOnlyPatch && user.role === "ceo") {
+    const validTeamRoles = new Set<string>([...unitRoles, "deputy"]);
+    if (patch.team !== undefined && (!Array.isArray(patch.team) || patch.team.some((role) => typeof role !== "string" || !validTeamRoles.has(role)) || new Set(patch.team).size !== patch.team.length)) {
+      return NextResponse.json({ error: "فهرست اعضای تیم شامل نقش نامعتبر یا تکراری است." }, { status: 400 });
+    }
+    if (patch.assignedTo !== undefined && (typeof patch.assignedTo !== "string" || !validTeamRoles.has(patch.assignedTo))) {
+      return NextResponse.json({ error: "واحد مسئول پرونده معتبر نیست." }, { status: 400 });
+    }
     if (existing.status === "ثبت پروژه") {
       return NextResponse.json({ error: "پس از ثبت نهایی پرونده، تغییر اعضای تیم مجاز نیست." }, { status: 403 });
     }

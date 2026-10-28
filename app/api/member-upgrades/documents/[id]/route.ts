@@ -32,13 +32,12 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
     if (user.role === "member") {
       if (user.memberId !== document.memberId) return NextResponse.json({ error: "دسترسی به این مدرک مجاز نیست." }, { status: 403 });
     } else {
-      const allowedStaff = ["ceo", "deputy"].includes(user.role);
-      if (!allowedStaff && !["artists", "education", "csr"].includes(user.role)) {
-        return NextResponse.json({ error: "دسترسی به مدارک ارتقا مجاز نیست." }, { status: 403 });
+      if (!["artists", "education", "csr"].includes(user.role)) {
+        return NextResponse.json({ error: "دسترسی به فایل خام مدارک فقط برای واحد تخصصی ارجاع‌شده مجاز است." }, { status: 403 });
       }
       const member = (await readMembers()).find(item => item.id === document.memberId);
       const linkedRequest = member?.upgradeRequests?.find(item => item.id === document.requestId);
-      if (!linkedRequest || (!allowedStaff && linkedRequest.assignedRole !== user.role)) {
+      if (!linkedRequest || linkedRequest.assignedRole !== user.role) {
         return NextResponse.json({ error: "این مدرک به کارتابل شما ارجاع نشده است." }, { status: 403 });
       }
     }

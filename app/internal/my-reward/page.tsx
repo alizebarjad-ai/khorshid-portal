@@ -1,36 +1,25 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 
-type Person = {
-  id: string;
-  name: string;
-  role: string;
-  rolePercent: number;
-  weight: number;
-};
-
-type Project = {
-  id: string;
+type RewardRow = {
+  projectId: string;
   code: string;
-  name: string;
+  projectName: string;
   clientName: string;
   currency: string;
-  rewardRate: number;
-  received: number;
-  directCosts: number;
-  overheadCosts: number;
-  tax: number;
-  otherCosts: number;
-  status: string;
-  people: Person[];
+  projectStatus: string;
+  role: string;
+  rolePercent: number;
+  share: number;
+  amount: number;
 };
 
 const money = (n: number) => new Intl.NumberFormat("fa-IR").format(Math.max(0, Math.round(n)));
 
 export default function MyRewardPage() {
   const [name, setName] = useState("");
-  const [projects, setProjects] = useState<Project[]>([]);
+  const [rows, setRows] = useState<RewardRow[]>([]);
   const [loggingOut, setLoggingOut] = useState(false);
 
   useEffect(() => {
@@ -44,28 +33,12 @@ export default function MyRewardPage() {
       .then(async (response) => {
         if (!response.ok) return;
         const data = await response.json();
-        setProjects((data.projects || []) as Project[]);
+        setRows((data.rewards || []) as RewardRow[]);
       })
       .catch((error) => console.error("Could not load reward records", error));
   }, []);
 
-  const rows = useMemo(() => projects.flatMap((project) => {
-    const people = project.people || [];
-    const totalWeight = people.reduce((s, p) => s + Number(p.weight || 0), 0);
-    const costs = Number(project.directCosts || 0) + Number(project.overheadCosts || 0) + Number(project.tax || 0) + Number(project.otherCosts || 0);
-    const base = Math.max(0, Number(project.received || 0) - costs);
-    const pool = base * (Number(project.rewardRate || 0) / 100);
-    return people
-      .filter((person) => person.name === name)
-      .map((person) => ({
-        ...person,
-        project,
-        share: totalWeight ? (person.weight / totalWeight) * 100 : 0,
-        amount: totalWeight ? (pool * person.weight) / totalWeight : 0,
-      }));
-  }), [projects, name]);
-
-  const total = rows.reduce((s, row) => s + row.amount, 0);
+  const total = rows.reduce((sum, row) => sum + Number(row.amount || 0), 0);
 
   async function logout() {
     setLoggingOut(true);
@@ -116,14 +89,14 @@ export default function MyRewardPage() {
             </thead>
             <tbody>
               {rows.map((row) => (
-                <tr key={row.project.id + "-" + row.id} className="border-t border-[#172F48]/10">
-                  <td className="p-4 font-bold">{row.project.name}</td>
-                  <td className="p-4">{row.project.clientName || "-"}</td>
+                <tr key={row.projectId + "-" + row.role} className="border-t border-[#172F48]/10">
+                  <td className="p-4 font-bold">{row.projectName}</td>
+                  <td className="p-4">{row.clientName || "-"}</td>
                   <td className="p-4">{row.role}</td>
                   <td className="p-4">{row.rolePercent}٪</td>
                   <td className="p-4">{row.share.toFixed(1)}٪</td>
-                  <td className="p-4 font-extrabold">{money(row.amount)} {row.project.currency}</td>
-                  <td className="p-4">{row.project.status}</td>
+                  <td className="p-4 font-extrabold">{money(row.amount)} {row.currency}</td>
+                  <td className="p-4">{row.projectStatus}</td>
                 </tr>
               ))}
               {rows.length === 0 && (

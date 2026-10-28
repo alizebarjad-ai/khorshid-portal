@@ -37,6 +37,7 @@ export default function OwnerStaffPage() {
   const [notice, setNotice] = useState("");
   const [secret, setSecret] = useState<SecretResult | null>(null);
   const [successor, setSuccessor] = useState<Record<string, { username: string; name: string }>>({});
+  const [resetBusy, setResetBusy] = useState(false);
 
   const load = useCallback(async () => {
     setError("");
@@ -102,6 +103,24 @@ export default function OwnerStaffPage() {
     }
   }
 
+  async function purgeTestData() {
+    const confirmation = window.prompt("این عملیات همه داده‌های آزمایشی اعضا، باشگاه‌ها، محتواها، درخواست‌های ارتقا و پروژه‌ها را پاک می‌کند؛ حساب‌های همکاران و سابقه امنیتی حفظ می‌شوند. برای تأیید دقیقاً بنویسید: DELETE_ALL_TEST_DATA");
+    if (confirmation !== "DELETE_ALL_TEST_DATA") return;
+    setResetBusy(true);
+    setError("");
+    setNotice("");
+    try {
+      const response = await fetch("/api/owner/test-data", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ confirmation }) });
+      const body = await response.json();
+      if (!response.ok) throw new Error(body.error || "پاک‌سازی داده‌های آزمایشی ناموفق بود.");
+      setNotice(`پاک‌سازی انجام شد: ${body.deletedRecords} رکورد و ${body.deletedFiles} فایل حذف شد.` + (body.failedFiles ? ` هشدار: حذف ${body.failedFiles} فایل انجام نشد و باید جداگانه بررسی شود.` : "") + (body.auditRecorded === false ? " هشدار: ثبت سابقه امنیتی انجام نشد." : ""));
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "پاک‌سازی داده‌های آزمایشی ناموفق بود.");
+    } finally {
+      setResetBusy(false);
+    }
+  }
+
   async function logout() {
     await fetch("/api/auth/logout", { method: "POST" });
     window.location.href = "/login";
@@ -126,7 +145,7 @@ export default function OwnerStaffPage() {
 
         {error && <p role="alert" className="mt-5 rounded-xl bg-red-50 p-4 text-sm font-semibold text-red-800">{error}</p>}
         {notice && <p role="status" className="mt-5 rounded-xl bg-[#F3F7EF] p-4 text-sm font-semibold text-[#31562D]">{notice}</p>}
-        {secret && (
+        <section className="mt-6 rounded-3xl border border-red-200 bg-white p-5 shadow-sm md:p-7">\n          <h2 className="text-xl font-extrabold text-red-800">پاک‌سازی داده‌های آزمایشی</h2>\n          <p className="mt-2 max-w-3xl text-sm leading-7 text-[#687783]">رکوردهای آزمایشی پروژه‌ها، پیشنهادها، اعضا، باشگاه‌ها، حساب‌های اعضا، امتیازها و محتوای ارسالی حذف می‌شوند. حساب‌های مدیریتی همکاران و سابقه امنیتی حفظ می‌شوند. فایل‌های خصوصی مرتبط نیز تا حد امکان حذف می‌شوند. این عملیات قابل بازگشت نیست.</p>\n          <button disabled={resetBusy} onClick={() => void purgeTestData()} className="mt-4 rounded-xl bg-red-700 px-4 py-3 text-sm font-extrabold text-white disabled:opacity-50">{resetBusy ? "در حال پاک‌سازی…" : "حذف همه داده‌های آزمایشی"}</button>\n        </section>\n\n        {secret && (
           <section className="mt-5 rounded-2xl border border-[#D9C48E] bg-[#FBF5E7] p-5">
             <h2 className="font-extrabold">رمز موقت برای {secret.username}</h2>
             <p className="mt-2 text-sm leading-6">{secret.note}</p>

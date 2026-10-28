@@ -196,8 +196,8 @@ export async function PATCH(request: NextRequest) {
     const requests = member.upgradeRequests || [];
     const current = requests.find(item => item.id === body.requestId);
     if (!current) return NextResponse.json({ error: "درخواست ارتقا پیدا نشد." }, { status: 404 });
-    if (auth.user.role !== "ceo" && current.assignedRole !== auth.user.role) {
-      return NextResponse.json({ error: "این درخواست فقط در کارتابل معاونت ارجاع‌شده قابل تصمیم‌گیری است." }, { status: 403 });
+    if (current.assignedRole !== auth.user.role) {
+      return NextResponse.json({ error: "تصمیم‌گیری فقط برای معاونت تخصصی ارجاع‌شده مجاز است؛ مدیرعامل و قائم‌مقام صرفاً وضعیت درخواست را مشاهده می‌کنند." }, { status: 403 });
     }
     if (current.status !== "pending" && current.status !== "needs_info") {
       return NextResponse.json({ error: "این درخواست قبلاً تعیین تکلیف شده است." }, { status: 409 });

@@ -14,6 +14,7 @@ export type StaffAccount = {
   createdAt: string;
   updatedAt: string;
   lastLoginAt?: string;
+  passwordChangedAt?: string;
 };
 
 function hashPassword(password: string) {
@@ -65,6 +66,7 @@ export async function authenticateStaff(
     status: "active",
     createdAt: now,
     updatedAt: now,
+    passwordChangedAt: now,
   };
   await putStored("staff-accounts", account);
   return account;
@@ -74,6 +76,7 @@ export async function updateStaffPassword(account: StaffAccount, password: strin
   const updated: StaffAccount = {
     ...account,
     passwordHash: hashPassword(password),
+    passwordChangedAt: new Date().toISOString(),
     mustChangePassword,
     updatedAt: new Date().toISOString(),
   };

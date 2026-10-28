@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
   if (!auth.user) return auth.response!;
   try {
     const [members, clubs] = await Promise.all([readMembers(), readClubs()]);
-    return NextResponse.json({ members, clubs: mergeClubCatalog(clubs as unknown as Array<Record<string, unknown>>) });
+    return NextResponse.json({ members, clubs: mergeClubCatalog(clubs as unknown as Array<Record<string, unknown>>) }, { headers: { "Cache-Control": "private, no-store, max-age=0" } });
   } catch (error) {
     console.error("Records GET failed", error);
     return NextResponse.json({ error: error instanceof Error ? error.message : "دریافت اطلاعات انجام نشد." }, { status: 503 });

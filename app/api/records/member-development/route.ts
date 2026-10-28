@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { COOKIE_NAME, decodeSession } from "@/lib/auth";
-import { readMembers, updateRecord, type MembershipRank } from "@/lib/records-store";
+import { readMembers, readMemberPointLedger, updateRecord, type MembershipRank } from "@/lib/records-store";
 import { listStored, putStored } from "@/lib/persistent-store";
 
 export const runtime = "nodejs";
@@ -17,18 +17,18 @@ type PointEntry = {
   createdBy: string;
 };
 
-const allowedRoles = new Set(["members", "deputy", "ceo"]);
+const allowedRoles = new Set(["members"]);
 const ranks: MembershipRank[] = ["volunteer", "active_volunteer", "club_manager"];
 const rankLabels: Record<MembershipRank, string> = {
   volunteer: "داوطلب",
-  active_volunteer: "داوطلب فعال",
+  active_volunteer: "حرفه‌ای",
   club_manager: "مدیر باشگاه",
 };
 
 function authorize(request: NextRequest) {
   const user = decodeSession(request.cookies.get(COOKIE_NAME)?.value);
   if (!user) return { user: null, response: NextResponse.json({ error: "برای ادامه وارد سامانه شوید." }, { status: 401 }) };
-  if (!allowedRoles.has(user.role)) return { user: null, response: NextResponse.json({ error: "ثبت امتیاز و تغییر وضعیت مشارکت فقط برای معاون اعضا و مدیران مجاز است." }, { status: 403 }) };
+  if (!allowedRoles.has(user.role)) return { user: null, response: NextResponse.json({ error: "ثبت امتیاز و تغییر وضعیت مشارکت فقط برای معاونت اعضا مجاز است." }, { status: 403 }) };
   return { user, response: null };
 }
 
@@ -37,13 +37,22 @@ export async function GET(request: NextRequest) {
   if (!checked.user) return checked.response!;
   try {
     const memberId = request.nextUrl.searchParams.get("memberId");
-    const [members, entries] = await Promise.all([
+    const [members, ledger] = await Promise.all([
       readMembers(),
-      listStored<PointEntry>("member-points"),
+      readMemberPointLedger(memberId || undefined),
     ]);
     const validMemberIds = new Set(members.map((member) => member.id));
-    const filtered = entries
-      .filter((entry) => validMemberIds.has(entry.memberId) && (!memberId || entry.memberId === memberId))
+    const filtered: PointEntry[] = ledger
+      .filter((entry) => validMemberIds.has(entry.memberId))
+      .map((entry) => ({
+        id: entry.id,
+        memberId: entry.memberId,
+        points: Number(entry.points) || 0,
+        title: entry.title,
+        note: entry.note || "",
+        createdAt: entry.createdAt,
+        createdBy: entry.createdBy || entry.actor || "سامانه",
+      }))
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
     const pointsByMember: Record<string, { balance: number; events: PointEntry[] }> = {};
     for (const entry of filtered) {
@@ -101,7 +110,7 @@ export async function POST(request: NextRequest) {
       const current = ranks.includes(member.membershipRank as MembershipRank) ? member.membershipRank as MembershipRank : "volunteer";
       const currentIndex = ranks.indexOf(current);
       if (currentIndex >= ranks.length - 1) {
-        return NextResponse.json({ error: "وضعیت «مسئول باشگاه» بالاترین سطح مشارکت تعریف‌شده فعلی است." }, { status: 409 });
+        return NextResponse.json({ error: "وضعیت «مدیر باشگاه» بالاترین سطح مشارکت تعریف‌شده فعلی است." }, { status: 409 });
       }
       const reason = typeof body.reason === "string" ? body.reason.trim() : "";
       if (reason.length < 5 || reason.length > 1000) {
@@ -112,7 +121,7 @@ export async function POST(request: NextRequest) {
         membershipType: "affiliate",
         membershipTier: "affiliate",
         membershipRank: nextRank,
-        membershipRankReason: reason,
+        rankReason: reason,
       }, { username: checked.user.username });
       if (!updated || updated.kind !== "member") return NextResponse.json({ error: "ثبت ارتقای رده انجام نشد." }, { status: 500 });
       return NextResponse.json({

@@ -13,7 +13,9 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const currentPassword = typeof body.currentPassword === "string" ? body.currentPassword : "";
     const newPassword = typeof body.newPassword === "string" ? body.newPassword : "";
-    if (newPassword.length < 12) return NextResponse.json({ error: "رمز جدید باید دست‌کم ۱۲ نویسه داشته باشد." }, { status: 400 });
+    if (currentPassword.length > 256 || newPassword.length < 12 || newPassword.length > 256) {
+      return NextResponse.json({ error: "رمز فعلی و جدید باید حداکثر ۲۵۶ نویسه داشته باشند و رمز جدید دست‌کم ۱۲ نویسه باشد." }, { status: 400 });
+    }
     if (newPassword === currentPassword) return NextResponse.json({ error: "رمز جدید باید با رمز فعلی متفاوت باشد." }, { status: 400 });
 
     if (session.role === "member") {
@@ -21,8 +23,19 @@ export async function POST(request: NextRequest) {
       if (!account || account.status !== "active" || !verifyMemberPassword(currentPassword, account.passwordHash)) {
         return NextResponse.json({ error: "رمز عبور فعلی صحیح نیست." }, { status: 400 });
       }
-      await changeMemberPassword(account, newPassword);
-      return NextResponse.json({ success: true });
+      const updated = await changeMemberPassword(account, newPassword);
+      const response = NextResponse.json({ success: true });
+      response.cookies.set(COOKIE_NAME, encodeSession({
+        username: session.username,
+        name: session.name,
+        role: session.role,
+        memberId: session.memberId,
+        credentialVersion: updated.passwordChangedAt || updated.createdAt,
+      }), {
+        httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production",
+        path: "/", maxAge: 60 * 60 * 8,
+      });
+      return response;
     }
 
     if (session.role === "beneficiary") {
@@ -34,12 +47,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "رمز عبور فعلی صحیح نیست." }, { status: 400 });
     }
 
-    await updateStaffPassword(account, newPassword);
+    const updated = await updateStaffPassword(account, newPassword);
     const response = NextResponse.json({ success: true, mustChangePassword: false });
     response.cookies.set(COOKIE_NAME, encodeSession({
       username: session.username,
       name: session.name,
       role: session.role,
+      credentialVersion: updated.passwordChangedAt || updated.createdAt,
     }), {
       httpOnly: true,
       sameSite: "lax",

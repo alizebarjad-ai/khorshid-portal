@@ -21,6 +21,7 @@ export type SessionUser = {
   beneficiaryName?: string;
   memberId?: string;
   mustChangePassword?: boolean;
+  credentialVersion?: string;
 };
 
 export const ROLE_LABELS: Record<UserRole, string> = {

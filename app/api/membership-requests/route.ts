@@ -23,7 +23,7 @@ async function upstream(path: string, init?: RequestInit) {
     headers: { "Content-Type": "application/json", "x-portal-membership-key": key, ...(init?.headers || {}) },
   });
   const data = await response.json().catch(() => ({}));
-  return NextResponse.json(data, { status: response.status });
+  return NextResponse.json(data, { status: response.status, headers: { "Cache-Control": "private, no-store, max-age=0" } });
 }
 
 export async function GET(request: NextRequest) {

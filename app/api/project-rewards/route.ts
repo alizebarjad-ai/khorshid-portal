@@ -1,13 +1,13 @@
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 import { COOKIE_NAME, decodeSession } from "@/lib/auth";
-import { deleteCollection, getStored, listStored, putStored } from "@/lib/persistent-store";
+import { getStored, listStored, putStored } from "@/lib/persistent-store";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 type SessionUser = { username: string; name: string; role: string };
-const projectRoles = ["finance", "ceo", "deputy", "economic", "csr", "media", "artists", "education", "members", "beneficiary"];
+const projectRoles = ["owner", "finance", "ceo", "deputy", "economic", "csr", "media", "artists", "education", "members", "beneficiary"];
 const proposalRoles = ["finance", "ceo", "deputy", "economic", "csr", "media", "artists", "education", "members", "beneficiary"];
 
 async function currentUser(): Promise<SessionUser | null> {
@@ -33,14 +33,86 @@ export async function GET() {
       listStored<Record<string, unknown>>("projects"),
       listStored<Record<string, unknown>>("project-proposals"),
     ]);
-    return NextResponse.json({
-      projects: user.role === "beneficiary"
-        ? projects.filter((item) => Array.isArray(item.people) && item.people.some((person: any) => person.name === user.name))
-        : projects,
-      proposals: user.role === "beneficiary"
-        ? proposals.filter((item) => item.creator === user.username)
-        : proposals,
+    const organizationWideRoles = new Set(["owner", "ceo", "deputy", "finance"]);
+    const visibleProjects = organizationWideRoles.has(user.role)
+      ? projects
+      : projects.filter((item) => {
+          const team = Array.isArray(item.team) ? item.team : [];
+          const people = Array.isArray(item.people) ? item.people : [];
+          return item.assignedUnit === user.role
+            || item.assignedTo === user.role
+            || item.ownerUnit === user.role
+            || team.includes(user.role)
+            || people.some((person: any) => person.username === user.username);
+        });
+
+    const visibleProposals = user.role === "beneficiary"
+      ? proposals.filter((item) => item.creator === user.username)
+      : organizationWideRoles.has(user.role)
+        ? proposals
+        : proposals.filter((item) =>
+            item.creator === user.username
+            || item.assignedTo === user.role
+            || item.assignedUnit === user.role
+            || item.ownerUnit === user.role
+            || item.subjectArea === user.role
+          );
+
+    if (user.role === "beneficiary") {
+      const rewards = visibleProjects.flatMap((project) => {
+        if (project.approvalStatus !== "تأیید شده" || project.status === "پیش‌نویس") return [];
+        const people = Array.isArray(project.people) ? project.people as Array<Record<string, unknown>> : [];
+        const totalWeight = people.reduce((sum, person) => sum + Math.max(0, Number(person.weight) || 0), 0);
+        if (!totalWeight) return [];
+        const mine = people.filter((person) => person.username === user.username);
+        if (!mine.length) return [];
+        const received = Math.max(0, Number(project.received) || 0);
+        const costs = ["directCosts", "overheadCosts", "tax", "otherCosts"].reduce((sum, key) => sum + Math.max(0, Number(project[key]) || 0), 0);
+        const rewardRate = Math.min(100, Math.max(0, Number(project.rewardRate) || 0));
+        const pool = Math.max(0, received - costs) * rewardRate / 100;
+        return mine.map((person) => {
+          const weight = Math.max(0, Number(person.weight) || 0);
+          return {
+            projectId: String(project.id || ""),
+            code: String(project.code || ""),
+            projectName: String(project.name || ""),
+            clientName: String(project.clientName || ""),
+            currency: String(project.currency || ""),
+            projectStatus: String(project.status || ""),
+            role: String(person.role || ""),
+            rolePercent: Math.max(0, Number(person.rolePercent) || 0),
+            share: weight / totalWeight * 100,
+            amount: pool * weight / totalWeight,
+          };
+        });
+      });
+      return NextResponse.json({ projects: [], rewards }, { headers: { "Cache-Control": "private, no-store, max-age=0" } });
+    }
+
+    const canViewFinancialDetails = ["owner", "ceo", "deputy", "finance"].includes(user.role);
+    const safeProjects = canViewFinancialDetails ? visibleProjects : visibleProjects.map((item) => {
+      const { contractValue, contractNo, contractDate, financeNote, budget, paymentTerms, financialDetails, costs, revenue, sponsorAmount, paymentStatus, directCost, directCosts, overheadCosts, tax, otherCosts, received, rewardRate, financialTransactions, collectionStages, rewardBase, estimatedCost, proposedPrice, expectedValue, amount, cost, price, totalCosts, rewardPool, payout, calculatedReward, paymentReceiptNo, lastFinancialReview, settlementDate, settlementNote, ...safe } = item;
+      const people = Array.isArray(item.people) ? item.people.map((entry) => {
+        if (!entry || typeof entry !== "object") return entry;
+        const { weight, rolePercent, roleBaseWeight, rewardAmount, payoutAmount, share, ...safePerson } = entry as Record<string, unknown>;
+        return safePerson;
+      }) : undefined;
+      return { ...safe, ...(people ? { people } : {}) };
     });
+    const safeProposals = canViewFinancialDetails ? visibleProposals : visibleProposals.map((item) => {
+      const { contractValue, contractNo, contractDate, financeNote, budget, paymentTerms, financialDetails, costs, revenue, sponsorAmount, paymentStatus, directCost, directCosts, overheadCosts, tax, otherCosts, received, rewardRate, financialTransactions, collectionStages, rewardBase, estimatedCost, proposedPrice, expectedValue, amount, cost, price, totalCosts, rewardPool, payout, calculatedReward, paymentReceiptNo, lastFinancialReview, settlementDate, settlementNote, ...safe } = item;
+      const people = Array.isArray(item.people) ? item.people.map((entry) => {
+        if (!entry || typeof entry !== "object") return entry;
+        const { weight, rolePercent, roleBaseWeight, rewardAmount, payoutAmount, share, ...safePerson } = entry as Record<string, unknown>;
+        return safePerson;
+      }) : undefined;
+      return { ...safe, ...(people ? { people } : {}) };
+    });
+
+    return NextResponse.json(
+      { projects: safeProjects, proposals: safeProposals },
+      { headers: { "Cache-Control": "private, no-store, max-age=0" } },
+    );
   } catch (error) {
     console.error("GET /api/project-rewards failed", error);
     return fail(error instanceof Error ? error.message : "خواندن اطلاعات انجام نشد.", 503);
@@ -73,27 +145,42 @@ export async function PUT(request: NextRequest) {
         if (changes.some((key) => !allowed.includes(key))) {
           return fail("مدیرعامل فقط می‌تواند ترکیب تیم و وضعیت تأیید پروژه را تغییر دهد.", 403);
         }
+        const merged = { ...existing };
+        for (const key of allowed) {
+          if (Object.prototype.hasOwnProperty.call(item, key)) merged[key] = item[key];
+        }
+        return NextResponse.json({ item: await putStored(collection, merged as Record<string, unknown> & { id: string }) });
       }
       return NextResponse.json({ item: await putStored(collection, item as Record<string, unknown> & { id: string }) });
     }
 
     if (!existing) {
       if (!proposalRoles.includes(user.role)) return fail("ثبت پیشنهاد برای نقش شما مجاز نیست.", 403);
-      const newItem: Record<string, unknown> & { id: string } = {
-        ...item,
-        id: item.id,
-        creator: user.username,
-        creatorName: user.name,
-      };
-      if (user.role === "beneficiary") {
-        newItem.status = "در حال بررسی قائم‌مقام";
-        newItem.assignedTo = "deputy";
-        newItem.assignedToName = "قائم‌مقام";
+      const newItem: Record<string, unknown> & { id: string } = { ...item, id: item.id };
+      // Workflow state, assignment, history and financial decisions are server-owned.
+      // A caller must not manufacture a completed/contracted proposal at creation time.
+      for (const key of ["creator", "creatorName", "status", "assignedTo", "assignedToName", "history", "contractNo", "contractValue", "contractDate", "financeNote", "approvedBy", "approvedAt"]) {
+        delete newItem[key];
       }
+      newItem.creator = user.username;
+      newItem.creatorName = user.name;
+      newItem.status = user.role === "beneficiary" ? "در حال بررسی قائم‌مقام" : "ثبت اولیه";
+      newItem.assignedTo = "deputy";
+      newItem.assignedToName = "قائم‌مقام";
       return NextResponse.json({ item: await putStored(collection, newItem as Record<string, unknown> & { id: string }) }, { status: 201 });
     }
 
     if (user.role === "beneficiary") return fail("پس از ثبت، ویرایش پیشنهاد باید از مسیر گردش کار انجام شود.", 403);
+    const scopedUnitRoles = ["economic", "csr", "media", "artists", "education", "members"];
+    if (scopedUnitRoles.includes(user.role)) {
+      const team = Array.isArray(existing.team) ? existing.team : [];
+      const assignedToRole = existing.assignedTo === user.role
+        || existing.assignedUnit === user.role
+        || existing.ownerUnit === user.role
+        || existing.subjectArea === user.role
+        || team.includes(user.role);
+      if (!assignedToRole) return fail("این پیشنهاد به واحد شما ارجاع نشده و در تیم شما نیست.", 403);
+    }
     const allowedByRole: Record<string, string[]> = {
       deputy: ["status", "assignedTo", "assignedToName", "specialistBrief", "proposalDetails", "negotiationNote", "contractNo", "contractValue", "contractDate", "financeNote", "history"],
       ceo: ["status", "assignedTo", "assignedToName", "proposalDetails", "negotiationNote", "contractNo", "contractValue", "contractDate", "financeNote", "history"],
@@ -110,24 +197,21 @@ export async function PUT(request: NextRequest) {
     if (changes.some((key) => !allowed.includes(key))) {
       return fail("تغییرات ارسالی خارج از محدوده دسترسی این نقش است.", 403);
     }
-    return NextResponse.json({ item: await putStored(collection, item as Record<string, unknown> & { id: string }) });
+    // Merge only explicitly permitted fields. Replacing the full client-supplied object
+    // would allow an authorized unit to erase fields it cannot edit.
+    const merged = { ...existing };
+    for (const key of allowed) {
+      if (Object.prototype.hasOwnProperty.call(item, key)) merged[key] = item[key];
+    }
+    return NextResponse.json({ item: await putStored(collection, merged as Record<string, unknown> & { id: string }) });
   } catch (error) {
     console.error("PUT /api/project-rewards failed", error);
     return fail(error instanceof Error ? error.message : "ذخیره اطلاعات انجام نشد.", 503);
   }
 }
 
-export async function DELETE(request: NextRequest) {
+export async function DELETE() {
   const user = await currentUser();
   if (!user) return fail("برای ادامه وارد سامانه شوید.", 401);
-  if (user.role !== "finance") return fail("پاک‌سازی پرونده‌های پروژه فقط در اختیار واحد مالی است.", 403);
-  const kind = request.nextUrl.searchParams.get("kind");
-  if (kind !== "projects") return fail("درخواست حذف معتبر نیست.", 400);
-  try {
-    await deleteCollection("projects");
-    return NextResponse.json({ ok: true });
-  } catch (error) {
-    console.error("DELETE /api/project-rewards failed", error);
-    return fail(error instanceof Error ? error.message : "حذف اطلاعات انجام نشد.", 503);
-  }
+  return fail("حذف دائمی پروژه از این مسیر غیرفعال است. برای داده‌های آزمایشی از ابزار پاک‌سازی اختصاصی مالک سامانه استفاده کنید؛ پروژه‌های عملیاتی باید بایگانی شوند.", 405);
 }

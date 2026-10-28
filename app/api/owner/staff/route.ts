@@ -92,7 +92,7 @@ export async function GET(request: NextRequest) {
     const auditItems = (await listStored<{ id: string; kind: string; actor: string; action: string; target: string; at: string; metadata?: Record<string, string> }>("security-audit"))
       .filter((item) => item.kind === "security-audit").slice(0, 50)
       .map(({ actor, action, target, at, metadata }) => ({ actor, action, target, at, metadata }));
-    return NextResponse.json({ accounts, audit: auditItems });
+    return NextResponse.json({ accounts, audit: auditItems }, { headers: { "Cache-Control": "private, no-store, max-age=0" } });
   } catch {
     return NextResponse.json({ error: "دریافت فهرست حساب‌ها ناموفق بود." }, { status: 503 });
   }
