@@ -135,7 +135,7 @@ export default function OwnerStaffPage() {
       });
       const body = await response.json();
       if (!response.ok) throw new Error(body.error || "حذف دسته انتخاب‌شده ناموفق بود.");
-      setNotice(`حذف دسته «${label}» انجام شد: ${body.deletedRecords} رکورد و ${body.deletedFiles} فایل خصوصی حذف شد.` + (body.failedFiles ? ` هشدار: حذف ${body.failedFiles} فایل ناموفق بود.` : "") + (body.auditRecorded === false ? " هشدار: ثبت سابقه امنیتی ناموفق بود." : ""));
+      setNotice(`حذف دسته «${label}» انجام شد: ${body.deletedRecords} رکورد پرتال، ${body.deletedWebsiteRequests || 0} درخواست عضویت سایت اصلی و ${body.deletedFiles} فایل خصوصی حذف شد.` + (body.failedFiles ? ` هشدار: حذف ${body.failedFiles} فایل ناموفق بود.` : "") + (body.auditRecorded === false ? " هشدار: ثبت سابقه امنیتی ناموفق بود." : ""));
       await load();
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "حذف دسته انتخاب‌شده ناموفق بود.");
@@ -206,7 +206,7 @@ export default function OwnerStaffPage() {
           <p className="mt-2 max-w-3xl text-sm leading-7 text-[#687783]">هر بار فقط یک دسته را انتخاب کنید. حذف هر دسته نیازمند تأیید نام همان دسته است؛ دسته‌های دیگر و سابقه امنیتی حذف نمی‌شوند. این عملیات قابل بازگشت نیست.</p>
           <div className="mt-5 grid gap-3 md:grid-cols-3">
             {[
-              { id: "members", label: "اعضا و پرونده‌های عضویت", description: "اعضا، حساب‌های عضویت، امتیازها، درخواست‌های ارتقا و فایل‌های خصوصی مربوط" },
+              { id: "members", label: "اعضا و پرونده‌های عضویت", description: "اعضا، حساب‌ها، امتیازها، درخواست‌های عضویت سایت اصلی، درخواست‌های ارتقا و فایل‌های خصوصی مربوط" },
               { id: "clubs", label: "باشگاه‌ها و برنامه‌ها", description: "باشگاه‌ها و برنامه‌های باشگاهی؛ پروژه‌ها و اعضا حذف نمی‌شوند" },
               { id: "projects", label: "پروژه‌ها و پیشنهادها", description: "پروژه‌ها، فرصت‌ها و پیشنهادهای پروژه؛ اعضا و باشگاه‌ها حذف نمی‌شوند" },
             ].map((item) => (
