@@ -80,12 +80,12 @@ export async function POST(request: Request) {
         : null;
     const staffAccount = staffConfig ? await authenticateStaff(staffConfig, password) : null;
 
-    let sessionUser: { username: string; name: string; role: "finance" | "ceo" | "deputy" | "beneficiary" | "economic" | "csr" | "media" | "artists" | "education" | "members" | "member" | "owner"; memberId?: string; mustChangePassword?: boolean };
+    let sessionUser: { username: string; name: string; role: "finance" | "ceo" | "deputy" | "beneficiary" | "economic" | "csr" | "media" | "artists" | "education" | "members" | "member" | "owner"; memberId?: string; mustChangePassword?: boolean; credentialVersion?: string };
     if (configuredUser?.role === "beneficiary" && configuredUser.password === password) {
       sessionUser = { username: configuredUser.username, name: configuredUser.name, role: configuredUser.role };
     } else if (staffAccount) {
       await recordStaffLogin(staffAccount);
-      sessionUser = { username: staffAccount.username, name: staffAccount.name || configuredUser?.name || staffAccount.username, role: staffAccount.role, mustChangePassword: staffAccount.mustChangePassword };
+      sessionUser = { username: staffAccount.username, name: staffAccount.name || configuredUser?.name || staffAccount.username, role: staffAccount.role, mustChangePassword: staffAccount.mustChangePassword, credentialVersion: staffAccount.passwordChangedAt || staffAccount.createdAt };
     } else {
       const account = await findMemberAccountByUsername(username);
       if (!account) {
@@ -98,7 +98,7 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: "نام کاربری یا رمز عبور نادرست است." }, { status: 401 });
       }
       await recordMemberLogin(account);
-      sessionUser = { username: account.username, name: account.fullName, role: "member", memberId: account.memberId };
+      sessionUser = { username: account.username, name: account.fullName, role: "member", memberId: account.memberId, credentialVersion: account.passwordChangedAt || account.createdAt };
     }
 
     await Promise.all([clearLoginAttempt(ipKey), clearLoginAttempt(userKey)]);
