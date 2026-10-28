@@ -45,10 +45,12 @@ export async function POST(request: NextRequest) {
       if (file.size > 25 * 1024 * 1024) return jsonError("حداکثر اندازه فایل ۲۵ مگابایت است.", 413);
       const valid = kind === "image" ? file.type.startsWith("image/") : file.type.startsWith("video/");
       if (!valid) return jsonError(kind === "image" ? "برای این نوع محتوا فایل تصویری انتخاب کنید." : "برای این نوع محتوا فایل ویدیویی انتخاب کنید.", 415);
-      if (!process.env.BLOB_READ_WRITE_TOKEN) return jsonError("ذخیره‌سازی فایل هنوز در محیط سامانه پیکربندی نشده است.", 503);
+      if (!process.env.BLOB_STORE_ID) return jsonError("مخزن خصوصی فایل‌ها در محیط سامانه پیکربندی نشده است.", 503);
       const safeName = file.name.replace(/[^\p{L}\p{N}._-]+/gu, "_").slice(-120) || "upload";
-      const blob = await put(`member-content/${user.memberId}/${randomUUID()}-${safeName}`, file, {
-        access: "private", addRandomSuffix: false, contentType: file.type, token: process.env.BLOB_READ_WRITE_TOKEN
+      // On Vercel, @vercel/blob uses VERCEL_OIDC_TOKEN + BLOB_STORE_ID.
+      // Do not pass BLOB_READ_WRITE_TOKEN here: that legacy token belongs to the records store.
+      const blob = await put("member-content/" + user.memberId + "/" + randomUUID() + "-" + safeName, file, {
+        access: "private", addRandomSuffix: false, contentType: file.type
       });
       uploadedPathname = blob.pathname;
       item.pathname = blob.pathname;
@@ -160,7 +162,7 @@ export async function DELETE(request: NextRequest) {
       return jsonError("مسیر فایل در مخزن ثبت نشده است؛ رکورد حذف نشد تا فایل یتیم باقی نماند.", 409);
     }
     if (storageTarget) {
-      if (!process.env.BLOB_READ_WRITE_TOKEN) return jsonError("تنظیمات حذف فایل در مخزن موجود نیست.", 503);
+      if (!process.env.BLOB_STORE_ID) return jsonError("مخزن خصوصی فایل‌ها در محیط سامانه پیکربندی نشده است.", 503);
       try {
         await del(storageTarget);
       } catch (error) {

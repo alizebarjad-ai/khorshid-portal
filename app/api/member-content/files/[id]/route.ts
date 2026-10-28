@@ -49,7 +49,8 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
       return jsonError("دسترسی به فایل محتوا مجاز نیست.", 403);
     }
 
-    // Match the established private Blob access path used before the recent regression.
+    if (!process.env.BLOB_STORE_ID) return jsonError("مخزن خصوصی فایل‌ها در محیط سامانه پیکربندی نشده است.", 503);
+    // Use Vercel OIDC + BLOB_STORE_ID. Do not pass the legacy records-store token.
     const result = await get(item.pathname, { access: "private" });
     if (!result || result.statusCode !== 200 || !result.stream) {
       return jsonError("فایل محتوا در مخزن پیدا نشد.", 404);
