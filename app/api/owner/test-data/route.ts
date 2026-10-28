@@ -8,6 +8,8 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 // Deliberately preserve staff credentials and the security audit trail.
+const PRIVATE_TEST_BLOB_PREFIXES = ["member-content/", "member-upgrades/"] as const;
+
 const TEST_COLLECTIONS = [
   "projects",
   "project-proposals",
@@ -62,7 +64,12 @@ export async function POST(request: NextRequest) {
       deletedRecords += items.length;
       for (const item of items) {
         for (const key of ["pathname", "blobPathname", "storagePath"]) {
-          if (typeof item[key] === "string" && item[key]) filePaths.set(item[key] as string, false);
+          const path = typeof item[key] === "string" ? (item[key] as string).trim() : "";
+          // Only delete private objects from the portal's dedicated upload namespaces.
+          // Never trust arbitrary stored paths to select a Blob object for deletion.
+          if (PRIVATE_TEST_BLOB_PREFIXES.some((prefix) => path.startsWith(prefix)) && !path.includes("..") && !path.startsWith("/")) {
+            filePaths.set(path, false);
+          }
         }
         for (const key of ["fileUrl", "imageUrl", "coverImageUrl", "attachmentUrl", "thumbnailUrl", "image", "url"]) {
           if (typeof item[key] !== "string" || !item[key]) continue;
