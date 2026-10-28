@@ -9,7 +9,8 @@ export async function POST(request: Request) {
     const body = await request.json();
     const token = typeof body.token === "string" ? body.token : "";
     const password = typeof body.password === "string" ? body.password : "";
-    if (password.length < 12) return NextResponse.json({ error: "رمز عبور باید دست‌کم ۱۲ نویسه داشته باشد." }, { status: 400 });
+    if (password.length < 12 || password.length > 256) return NextResponse.json({ error: "رمز عبور باید بین ۱۲ تا ۲۵۶ نویسه باشد." }, { status: 400 });
+    if (token.length < 40 || token.length > 200) return NextResponse.json({ error: "پیوند فعال‌سازی نامعتبر یا منقضی شده است. از معاونت اعضا پیوند تازه درخواست کنید." }, { status: 400 });
     const account = await findMemberAccountByActivationToken(token);
     if (!account) return NextResponse.json({ error: "پیوند فعال‌سازی نامعتبر یا منقضی شده است. از معاونت اعضا پیوند تازه درخواست کنید." }, { status: 400 });
     const active = await activateMemberAccount(account, password, token);
