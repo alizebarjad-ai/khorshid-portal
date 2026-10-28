@@ -70,7 +70,7 @@ export async function DELETE(request: NextRequest) {
       const base = process.env.WEBSITE_MEMBERSHIP_API_URL;
       const key = process.env.PORTAL_MEMBERSHIP_API_KEY;
       if (!base || !key) throw new Error("اتصال امن به صف درخواست‌های عضویت سایت تنظیم نشده است.");
-      const remote = await fetch(base.replace(/\\/$/, ""), {
+      const remote = await fetch(base.endsWith("/") ? base.slice(0, -1) : base, {
         method: "DELETE",
         headers: { "Content-Type": "application/json", "x-portal-membership-key": key },
         body: JSON.stringify({ confirmation: "DELETE_MEMBERSHIP_REQUESTS" }),
