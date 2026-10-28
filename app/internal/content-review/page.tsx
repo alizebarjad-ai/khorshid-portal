@@ -81,6 +81,27 @@ export default function ContentReviewPage() {
     } finally { setBusy(""); }
   }
 
+  async function remove(item: Item) {
+    const confirmed = window.confirm("محتوای «" + item.title + "» و فایل پیوست آن از کارتابل معاون رسانه و فضای ذخیره‌سازی حذف شود؟ این اقدام قابل بازگشت نیست.");
+    if (!confirmed) return;
+    setBusy(item.id); setError(""); setNotice("");
+    try {
+      const response = await fetch("/api/member-content", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: item.id }),
+      });
+      const body = await response.json();
+      if (!response.ok) throw new Error(body.error || "حذف محتوا انجام نشد.");
+      setItems(current => current.filter(entry => entry.id !== item.id));
+      setNotice("محتوا و فایل پیوست آن از کارتابل رسانه و فضای ذخیره‌سازی حذف شدند.");
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "حذف محتوا انجام نشد.");
+    } finally {
+      setBusy("");
+    }
+  }
+
   const pending = items.filter(item => item.status === "pending_media").length;
 
   return (
@@ -110,6 +131,7 @@ export default function ContentReviewPage() {
               {item.description && <p className="mt-4 whitespace-pre-wrap text-sm leading-7 text-[#526173]">{item.description}</p>}
               {item.text && <div className="mt-4 whitespace-pre-wrap rounded-xl bg-[#F7F5F0] p-4 text-sm leading-7">{item.text}</div>}
               {item.fileUrl && <div className="mt-4"><p className="mb-2 break-all text-xs text-[#687783]">{item.fileName} · {((item.size || 0) / 1024 / 1024).toFixed(2)} MB</p>{item.kind === "image" ? <a href={item.fileUrl} target="_blank" rel="noopener noreferrer"><img src={item.fileUrl} alt={item.title} className="max-h-[480px] rounded-xl border border-[#E3E0D8] object-contain" /></a> : <video src={item.fileUrl} controls className="max-h-[480px] w-full rounded-xl bg-black" />}<p className="mt-2"><a className="text-sm font-bold text-[#80652F] underline" href={item.fileUrl} target="_blank" rel="noopener noreferrer">بازکردن فایل اصلی ↗</a></p></div>}
+              {item.kind !== "text" && !item.fileUrl && <p role="alert" className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm leading-6 text-amber-900">برای این محتوا فایل قابل دریافت ثبت نشده است. اگر فایل هنگام ارسال بارگذاری شده، این پرونده را حذف نکنید؛ مسیر ذخیره‌سازی باید بررسی شود.</p>}
               {item.mediaNote && <p className="mt-3 rounded-xl bg-[#F7F5F0] p-3 text-sm leading-6">یادداشت رسانه: {item.mediaNote}</p>}
               {item.status === "pending_media" && <div className="mt-4 grid gap-3">
                 <label className="text-sm font-bold">یادداشت بررسی یا دلیل رد<textarea className={inputClass + " mt-2"} rows={3} maxLength={3000} value={notes[item.id] || ""} onChange={e => setNotes(old => ({ ...old, [item.id]: e.target.value }))} placeholder="نکات اصلاحی یا دلیل رد محتوا" /></label>
@@ -119,6 +141,7 @@ export default function ContentReviewPage() {
                 </div>
               </div>}
               {item.status === "approved_media" && <div className="mt-4"><label className="block text-sm font-bold">توضیح انتشار برای ادمین سایت<textarea className={inputClass + " mt-2"} rows={3} maxLength={3000} value={notes[item.id] || item.mediaNote || ""} onChange={e => setNotes(old => ({ ...old, [item.id]: e.target.value }))} placeholder="پیشنهاد عنوان، کپشن، دسته‌بندی و اعتبار صاحب اثر" /></label><button disabled={busy === item.id || (notes[item.id] || "").trim().length < 20} onClick={() => void act(item, "forward")} className="mt-3 rounded-xl bg-[#172F48] px-4 py-3 text-sm font-extrabold text-white disabled:opacity-50">ارجاع به ادمین سایت در سایت اصلی</button><p className="mt-2 text-xs leading-6 text-[#687783]">برای جلوگیری از ارجاع ناقص، توضیح انتشار حداقل ۲۰ نویسه‌ای الزامی است.</p></div>}
+              {(item.status === "approved_media" || item.status === "rejected_media") && <div className="mt-4 flex justify-end border-t border-[#E3E0D8] pt-4"><button type="button" disabled={busy === item.id} onClick={() => void remove(item)} className="rounded-xl border border-red-300 bg-red-50 px-4 py-2.5 text-sm font-bold text-red-800 disabled:opacity-50">{busy === item.id ? "در حال انجام…" : "حذف محتوا و فایل پیوست"}</button></div>}
             </article>)}
           </div>}
       </div>

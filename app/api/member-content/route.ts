@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { del, put } from "@vercel/blob";
 import { COOKIE_NAME, decodeSession } from "@/lib/auth";
-import { listStored, putStored } from "@/lib/persistent-store";
+import { deleteStored, listStored, putStored } from "@/lib/persistent-store";
 import { readMembers } from "@/lib/records-store";
 
 export const runtime = "nodejs";
@@ -15,7 +15,7 @@ type Submission = {
   createdAt: string; updatedAt: string; mediaNote?: string; adminNote?: string; reviewedBy?: string; forwardedAt?: string;
 };
 const collection = "member-content";
-const jsonError = (message: string, status: number) => NextResponse.json({ error: message }, { status });
+const jsonError = (message: string, status: number) => NextResponse.json({ error: message }, { status, headers: { "Cache-Control": "private, no-store" } });
 
 export async function POST(request: NextRequest) {
   const user = decodeSession(request.cookies.get(COOKIE_NAME)?.value);
@@ -53,7 +53,9 @@ export async function POST(request: NextRequest) {
       uploadedPathname = blob.pathname;
       item.pathname = blob.pathname;
       item.fileUrl = `/api/member-content/files/${item.id}`;
-      item.fileName = file.name.slice(0, 240); item.contentType = file.type; item.size = file.size;
+      item.fileName = file.name.slice(0, 240);
+      item.contentType = file.type;
+      item.size = file.size;
     }
     await putStored(collection, item);
     return NextResponse.json({ item: { ...item, memberEmail: undefined } }, { status: 201, headers: { "Cache-Control": "private, no-store" } });
@@ -71,11 +73,19 @@ export async function GET(request: NextRequest) {
   if (user.role === "member" && !user.memberId) return jsonError("پرونده عضو به حساب شما متصل نیست.", 403);
   try {
     const items = await listStored<Submission>(collection);
-    const visible = items.filter(item => user.role === "member" ? item.memberId === user.memberId : ["pending_media", "approved_media", "rejected_media"].includes(item.status));
-    visible.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    const visible = items
+      .filter(item => user.role === "member" ? item.memberId === user.memberId : ["pending_media", "approved_media", "rejected_media"].includes(item.status))
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+      // Derive the protected download route from the record ID and stored pathname.
+      // Older records may have a pathname but no persisted fileUrl.
+      .map(item => ({
+        ...item,
+        fileUrl: item.kind !== "text" && item.pathname ? `/api/member-content/files/${encodeURIComponent(item.id)}` : undefined,
+      }));
     return NextResponse.json({ items: visible }, { headers: { "Cache-Control": "private, no-store" } });
   } catch (error) {
-    return jsonError(error instanceof Error ? error.message : "دریافت کارتابل محتوا ناموفق بود.", 503);
+    console.error("Member content list failed", error instanceof Error ? error.name : "UnknownError");
+    return jsonError("دریافت کارتابل محتوا ناموفق بود.", 503);
   }
 }
 
@@ -107,6 +117,39 @@ export async function PATCH(request: NextRequest) {
     await putStored(collection, updated);
     return NextResponse.json({ item: updated }, { headers: { "Cache-Control": "private, no-store" } });
   } catch (error) {
-    return jsonError(error instanceof Error ? error.message : "ثبت تصمیم انجام نشد.", 400);
+    console.error("Media review action failed", error instanceof Error ? error.name : "UnknownError");
+    return jsonError("ثبت تصمیم انجام نشد.", 400);
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  const user = decodeSession(request.cookies.get(COOKIE_NAME)?.value);
+  if (!user) return jsonError("برای ادامه وارد سامانه شوید.", 401);
+  if (user.role !== "media") return jsonError("حذف محتوا فقط برای معاونت رسانه مجاز است.", 403);
+  try {
+    const body = await request.json() as { id?: unknown };
+    const id = typeof body.id === "string" ? body.id.trim().slice(0, 100) : "";
+    if (!id) return jsonError("شناسه محتوا معتبر نیست.", 400);
+    const items = await listStored<Submission>(collection);
+    const current = items.find(item => item.id === id);
+    if (!current || !["approved_media", "rejected_media"].includes(current.status)) {
+      return jsonError("فقط محتوای تأیید یا ردشده را می‌توان از کارتابل رسانه حذف کرد.", 409);
+    }
+
+    // Delete the private file first. Keep the record if storage deletion fails.
+    if (current.pathname) {
+      if (!process.env.BLOB_READ_WRITE_TOKEN) return jsonError("تنظیمات حذف فایل در مخزن موجود نیست.", 503);
+      try {
+        await del(current.pathname, { token: process.env.BLOB_READ_WRITE_TOKEN });
+      } catch (error) {
+        console.error("Media dashboard blob deletion failed", error instanceof Error ? error.name : "UnknownError");
+        return jsonError("فایل از مخزن حذف نشد؛ رکورد برای جلوگیری از باقی‌ماندن فایل یتیم حفظ شد.", 503);
+      }
+    }
+    await deleteStored(collection, current.id);
+    return NextResponse.json({ deleted: true, id: current.id }, { headers: { "Cache-Control": "private, no-store" } });
+  } catch (error) {
+    console.error("Media dashboard content deletion failed", error instanceof Error ? error.name : "UnknownError");
+    return jsonError("حذف محتوا انجام نشد؛ دوباره تلاش کنید.", 400);
   }
 }
