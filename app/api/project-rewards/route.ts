@@ -101,6 +101,11 @@ export async function PUT(request: NextRequest) {
         if (changes.some((key) => !allowed.includes(key))) {
           return fail("مدیرعامل فقط می‌تواند ترکیب تیم و وضعیت تأیید پروژه را تغییر دهد.", 403);
         }
+        const merged = { ...existing };
+        for (const key of allowed) {
+          if (Object.prototype.hasOwnProperty.call(item, key)) merged[key] = item[key];
+        }
+        return NextResponse.json({ item: await putStored(collection, merged as Record<string, unknown> & { id: string }) });
       }
       return NextResponse.json({ item: await putStored(collection, item as Record<string, unknown> & { id: string }) });
     }
@@ -138,7 +143,13 @@ export async function PUT(request: NextRequest) {
     if (changes.some((key) => !allowed.includes(key))) {
       return fail("تغییرات ارسالی خارج از محدوده دسترسی این نقش است.", 403);
     }
-    return NextResponse.json({ item: await putStored(collection, item as Record<string, unknown> & { id: string }) });
+    // Merge only explicitly permitted fields. Replacing the full client-supplied object
+    // would allow an authorized unit to erase fields it cannot edit.
+    const merged = { ...existing };
+    for (const key of allowed) {
+      if (Object.prototype.hasOwnProperty.call(item, key)) merged[key] = item[key];
+    }
+    return NextResponse.json({ item: await putStored(collection, merged as Record<string, unknown> & { id: string }) });
   } catch (error) {
     console.error("PUT /api/project-rewards failed", error);
     return fail(error instanceof Error ? error.message : "ذخیره اطلاعات انجام نشد.", 503);
