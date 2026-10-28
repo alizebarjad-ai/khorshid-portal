@@ -1,3 +1,4 @@
+import { timingSafeEqual } from "node:crypto";
 import { del } from "@vercel/blob";
 import { NextResponse } from "next/server";
 import { deleteStored, listStored, putStored } from "@/lib/persistent-store";
@@ -33,7 +34,10 @@ const jsonError = (message: string, status: number) =>
 function authorized(request: Request) {
   const expected = process.env.PORTAL_MEMBERSHIP_API_KEY;
   const supplied = request.headers.get("x-portal-membership-key");
-  return Boolean(expected && supplied && supplied === expected);
+  if (!expected || !supplied) return false;
+  const expectedBytes = Buffer.from(expected);
+  const suppliedBytes = Buffer.from(supplied);
+  return expectedBytes.length === suppliedBytes.length && timingSafeEqual(expectedBytes, suppliedBytes);
 }
 
 export async function GET(request: Request) {
