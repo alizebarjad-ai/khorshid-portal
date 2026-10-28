@@ -37,7 +37,7 @@ export default function OwnerStaffPage() {
   const [notice, setNotice] = useState("");
   const [secret, setSecret] = useState<SecretResult | null>(null);
   const [successor, setSuccessor] = useState<Record<string, { username: string; name: string }>>({});
-  const [resetBusy, setResetBusy] = useState(false);
+  const [cleanupBusy, setCleanupBusy] = useState("");
 
   const load = useCallback(async () => {
     setError("");
@@ -103,21 +103,27 @@ export default function OwnerStaffPage() {
     }
   }
 
-  async function purgeTestData() {
-    const confirmation = window.prompt("این عملیات همه داده‌های آزمایشی اعضا، باشگاه‌ها، محتواها، درخواست‌های ارتقا و پروژه‌ها را پاک می‌کند؛ حساب‌های همکاران و سابقه امنیتی حفظ می‌شوند. برای تأیید دقیقاً بنویسید: DELETE_ALL_TEST_DATA");
-    if (confirmation !== "DELETE_ALL_TEST_DATA") return;
-    setResetBusy(true);
+  async function cleanupCategory(category: string, label: string) {
+    const confirmation = window.prompt(`فقط داده‌های دسته «${label}» حذف می‌شود؛ پروژه‌ها، اعضا و باشگاه‌های خارج از این دسته دست‌نخورده می‌مانند. برای تأیید، نام دسته را دقیقاً وارد کنید: ${label}`);
+    if (confirmation !== label) return;
+    setCleanupBusy(category);
     setError("");
     setNotice("");
+    setSecret(null);
     try {
-      const response = await fetch("/api/owner/test-data", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ confirmation }) });
+      const response = await fetch("/api/owner/cleanup", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ category, confirmation }),
+      });
       const body = await response.json();
-      if (!response.ok) throw new Error(body.error || "پاک‌سازی داده‌های آزمایشی ناموفق بود.");
-      setNotice(`پاک‌سازی انجام شد: ${body.deletedRecords} رکورد و ${body.deletedFiles} فایل حذف شد.` + (body.failedFiles ? ` هشدار: حذف ${body.failedFiles} فایل انجام نشد و باید جداگانه بررسی شود.` : "") + (body.auditRecorded === false ? " هشدار: ثبت سابقه امنیتی انجام نشد." : ""));
+      if (!response.ok) throw new Error(body.error || "حذف دسته انتخاب‌شده ناموفق بود.");
+      setNotice(`حذف دسته «${label}» انجام شد: ${body.deletedRecords} رکورد و ${body.deletedFiles} فایل خصوصی حذف شد.` + (body.failedFiles ? ` هشدار: حذف ${body.failedFiles} فایل ناموفق بود.` : "") + (body.auditRecorded === false ? " هشدار: ثبت سابقه امنیتی ناموفق بود." : ""));
+      await load();
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "پاک‌سازی داده‌های آزمایشی ناموفق بود.");
+      setError(caught instanceof Error ? caught.message : "حذف دسته انتخاب‌شده ناموفق بود.");
     } finally {
-      setResetBusy(false);
+      setCleanupBusy("");
     }
   }
 
@@ -145,7 +151,27 @@ export default function OwnerStaffPage() {
 
         {error && <p role="alert" className="mt-5 rounded-xl bg-red-50 p-4 text-sm font-semibold text-red-800">{error}</p>}
         {notice && <p role="status" className="mt-5 rounded-xl bg-[#F3F7EF] p-4 text-sm font-semibold text-[#31562D]">{notice}</p>}
-        <section className="mt-6 rounded-3xl border border-red-200 bg-white p-5 shadow-sm md:p-7">\n          <h2 className="text-xl font-extrabold text-red-800">پاک‌سازی داده‌های آزمایشی</h2>\n          <p className="mt-2 max-w-3xl text-sm leading-7 text-[#687783]">رکوردهای آزمایشی پروژه‌ها، پیشنهادها، اعضا، باشگاه‌ها، حساب‌های اعضا، امتیازها و محتوای ارسالی حذف می‌شوند. حساب‌های مدیریتی همکاران و سابقه امنیتی حفظ می‌شوند. فایل‌های خصوصی مرتبط نیز تا حد امکان حذف می‌شوند. این عملیات قابل بازگشت نیست.</p>\n          <button disabled={resetBusy} onClick={() => void purgeTestData()} className="mt-4 rounded-xl bg-red-700 px-4 py-3 text-sm font-extrabold text-white disabled:opacity-50">{resetBusy ? "در حال پاک‌سازی…" : "حذف همه داده‌های آزمایشی"}</button>\n        </section>\n\n        {secret && (
+        <section className="mt-6 rounded-3xl border border-[#E3E0D8] bg-white p-5 shadow-sm md:p-7">
+          <h2 className="text-xl font-extrabold">حذف کنترل‌شده داده‌ها</h2>
+          <p className="mt-2 max-w-3xl text-sm leading-7 text-[#687783]">هر بار فقط یک دسته را انتخاب کنید. حذف هر دسته نیازمند تأیید نام همان دسته است؛ دسته‌های دیگر و سابقه امنیتی حذف نمی‌شوند. این عملیات قابل بازگشت نیست.</p>
+          <div className="mt-5 grid gap-3 md:grid-cols-3">
+            {[
+              { id: "members", label: "اعضا و پرونده‌های عضویت", description: "اعضا، حساب‌های عضویت، امتیازها، درخواست‌های ارتقا و فایل‌های خصوصی مربوط" },
+              { id: "clubs", label: "باشگاه‌ها و برنامه‌ها", description: "باشگاه‌ها و برنامه‌های باشگاهی؛ پروژه‌ها و اعضا حذف نمی‌شوند" },
+              { id: "projects", label: "پروژه‌ها و پیشنهادها", description: "پروژه‌ها، فرصت‌ها و پیشنهادهای پروژه؛ اعضا و باشگاه‌ها حذف نمی‌شوند" },
+            ].map((item) => (
+              <div key={item.id} className="rounded-2xl border border-[#E3E0D8] p-4">
+                <h3 className="font-extrabold">{item.label}</h3>
+                <p className="mt-2 min-h-12 text-sm leading-6 text-[#687783]">{item.description}</p>
+                <button disabled={Boolean(cleanupBusy)} onClick={() => void cleanupCategory(item.id, item.label)} className="mt-4 rounded-xl border border-red-200 px-4 py-2.5 text-sm font-bold text-red-800 disabled:opacity-50">
+                  {cleanupBusy === item.id ? "در حال حذف…" : "حذف همین دسته"}
+                </button>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {secret && (
           <section className="mt-5 rounded-2xl border border-[#D9C48E] bg-[#FBF5E7] p-5">
             <h2 className="font-extrabold">رمز موقت برای {secret.username}</h2>
             <p className="mt-2 text-sm leading-6">{secret.note}</p>
