@@ -17,7 +17,7 @@ type PointEntry = {
   createdBy: string;
 };
 
-const allowedRoles = new Set(["members", "deputy", "ceo"]);
+const allowedRoles = new Set(["members"]);
 const ranks: MembershipRank[] = ["volunteer", "active_volunteer", "club_manager"];
 const rankLabels: Record<MembershipRank, string> = {
   volunteer: "داوطلب",
@@ -28,7 +28,7 @@ const rankLabels: Record<MembershipRank, string> = {
 function authorize(request: NextRequest) {
   const user = decodeSession(request.cookies.get(COOKIE_NAME)?.value);
   if (!user) return { user: null, response: NextResponse.json({ error: "برای ادامه وارد سامانه شوید." }, { status: 401 }) };
-  if (!allowedRoles.has(user.role)) return { user: null, response: NextResponse.json({ error: "ثبت امتیاز و تغییر وضعیت مشارکت فقط برای معاون اعضا و مدیران مجاز است." }, { status: 403 }) };
+  if (!allowedRoles.has(user.role)) return { user: null, response: NextResponse.json({ error: "ثبت امتیاز و تغییر وضعیت مشارکت فقط برای معاونت اعضا مجاز است." }, { status: 403 }) };
   return { user, response: null };
 }
 
