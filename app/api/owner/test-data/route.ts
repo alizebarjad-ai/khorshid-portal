@@ -12,6 +12,7 @@ const TEST_COLLECTIONS = [
   "projects",
   "project-proposals",
   "opportunities",
+  "club-programs",
   "members",
   "clubs",
   "member-accounts",
