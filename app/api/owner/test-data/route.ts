@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
   try {
     let deletedRecords = 0;
     let deletedFiles = 0;
-    const filePaths = new Set<string>();
+    const filePaths = new Map<string, boolean>();
 
     // First collect private blob paths, then remove records. Staff accounts and audit
     // history are intentionally excluded so this operation cannot lock out the owner.
@@ -60,14 +60,30 @@ export async function POST(request: NextRequest) {
       deletedRecords += items.length;
       for (const item of items) {
         for (const key of ["pathname", "blobPathname", "storagePath"]) {
-          if (typeof item[key] === "string" && item[key]) filePaths.add(item[key] as string);
+          if (typeof item[key] === "string" && item[key]) filePaths.set(item[key] as string, false);
+        }
+        if (!item.pathname && typeof item.fileUrl === "string") {
+          try {
+            const legacyUrl = new URL(item.fileUrl);
+            if (legacyUrl.protocol === "https:" && legacyUrl.hostname.endsWith(".blob.vercel-storage.com")) {
+              filePaths.set(legacyUrl.toString(), true);
+            }
+          } catch {
+            // Ignore non-URL file references; only trusted Blob URLs are eligible for deletion.
+          }
         }
       }
     }
 
-    for (const path of filePaths) {
+    for (const [path, legacyPublicUrl] of filePaths) {
       try {
-        await del(path);
+        if (legacyPublicUrl) {
+          const token = process.env.BLOB_READ_WRITE_TOKEN;
+          if (!token) continue;
+          await del(path, { token });
+        } else {
+          await del(path);
+        }
         deletedFiles += 1;
       } catch {
         // Continue removing test records; a missing/already-deleted blob is non-fatal.
