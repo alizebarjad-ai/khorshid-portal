@@ -25,7 +25,7 @@ const jsonError = (message: string, status: number) =>
 export async function GET(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   const user = decodeSession(request.cookies.get(COOKIE_NAME)?.value);
   if (!user) return jsonError("برای ادامه وارد سامانه شوید.", 401);
-  if (user.role === "ceo" || user.role === "deputy") return jsonError("دسترسی به محتوای ارجاع‌شده فقط برای ادمین سایت مجاز است.", 403);
+  if (user.role === "ceo" || user.role === "deputy") return jsonError("مدیرعامل و قائم‌مقام به فایل خام محتوای خصوصی دسترسی مستقیم ندارند.", 403);
 
   const { id } = await context.params;
   try {
@@ -41,7 +41,7 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
       if (!["pending_media", "approved_media", "rejected_media"].includes(item.status)) {
         return jsonError("این محتوا در کارتابل رسانه نیست.", 403);
       }
-    } else if (["owner", "ceo", "deputy"].includes(user.role)) {
+    } else if (user.role === "owner") {
       if (!["forwarded_admin", "published", "rejected_admin"].includes(item.status)) {
         return jsonError("این محتوا هنوز به کارتابل شما ارجاع نشده است.", 403);
       }
