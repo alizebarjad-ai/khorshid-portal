@@ -58,6 +58,16 @@ async function currentUser() {
   return decodeSession(cookieStore.get(COOKIE_NAME)?.value);
 }
 
+function redactOpportunityFinancials(item: Opportunity, role: string) {
+  if (["ceo", "deputy", "finance"].includes(role)) return item;
+  if (role === "economic") {
+    const { contractNo, contractValue, contractDate, financeNote, directCost, rewardBase, ...safe } = item;
+    return safe;
+  }
+  const { expectedValue, estimatedCost, proposedPrice, contractNo, contractValue, contractDate, financeNote, directCost, rewardBase, ...safe } = item;
+  return safe;
+}
+
 export async function GET() {
   const user = await currentUser();
   if (!user) {
@@ -77,14 +87,14 @@ export async function GET() {
   }
 
   if (user.role === "finance") {
-    return NextResponse.json({ items: all.filter((item) => (item.team || []).includes(user.role) || item.status === "قرارداد تنظیم شد" || item.status === "ثبت پروژه") }, { headers: { "Cache-Control": "private, no-store, max-age=0" } });
+    return NextResponse.json({ items: all.filter((item) => (item.team || []).includes(user.role) || item.status === "قرارداد تنظیم شد" || item.status === "ثبت پروژه").map((item) => redactOpportunityFinancials(item, user.role)) }, { headers: { "Cache-Control": "private, no-store, max-age=0" } });
   }
 
   if (unitRoles.includes(user.role as (typeof unitRoles)[number])) {
     // Only the current owner and explicitly selected project-team members receive this queue.
     // A topic-routed request is visible to its assigned unit before a team has been formed.
     return NextResponse.json({
-      items: all.filter((item) => item.assignedTo === user.role || (item.team || []).includes(user.role)),
+      items: all.filter((item) => item.assignedTo === user.role || (item.team || []).includes(user.role)).map((item) => redactOpportunityFinancials(item, user.role)),
     }, { headers: { "Cache-Control": "private, no-store, max-age=0" } });
   }
 
