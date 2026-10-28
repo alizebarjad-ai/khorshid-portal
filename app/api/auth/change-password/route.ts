@@ -21,8 +21,19 @@ export async function POST(request: NextRequest) {
       if (!account || account.status !== "active" || !verifyMemberPassword(currentPassword, account.passwordHash)) {
         return NextResponse.json({ error: "رمز عبور فعلی صحیح نیست." }, { status: 400 });
       }
-      await changeMemberPassword(account, newPassword);
-      return NextResponse.json({ success: true });
+      const updated = await changeMemberPassword(account, newPassword);
+      const response = NextResponse.json({ success: true });
+      response.cookies.set(COOKIE_NAME, encodeSession({
+        username: session.username,
+        name: session.name,
+        role: session.role,
+        memberId: session.memberId,
+        credentialVersion: updated.passwordChangedAt || updated.createdAt,
+      }), {
+        httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production",
+        path: "/", maxAge: 60 * 60 * 8,
+      });
+      return response;
     }
 
     if (session.role === "beneficiary") {
@@ -40,6 +51,7 @@ export async function POST(request: NextRequest) {
       username: session.username,
       name: session.name,
       role: session.role,
+      credentialVersion: updated.passwordChangedAt || updated.createdAt,
     }), {
       httpOnly: true,
       sameSite: "lax",
