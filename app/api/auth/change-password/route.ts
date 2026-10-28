@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "رمز عبور فعلی صحیح نیست." }, { status: 400 });
     }
 
-    await updateStaffPassword(account, newPassword);
+    const updated = await updateStaffPassword(account, newPassword);
     const response = NextResponse.json({ success: true, mustChangePassword: false });
     response.cookies.set(COOKIE_NAME, encodeSession({
       username: session.username,
