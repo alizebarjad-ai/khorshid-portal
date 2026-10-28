@@ -21,7 +21,9 @@ export type MemberRecord = {
   pointEvents?: MemberPointEvent[];
   artistProfile?: Record<string, unknown>;
   expertProfile?: Record<string, unknown>;
-  upgradeRequests?: { id: string; target: "artist" | "expert" | "consultant"; status: "pending" | "approved" | "rejected" | "needs_info"; assignedRole: "artists" | "csr"; submittedAt: string; reviewedAt?: string; reviewer?: string; note?: string }[];
+  professionalMemberships?: ("artist" | "expert" | "consultant")[];
+  professionalProfiles?: Partial<Record<"artist" | "expert" | "consultant", Record<string, unknown>>>;
+  upgradeRequests?: { id: string; target: "artist" | "expert" | "consultant"; status: "pending" | "approved" | "rejected" | "needs_info"; assignedRole: "artists" | "education" | "csr"; submittedAt: string; reviewedAt?: string; reviewer?: string; note?: string; documents?: { id: string; fileName: string; mimeType: string; size: number; uploadedAt: string }[] }[];
   supplementalData?: Record<string, string>;
   sourceApplicationIds?: string[];
   membershipHistory?: { from: MembershipTier | null; to: MembershipTier; at: string; actor: string; applicationId?: string }[];
@@ -130,6 +132,8 @@ export async function createRecord(kind: "member" | "club", data: Record<string,
       rankHistory: [],
       pointsBalance: Math.max(0, Number(data.pointsBalance) || 0),
       pointEvents: validPointEvents(data.pointEvents),
+      professionalMemberships: Array.isArray(data.professionalMemberships) ? data.professionalMemberships.filter((value): value is "artist" | "expert" | "consultant" => ["artist", "expert", "consultant"].includes(String(value))).slice(0, 10) : [],
+      ...(data.professionalProfiles && typeof data.professionalProfiles === "object" && !Array.isArray(data.professionalProfiles) ? { professionalProfiles: data.professionalProfiles as MemberRecord["professionalProfiles"] } : {}),
       ...(data.artistProfile && typeof data.artistProfile === "object" ? { artistProfile: data.artistProfile as Record<string, unknown> } : {}),
       ...(data.expertProfile && typeof data.expertProfile === "object" ? { expertProfile: data.expertProfile as Record<string, unknown> } : {}),
       upgradeRequests: Array.isArray(data.upgradeRequests) ? data.upgradeRequests as MemberRecord["upgradeRequests"] : [],

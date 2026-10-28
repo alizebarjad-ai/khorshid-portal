@@ -11,6 +11,13 @@ const PASSWORD_ALLOWED = new Set([
 const OWNER_ALLOWED_PREFIXES = ["/internal/owner", "/api/owner/"];
 const MEMBER_ALLOWED_PATHS = new Set([
   "/internal/member-home",
+  "/internal/member/programs",
+  "/internal/member/clubs",
+  "/internal/member/services",
+  "/internal/member/development",
+  "/internal/member-content",
+  "/internal/member-profile",
+  "/internal/member-activity",
   "/internal/change-password",
   "/api/auth/me",
   "/api/auth/logout",
@@ -21,7 +28,7 @@ const MEMBER_ALLOWED_PATHS = new Set([
   "/api/member-content",
   "/api/member-upgrades",
 ]);
-const MEMBER_ALLOWED_PREFIXES = ["/api/member-content/files/"];
+const MEMBER_ALLOWED_PREFIXES = ["/api/member-content/files/", "/api/member-upgrades/documents/"];
 
 export async function proxy(request: NextRequest) {
   const path = request.nextUrl.pathname;
