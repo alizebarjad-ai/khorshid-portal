@@ -91,7 +91,7 @@ export default function MyRewardPage() {
               {rows.map((row) => (
                 <tr key={row.projectId + "-" + row.role} className="border-t border-[#172F48]/10">
                   <td className="p-4 font-bold">{row.projectName}</td>
-                  <td className="p-4">{row.project.clientName || "-"}</td>
+                  <td className="p-4">{row.clientName || "-"}</td>
                   <td className="p-4">{row.role}</td>
                   <td className="p-4">{row.rolePercent}٪</td>
                   <td className="p-4">{row.share.toFixed(1)}٪</td>
