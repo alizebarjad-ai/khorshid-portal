@@ -32,7 +32,7 @@ const BENEFICIARY_API_METHODS = new Map<string, Set<string>>([
 
 export async function proxy(request: NextRequest) {
   const path = request.nextUrl.pathname;
-  if ((path === "/api/auth/login" || path === "/api/auth/activate") && request.method === "POST") {
+  if (["/api/auth/login", "/api/auth/activate", "/api/auth/forgot-password", "/api/auth/reset-password"].includes(path) && request.method === "POST") {
     const origin = request.headers.get("origin");
     const fetchSite = request.headers.get("sec-fetch-site");
     if (!origin || origin !== request.nextUrl.origin || fetchSite === "cross-site") {
