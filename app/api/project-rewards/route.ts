@@ -131,6 +131,16 @@ export async function PUT(request: NextRequest) {
     }
 
     if (user.role === "beneficiary") return fail("پس از ثبت، ویرایش پیشنهاد باید از مسیر گردش کار انجام شود.", 403);
+    const scopedUnitRoles = ["economic", "csr", "media", "artists", "education", "members"];
+    if (scopedUnitRoles.includes(user.role)) {
+      const team = Array.isArray(existing.team) ? existing.team : [];
+      const assignedToRole = existing.assignedTo === user.role
+        || existing.assignedUnit === user.role
+        || existing.ownerUnit === user.role
+        || existing.subjectArea === user.role
+        || team.includes(user.role);
+      if (!assignedToRole) return fail("این پیشنهاد به واحد شما ارجاع نشده و در تیم شما نیست.", 403);
+    }
     const allowedByRole: Record<string, string[]> = {
       deputy: ["status", "assignedTo", "assignedToName", "specialistBrief", "proposalDetails", "negotiationNote", "contractNo", "contractValue", "contractDate", "financeNote", "history"],
       ceo: ["status", "assignedTo", "assignedToName", "proposalDetails", "negotiationNote", "contractNo", "contractValue", "contractDate", "financeNote", "history"],
