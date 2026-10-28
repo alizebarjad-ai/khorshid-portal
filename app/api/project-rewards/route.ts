@@ -92,12 +92,22 @@ export async function GET() {
 
     const canViewFinancialDetails = ["owner", "ceo", "deputy", "finance"].includes(user.role);
     const safeProjects = canViewFinancialDetails ? visibleProjects : visibleProjects.map((item) => {
-      const { contractValue, contractNo, contractDate, financeNote, budget, paymentTerms, financialDetails, costs, revenue, sponsorAmount, paymentStatus, directCost, directCosts, overheadCosts, tax, otherCosts, received, rewardRate, financialTransactions, collectionStages, rewardBase, estimatedCost, proposedPrice, expectedValue, amount, cost, price, ...safe } = item;
-      return safe;
+      const { contractValue, contractNo, contractDate, financeNote, budget, paymentTerms, financialDetails, costs, revenue, sponsorAmount, paymentStatus, directCost, directCosts, overheadCosts, tax, otherCosts, received, rewardRate, financialTransactions, collectionStages, rewardBase, estimatedCost, proposedPrice, expectedValue, amount, cost, price, totalCosts, rewardPool, payout, calculatedReward, paymentReceiptNo, lastFinancialReview, settlementDate, settlementNote, ...safe } = item;
+      const people = Array.isArray(item.people) ? item.people.map((entry) => {
+        if (!entry || typeof entry !== "object") return entry;
+        const { weight, rolePercent, roleBaseWeight, rewardAmount, payoutAmount, share, ...safePerson } = entry as Record<string, unknown>;
+        return safePerson;
+      }) : undefined;
+      return { ...safe, ...(people ? { people } : {}) };
     });
     const safeProposals = canViewFinancialDetails ? visibleProposals : visibleProposals.map((item) => {
-      const { contractValue, contractNo, contractDate, financeNote, budget, paymentTerms, financialDetails, costs, revenue, sponsorAmount, paymentStatus, directCost, directCosts, overheadCosts, tax, otherCosts, received, rewardRate, financialTransactions, collectionStages, rewardBase, estimatedCost, proposedPrice, expectedValue, amount, cost, price, ...safe } = item;
-      return safe;
+      const { contractValue, contractNo, contractDate, financeNote, budget, paymentTerms, financialDetails, costs, revenue, sponsorAmount, paymentStatus, directCost, directCosts, overheadCosts, tax, otherCosts, received, rewardRate, financialTransactions, collectionStages, rewardBase, estimatedCost, proposedPrice, expectedValue, amount, cost, price, totalCosts, rewardPool, payout, calculatedReward, paymentReceiptNo, lastFinancialReview, settlementDate, settlementNote, ...safe } = item;
+      const people = Array.isArray(item.people) ? item.people.map((entry) => {
+        if (!entry || typeof entry !== "object") return entry;
+        const { weight, rolePercent, roleBaseWeight, rewardAmount, payoutAmount, share, ...safePerson } = entry as Record<string, unknown>;
+        return safePerson;
+      }) : undefined;
+      return { ...safe, ...(people ? { people } : {}) };
     });
 
     return NextResponse.json(
