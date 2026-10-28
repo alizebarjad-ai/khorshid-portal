@@ -87,7 +87,7 @@ export default function ContentReviewPage() {
     <main className="internal-app min-h-screen px-4 pb-16 pt-28 text-[#172F48]">
       <div className="container-site">
         <header className="rounded-3xl bg-[#172F48] p-6 text-white md:p-8">
-          <a href={dashboardPathForRole("media")} className="text-sm text-[#D7B978]">← بازگشت به داشبورد معاونت رسانه</a>
+          <button type="button" onClick={() => router.push(dashboardPathForRole("media"))} className="text-sm text-[#D7B978] underline-offset-4 hover:underline">← بازگشت به داشبورد معاونت رسانه</button>
           <h1 className="mt-3 text-3xl font-extrabold">کارتابل محتوای اعضا</h1>
           <p className="mt-2 max-w-3xl text-sm leading-7 text-[#E6EAF0]">
             محتوای اعضا را بررسی کنید. پس از تأیید، آن را مستقیماً به کارتابل ادمین سایت در سایت اصلی خورشید مفاخر ارجاع دهید؛ این محتوا به مدیرعامل یا مالک پرتال ارسال نمی‌شود.
@@ -98,7 +98,7 @@ export default function ContentReviewPage() {
           </div>
         </header>
         {error && <p role="alert" className="mt-5 rounded-xl bg-red-50 p-4 text-sm text-red-800">{error}</p>}
-        {notice && <p role="status" className="mt-5 rounded-xl bg-emerald-50 p-4 text-sm text-emerald-800">{notice}</p>}
+        {notice && <div role="status" className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-xl bg-emerald-50 p-4 text-sm text-emerald-800"><p>{notice}</p>{notice.includes("کارتابل ادمین") && <button type="button" onClick={() => router.push(dashboardPathForRole("media"))} className="rounded-xl bg-[#172F48] px-4 py-2 font-bold text-white">بازگشت به داشبورد معاونت رسانه</button>}</div>}
         {loading ? <p className="mt-6 rounded-2xl bg-white p-6">در حال دریافت محتوا…</p> :
           !items.length ? <p className="mt-6 rounded-2xl border border-dashed border-[#D8D0C4] bg-white p-8 text-center">فعلاً محتوایی در کارتابل رسانه نیست.</p> :
           <div className="mt-6 grid gap-4">
