@@ -51,7 +51,8 @@ export async function POST(request: Request) {
     const account = await findMemberAccountByEmail(email);
     if (!account || account.status !== "active") return generic();
 
-    const portalBase = (process.env.PORTAL_URL || process.env.NEXT_PUBLIC_PORTAL_URL || "").trim().replace(/\/$/, "");
+    const configuredPortalUrl = process.env.PORTAL_URL || process.env.NEXT_PUBLIC_PORTAL_URL || (process.env.VERCEL_PROJECT_PRODUCTION_URL ? "https://" + process.env.VERCEL_PROJECT_PRODUCTION_URL : "");
+    const portalBase = configuredPortalUrl.trim().replace(/\/$/, "");
     if (!portalBase || !process.env.PORTAL_MEMBERSHIP_API_KEY) {
       console.error("Password reset unavailable: portal URL or membership API key is not configured.");
       return generic();
