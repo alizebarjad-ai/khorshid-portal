@@ -32,7 +32,14 @@ const BENEFICIARY_API_METHODS = new Map<string, Set<string>>([
 
 export async function proxy(request: NextRequest) {
   const path = request.nextUrl.pathname;
-  if ((path === "/api/auth/login" || path === "/api/auth/activate") && request.method === "POST") return NextResponse.next();
+  if ((path === "/api/auth/login" || path === "/api/auth/activate") && request.method === "POST") {
+    const origin = request.headers.get("origin");
+    const fetchSite = request.headers.get("sec-fetch-site");
+    if (!origin || origin !== request.nextUrl.origin || fetchSite === "cross-site") {
+      return NextResponse.json({ error: "درخواست احراز هویت از مبدأ نامعتبر پذیرفته نشد." }, { status: 403, headers: { "Cache-Control": "no-store" } });
+    }
+    return NextResponse.next();
+  }
 
   const token = request.cookies.get(COOKIE_NAME)?.value;
   const user = decodeSession(token);
