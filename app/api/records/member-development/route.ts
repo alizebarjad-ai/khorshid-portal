@@ -121,7 +121,7 @@ export async function POST(request: NextRequest) {
         membershipType: "affiliate",
         membershipTier: "affiliate",
         membershipRank: nextRank,
-        membershipRankReason: reason,
+        rankReason: reason,
       }, { username: checked.user.username });
       if (!updated || updated.kind !== "member") return NextResponse.json({ error: "ثبت ارتقای رده انجام نشد." }, { status: 500 });
       return NextResponse.json({
