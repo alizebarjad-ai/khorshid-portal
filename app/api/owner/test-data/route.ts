@@ -19,6 +19,8 @@ const TEST_COLLECTIONS = [
   "member-points",
   "member-upgrades",
   "membership-documents",
+  "record-audit",
+  "member-contributions",
 ] as const;
 
 function error(message: string, status: number) {
