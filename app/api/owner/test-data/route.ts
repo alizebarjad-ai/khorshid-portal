@@ -18,6 +18,7 @@ const TEST_COLLECTIONS = [
   "member-content",
   "member-points",
   "member-upgrades",
+  "member-upgrade-documents",
   "membership-documents",
   "record-audit",
   "member-contributions",
