@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { dashboardPathForRole } from "@/lib/dashboard-path";
 
 type Item = {
   id: string;
@@ -86,7 +87,7 @@ export default function ContentReviewPage() {
     <main className="internal-app min-h-screen px-4 pb-16 pt-28 text-[#172F48]">
       <div className="container-site">
         <header className="rounded-3xl bg-[#172F48] p-6 text-white md:p-8">
-          <a href="/internal/media-manager" className="text-sm text-[#D7B978]">← بازگشت به داشبورد معاونت رسانه</a>
+          <a href={dashboardPathForRole("media")} className="text-sm text-[#D7B978]">← بازگشت به داشبورد معاونت رسانه</a>
           <h1 className="mt-3 text-3xl font-extrabold">کارتابل محتوای اعضا</h1>
           <p className="mt-2 max-w-3xl text-sm leading-7 text-[#E6EAF0]">
             محتوای اعضا را بررسی کنید. پس از تأیید، آن را مستقیماً به کارتابل ادمین سایت در سایت اصلی خورشید مفاخر ارجاع دهید؛ این محتوا به مدیرعامل یا مالک پرتال ارسال نمی‌شود.
