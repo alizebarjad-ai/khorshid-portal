@@ -51,6 +51,7 @@ export async function POST(request: NextRequest) {
   try {
     let deletedRecords = 0;
     let deletedFiles = 0;
+    let failedFiles = 0;
     const filePaths = new Map<string, boolean>();
 
     // First collect private blob paths, then remove records. Staff accounts and audit
@@ -79,14 +80,15 @@ export async function POST(request: NextRequest) {
       try {
         if (legacyPublicUrl) {
           const token = process.env.BLOB_READ_WRITE_TOKEN;
-          if (!token) continue;
+          if (!token) { failedFiles += 1; continue; }
           await del(path, { token });
         } else {
           await del(path);
         }
         deletedFiles += 1;
       } catch {
-        // Continue removing test records; a missing/already-deleted blob is non-fatal.
+        failedFiles += 1;
+        // Continue removing test records; report any files that could not be deleted.
       }
     }
 
@@ -108,6 +110,7 @@ export async function POST(request: NextRequest) {
       success: true,
       deletedRecords,
       deletedFiles,
+      failedFiles,
       preserved: ["staff-accounts", "security-audit"],
       auditRecorded,
     }, { headers: { "Cache-Control": "no-store" } });
