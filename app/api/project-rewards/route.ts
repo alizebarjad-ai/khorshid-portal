@@ -59,9 +59,40 @@ export async function GET() {
             || item.subjectArea === user.role
           );
 
+    if (user.role === "beneficiary") {
+      const rewards = visibleProjects.flatMap((project) => {
+        if (project.approvalStatus !== "تأیید شده" || project.status === "پیش‌نویس") return [];
+        const people = Array.isArray(project.people) ? project.people as Array<Record<string, unknown>> : [];
+        const totalWeight = people.reduce((sum, person) => sum + Math.max(0, Number(person.weight) || 0), 0);
+        if (!totalWeight) return [];
+        const mine = people.filter((person) => person.name === user.name);
+        if (!mine.length) return [];
+        const received = Math.max(0, Number(project.received) || 0);
+        const costs = ["directCosts", "overheadCosts", "tax", "otherCosts"].reduce((sum, key) => sum + Math.max(0, Number(project[key]) || 0), 0);
+        const rewardRate = Math.min(100, Math.max(0, Number(project.rewardRate) || 0));
+        const pool = Math.max(0, received - costs) * rewardRate / 100;
+        return mine.map((person) => {
+          const weight = Math.max(0, Number(person.weight) || 0);
+          return {
+            projectId: String(project.id || ""),
+            code: String(project.code || ""),
+            projectName: String(project.name || ""),
+            clientName: String(project.clientName || ""),
+            currency: String(project.currency || ""),
+            projectStatus: String(project.status || ""),
+            role: String(person.role || ""),
+            rolePercent: Math.max(0, Number(person.rolePercent) || 0),
+            share: weight / totalWeight * 100,
+            amount: pool * weight / totalWeight,
+          };
+        });
+      });
+      return NextResponse.json({ projects: [], rewards }, { headers: { "Cache-Control": "private, no-store, max-age=0" } });
+    }
+
     const canViewFinancialDetails = ["owner", "ceo", "deputy", "finance"].includes(user.role);
     const safeProjects = canViewFinancialDetails ? visibleProjects : visibleProjects.map((item) => {
-      const { contractValue, contractNo, contractDate, financeNote, budget, paymentTerms, financialDetails, costs, revenue, sponsorAmount, paymentStatus, directCost, rewardBase, estimatedCost, proposedPrice, expectedValue, amount, cost, price, ...safe } = item;
+      const { contractValue, contractNo, contractDate, financeNote, budget, paymentTerms, financialDetails, costs, revenue, sponsorAmount, paymentStatus, directCost, directCosts, overheadCosts, tax, otherCosts, received, rewardRate, financialTransactions, collectionStages, rewardBase, estimatedCost, proposedPrice, expectedValue, amount, cost, price, ...safe } = item;
       return safe;
     });
     const safeProposals = canViewFinancialDetails ? visibleProposals : visibleProposals.map((item) => {
