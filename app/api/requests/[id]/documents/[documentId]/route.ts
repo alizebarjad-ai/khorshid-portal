@@ -22,8 +22,8 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
     const requestData = await requestResponse.json().catch(() => ({}));
     const item = requestData.item;
     if (!requestResponse.ok || !item) return NextResponse.json({ error: "درخواست پیدا نشد." }, { status: 404 });
-    if (!["ceo", "deputy"].includes(user.role) && item.assignedUnit !== user.role) {
-      return NextResponse.json({ error: "این درخواست به واحد شما ارجاع نشده است." }, { status: 403 });
+    if (item.assignedUnit !== user.role) {
+      return NextResponse.json({ error: "فایل فقط برای واحدی قابل دریافت است که درخواست صریحاً به آن ارجاع شده باشد." }, { status: 403 });
     }
     const fileResponse = await fetch(new URL("/api/portal/requests/" + encodeURIComponent(id) + "/documents/" + encodeURIComponent(documentId), base), {
       headers: { "x-portal-membership-key": key },
