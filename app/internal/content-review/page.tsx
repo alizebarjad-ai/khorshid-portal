@@ -141,7 +141,7 @@ export default function ContentReviewPage() {
                 </div>
               </div>}
               {item.status === "approved_media" && <div className="mt-4"><label className="block text-sm font-bold">توضیح انتشار برای ادمین سایت<textarea className={inputClass + " mt-2"} rows={3} maxLength={3000} value={notes[item.id] || item.mediaNote || ""} onChange={e => setNotes(old => ({ ...old, [item.id]: e.target.value }))} placeholder="پیشنهاد عنوان، کپشن، دسته‌بندی و اعتبار صاحب اثر" /></label><button disabled={busy === item.id || (notes[item.id] || "").trim().length < 20} onClick={() => void act(item, "forward")} className="mt-3 rounded-xl bg-[#172F48] px-4 py-3 text-sm font-extrabold text-white disabled:opacity-50">ارجاع به ادمین سایت در سایت اصلی</button><p className="mt-2 text-xs leading-6 text-[#687783]">برای جلوگیری از ارجاع ناقص، توضیح انتشار حداقل ۲۰ نویسه‌ای الزامی است.</p></div>}
-              {(item.status === "approved_media" || item.status === "rejected_media") && <div className="mt-4 flex justify-end border-t border-[#E3E0D8] pt-4"><button type="button" disabled={busy === item.id} onClick={() => void remove(item)} className="rounded-xl border border-red-300 bg-red-50 px-4 py-2.5 text-sm font-bold text-red-800 disabled:opacity-50">{busy === item.id ? "در حال انجام…" : "حذف محتوا و فایل پیوست"}</button></div>}
+              {<div className="mt-4 flex justify-end border-t border-[#E3E0D8] pt-4"><button type="button" disabled={busy === item.id} onClick={() => void remove(item)} className="rounded-xl border border-red-300 bg-red-50 px-4 py-2.5 text-sm font-bold text-red-800 disabled:opacity-50">{busy === item.id ? "در حال انجام…" : "حذف محتوا و فایل پیوست"}</button></div>}
             </article>)}
           </div>}
       </div>
