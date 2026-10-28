@@ -112,17 +112,17 @@ export async function PUT(request: NextRequest) {
 
     if (!existing) {
       if (!proposalRoles.includes(user.role)) return fail("ثبت پیشنهاد برای نقش شما مجاز نیست.", 403);
-      const newItem: Record<string, unknown> & { id: string } = {
-        ...item,
-        id: item.id,
-        creator: user.username,
-        creatorName: user.name,
-      };
-      if (user.role === "beneficiary") {
-        newItem.status = "در حال بررسی قائم‌مقام";
-        newItem.assignedTo = "deputy";
-        newItem.assignedToName = "قائم‌مقام";
+      const newItem: Record<string, unknown> & { id: string } = { ...item, id: item.id };
+      // Workflow state, assignment, history and financial decisions are server-owned.
+      // A caller must not manufacture a completed/contracted proposal at creation time.
+      for (const key of ["creator", "creatorName", "status", "assignedTo", "assignedToName", "history", "contractNo", "contractValue", "contractDate", "financeNote", "approvedBy", "approvedAt"]) {
+        delete newItem[key];
       }
+      newItem.creator = user.username;
+      newItem.creatorName = user.name;
+      newItem.status = user.role === "beneficiary" ? "در حال بررسی قائم‌مقام" : "ثبت اولیه";
+      newItem.assignedTo = "deputy";
+      newItem.assignedToName = "قائم‌مقام";
       return NextResponse.json({ item: await putStored(collection, newItem as Record<string, unknown> & { id: string }) }, { status: 201 });
     }
 
