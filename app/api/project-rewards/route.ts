@@ -61,7 +61,7 @@ export async function GET() {
 
     const canViewFinancialDetails = ["owner", "ceo", "deputy", "finance"].includes(user.role);
     const safeProjects = canViewFinancialDetails ? visibleProjects : visibleProjects.map((item) => {
-      const { contractValue, contractNo, contractDate, financeNote, budget, paymentTerms, financialDetails, costs, revenue, sponsorAmount, paymentStatus, ...safe } = item;
+      const { contractValue, contractNo, contractDate, financeNote, budget, paymentTerms, financialDetails, costs, revenue, sponsorAmount, paymentStatus, directCost, rewardBase, estimatedCost, proposedPrice, expectedValue, amount, cost, price, ...safe } = item;
       return safe;
     });
     const safeProposals = canViewFinancialDetails ? visibleProposals : visibleProposals.map((item) => {
