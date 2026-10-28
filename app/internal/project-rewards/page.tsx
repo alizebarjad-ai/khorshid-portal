@@ -7,6 +7,7 @@ type RoleGuideItem = { name: string; weight: number; desc: string };
 
 type Person = {
   id: string;
+  username?: string;
   name: string;
   role: string;
   roleBaseWeight: number;
@@ -262,6 +263,7 @@ function normalizeProject(raw: Partial<Project>): Project {
     status: raw.status || "پیش‌نویس",
     people: (raw.people || []).map((p) => ({
       id: p.id || uid(),
+      username: typeof p.username === "string" ? p.username.trim() : "",
       name: p.name || "",
       role: p.role || "سایر",
       roleBaseWeight: Number(p.roleBaseWeight || 3),
@@ -290,7 +292,8 @@ export default function ProjectRewardsPage() {
   const [step, setStep] = useState(1);
   const [name, setName] = useState("");
   const [rewardRate, setRewardRate] = useState("20");
-  const [personName, setPersonName] = useState("");\n  const [personUsername, setPersonUsername] = useState("");
+  const [personName, setPersonName] = useState("");
+  const [personUsername, setPersonUsername] = useState("");
   const [personRole, setPersonRole] = useState(ROLE_GUIDE[0].name);
   const [personPercent, setPersonPercent] = useState("100");
   const [personRoleWeight, setPersonRoleWeight] = useState(String(ROLE_GUIDE[0].weight));
@@ -595,6 +598,7 @@ export default function ProjectRewardsPage() {
     if (existingRolePercent + percent > 100) { alert(`مجموع سهم نقش «${selectedRole.name}» نباید از ۱۰۰٪ بیشتر شود. سهم فعلی: ${existingRolePercent}٪`); return; }
     const person: Person = {
       id: uid(),
+      username: personUsername.trim(),
       name: personName.trim(),
       role: selectedRole.name,
       roleBaseWeight: Number(personRoleWeight) || 0,
@@ -606,6 +610,7 @@ export default function ProjectRewardsPage() {
     };
     updateProject({ people: [...project.people, person] });
     setPersonName("");
+    setPersonUsername("");
     setPersonPercent("100");
     setPersonRoleWeight(String(ROLE_GUIDE[0].weight));
     setPersonNotes("");
@@ -1758,7 +1763,8 @@ export default function ProjectRewardsPage() {
 
                     <fieldset disabled={!canEditTeam} className="mt-5 rounded-2xl bg-[#F4EEE4] p-5 disabled:opacity-70">
                       <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-                        <Field label="نام فرد" value={personName} onChange={setPersonName} placeholder="نام و نام خانوادگی" />\n                         <Field label="نام کاربری پرتال (برای محاسبه پاداش)" value={personUsername} onChange={setPersonUsername} placeholder="شناسه دقیق حساب؛ برای افراد فاقد حساب خالی بماند" />
+                        <Field label="نام فرد" value={personName} onChange={setPersonName} placeholder="نام و نام خانوادگی" />
+                         <Field label="نام کاربری پرتال (برای محاسبه پاداش)" value={personUsername} onChange={setPersonUsername} placeholder="شناسه دقیق حساب؛ برای افراد فاقد حساب خالی بماند" />
                         <SelectField label="نقش" value={personRole} onChange={setPersonRole} options={ROLE_GUIDE.map((r) => r.name)} />
                         <SelectField label="نوع همکاری" value={personRelationship} onChange={setPersonRelationship} options={["عضو داخلی", "همکار تخصصی", "معرف", "شریک", "پیمانکار", "حامی / شریک اقتصادی", "سایر"]} />
                         <label className="block text-sm font-semibold">
