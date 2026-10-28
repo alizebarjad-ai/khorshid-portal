@@ -18,6 +18,7 @@ export type MemberAccount = {
   createdAt: string;
   updatedAt: string;
   lastLoginAt?: string;
+  passwordChangedAt?: string;
 };
 
 function asciiDigits(value: string) {
@@ -130,7 +131,8 @@ export async function activateMemberAccount(account: MemberAccount, password: st
 }
 
 export async function changeMemberPassword(account: MemberAccount, password: string) {
-  const updated = { ...account, passwordHash: passwordHash(password), updatedAt: new Date().toISOString() };
+  const now = new Date().toISOString();
+  const updated = { ...account, passwordHash: passwordHash(password), passwordChangedAt: now, updatedAt: now };
   await putStored("member-accounts", updated);
   return updated;
 }
