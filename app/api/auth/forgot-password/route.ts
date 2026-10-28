@@ -51,11 +51,20 @@ export async function POST(request: Request) {
     const account = await findMemberAccountByEmail(email);
     if (!account || account.status !== "active") return generic();
 
+    const portalBase = (process.env.PORTAL_URL || process.env.NEXT_PUBLIC_PORTAL_URL || "").trim().replace(/\/$/, "");
+    if (!portalBase || !process.env.PORTAL_MEMBERSHIP_API_KEY) {
+      console.error("Password reset unavailable: portal URL or membership API key is not configured.");
+      return generic();
+    }
+    let portalOrigin: URL;
+    try { portalOrigin = new URL(portalBase); } catch { return generic(); }
+    if (portalOrigin.protocol !== "https:" || portalOrigin.username || portalOrigin.password) return generic();
+
     const token = randomBytes(32).toString("hex");
     await setMemberPasswordResetToken(account, token);
 
     const base = (process.env.WEBSITE_PASSWORD_RESET_EMAIL_URL || "https://www.khorshid-mafakher.ir/api/portal/password-reset-email").trim();
-    const apiKey = process.env.PORTAL_MEMBERSHIP_API_KEY || "";
+    const apiKey = process.env.PORTAL_MEMBERSHIP_API_KEY;
     const sent = await fetch(base, {
       method: "POST",
       headers: { "Content-Type": "application/json", "x-portal-membership-key": apiKey },
