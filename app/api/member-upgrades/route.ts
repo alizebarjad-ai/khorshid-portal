@@ -49,14 +49,14 @@ export async function GET(request: NextRequest) {
     const members: MemberRecord[] = await readMembers();
     const statusOnly = ["members", "ceo", "deputy"].includes(auth.user.role);
     const visible = members.flatMap(member => (member.upgradeRequests || [])
-      .filter(item => ["ceo", "deputy", "members"].includes(auth.user!.role) || item.assignedRole === auth.user!.role)
+      .filter(item => ["ceo", "deputy", "members"].includes(auth.user!.role) || assignedRole(item.target) === auth.user!.role)
       .map(item => statusOnly
         ? ({
-            id: item.id, target: item.target, status: item.status, assignedRole: item.assignedRole,
+            id: item.id, target: item.target, status: item.status, assignedRole: assignedRole(item.target),
             submittedAt: item.submittedAt, reviewedAt: item.reviewedAt,
             member: { id: member.id, fullName: member.fullName },
           })
-        : ({ ...item, member: {
+        : ({ ...item, assignedRole: assignedRole(item.target), member: {
             id: member.id, fullName: member.fullName, email: member.email, phone: member.phone,
             city: member.city, membershipTier: member.membershipTier || "affiliate",
             membershipGrade: member.membershipRank || member.membershipGrade || "volunteer",
@@ -196,7 +196,7 @@ export async function PATCH(request: NextRequest) {
     const requests = member.upgradeRequests || [];
     const current = requests.find(item => item.id === body.requestId);
     if (!current) return NextResponse.json({ error: "درخواست ارتقا پیدا نشد." }, { status: 404 });
-    if (auth.user.role !== "ceo" && current.assignedRole !== auth.user.role) {
+    if (!["ceo", "deputy"].includes(auth.user.role) && assignedRole(current.target) !== auth.user.role) {
       return NextResponse.json({ error: "این درخواست فقط در کارتابل معاونت ارجاع‌شده قابل تصمیم‌گیری است." }, { status: 403 });
     }
     if (current.status !== "pending" && current.status !== "needs_info") {
