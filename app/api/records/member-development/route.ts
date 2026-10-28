@@ -1,8 +1,8 @@
 import { randomUUID } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { COOKIE_NAME, decodeSession } from "@/lib/auth";
-import { readMembers, updateRecord, type MembershipRank } from "@/lib/records-store";
-import { listStored, putStored } from "@/lib/persistent-store";
+import { readMembers, readMemberPointLedger, updateRecord, type MembershipRank } from "@/lib/records-store";
+import { putStored } from "@/lib/persistent-store";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -37,13 +37,22 @@ export async function GET(request: NextRequest) {
   if (!checked.user) return checked.response!;
   try {
     const memberId = request.nextUrl.searchParams.get("memberId");
-    const [members, entries] = await Promise.all([
+    const [members, ledger] = await Promise.all([
       readMembers(),
-      listStored<PointEntry>("member-points"),
+      readMemberPointLedger(memberId || undefined),
     ]);
     const validMemberIds = new Set(members.map((member) => member.id));
-    const filtered = entries
-      .filter((entry) => validMemberIds.has(entry.memberId) && (!memberId || entry.memberId === memberId))
+    const filtered: PointEntry[] = ledger
+      .filter((entry) => validMemberIds.has(entry.memberId))
+      .map((entry) => ({
+        id: entry.id,
+        memberId: entry.memberId,
+        points: Number(entry.points) || 0,
+        title: entry.title,
+        note: entry.note || "",
+        createdAt: entry.createdAt,
+        createdBy: entry.createdBy || entry.actor || "سامانه",
+      }))
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
     const pointsByMember: Record<string, { balance: number; events: PointEntry[] }> = {};
     for (const entry of filtered) {
